@@ -1,0 +1,147 @@
+Gen2 v1.1 Log
+Application Compiler: Delphi 2010
+Gen2 Config Options:
+  Write Log - ON
+  Report Memory Leaks - ON
+  Enable PerfHUD - OFF
+  Use Inline - OFF
+System Specs:
+  OS: Microsoft Windows 7 , 32-bit
+  CPU: 
+    Access Denied
+    Extensions: [MMX][SSE][SSE2][SSE3]
+  Memory:
+    Total: 4014Mb
+    Available: 1868Mb
+    53% in use
+  Video Memory:
+    Total: 2737Mb
+    Available: 2729Mb
+  Display Device: NVIDIA GeForce GT 330M
+DirectX Info:
+  D3DX SDK Version: 33
+  D3DX Lib: d3dx9_33.dll
+  DirectX Installed Version: Unspecified
+[00:00:00] Application started.
+[00:00:00] [==Globals===] - Mesh Loader Registered (Gen2 Mesh Loader)
+[00:00:00] [==Globals===] - Mesh Loader Registered (DirectX Mesh Loader)
+[00:00:00] [====Core====] - Initialization Started.
+[00:00:00] [===Timer====] - Initialization Started.
+[00:00:00] [===Timer====] - Initialization Finished.
+[00:00:00] [==Graphics==] - Initialization Started.
+[00:00:00] [==Graphics==] - Adapter: NVIDIA GeForce GT 330M
+[00:00:00] [==Graphics==] - Adapter Driver: nvd3dum.dll
+[00:00:00] [==Graphics==] - System Display Mode: 1920x1080 59Hz
+[00:00:00] [==Graphics==] - Initialization Parameters:
+
+                            Windowed 800x600
+                            Back Buffer Format: X8R8G8B8
+                            Render Target Surface Format: A8R8G8B8
+                            Depth-Stencil Surface Format: D24S8
+                            Texture2D Format: DXT3
+                            Render Target Texture2D Format: A8R8G8B8
+                            Depth-Stencil Texture2D Format: D24S8
+                            TextureCube Format: DXT3
+                            Render Target TextureCube Format: A8R8G8B8
+                            TextureVolume Format: DXT3
+                            Vertex Processing: Hardware
+                            Device Settings: [Multithreaded]
+                            Device Capabilities:
+                            Max Texture Size: 8192x8192
+                            Max Texture Blend Stages: 8
+                            Max Simultanious Textures: 8
+                            VertexShader Version: 3.0
+                            PixelShader Version: 3.0
+
+[00:00:00] [=ShaderLib==] - Binary Shader Added: vs_Grass
+[00:00:00] [=ShaderLib==] - Binary Shader Added: vs_Particles3D
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_Landscape
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_Meshes
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_World3D
+[00:00:00] [==Graphics==] - Initialization Finished.
+[00:00:00] [===Audio====] - Initialization Started.
+[00:00:04] [===Audio====] - Initialization Finished.
+[00:00:04] [===Input====] - Initialization Started.
+[00:00:04] [===Input====] - Initialization Finished.
+[00:00:04] [==Network===] - Initialization Started.
+[00:00:04] [==Network===] - Initialization Finished.
+[00:00:04] [====Core====] - Initialization Finished.
+[00:00:04] [==Textures==] - (+) Texture Initialized: (Font_SharedFont0_Texture).
+[00:00:04] [===Fonts====] - (+) Font Initialized: (SharedFont0)
+[00:00:04] [==Textures==] - (>) Texture Loaded (Font_SharedFont0_Texture): Texture2D 256x512 DXT2 1Mip
+[00:00:04] [===Fonts====] - (>) Font Generated (SharedFont0): Arial 12 Texture256x512
+[00:00:04] [==Textures==] - (+) Texture Initialized: (Border).
+[00:00:04] [==Textures==] - (>) Texture Loaded (Border): Texture2D 64x64 DXT3 1Mip
+[00:00:04] [==Textures==] - (+) Texture Initialized: (TopBG).
+[00:00:04] [==Textures==] - (>) Texture Loaded (TopBG): Texture2D 256x64 DXT3 1Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (Grad).
+[00:00:05] [==Textures==] - (>) Texture Loaded (Grad): Texture2D 4x4 DXT3 1Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (DefDiffuse).
+[00:00:05] [==Textures==] - (>) Texture Created (DefDiffuse): Texture2D 4x4 A8R8G8B8 1Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (DefSpecular).
+[00:00:05] [==Textures==] - (>) Texture Created (DefSpecular): Texture2D 4x4 A8R8G8B8 1Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (DefNormals).
+[00:00:05] [==Textures==] - (>) Texture Created (DefNormals): Texture2D 4x4 A8R8G8B8 1Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (Font_SharedFont1_Texture).
+[00:00:05] [===Fonts====] - (+) Font Initialized: (SharedFont1)
+[00:00:05] [==Textures==] - (>) Texture Loaded (Font_SharedFont1_Texture): Texture2D 128x256 DXT2 1Mip
+[00:00:05] [===Fonts====] - (>) Font Generated (SharedFont1): Courier New 8 Texture128x256
+[00:00:05] [==Textures==] - (+) Texture Initialized: (Wireframe).
+[00:00:05] [==Textures==] - (>) Texture Loaded (Wireframe): Texture2D 64x64 DXT3 2Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (BBox).
+[00:00:05] [==Textures==] - (>) Texture Loaded (BBox): Texture2D 64x64 DXT3 2Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (Structure).
+[00:00:05] [==Textures==] - (>) Texture Loaded (Structure): Texture2D 64x64 DXT3 2Mip
+[00:00:05] [===Timer====] - Timer Started.
+Opening file: I:\[WIP]\Games\TD2\Turret01.g2m
+[00:00:05] [==Shaders===] - (+) Effect Initialized: (fx_Meshes).
+[00:00:05] [==Shaders===] - (>) Effect Loaded (fx_Meshes).
+[00:00:05] [==Textures==] - (+) Texture Initialized: (Turret01.dds).
+[00:00:05] [==Textures==] - (>) Texture Loaded (Turret01.dds): Texture2D 512x512 DXT3 8Mip
+[00:00:25] [==Graphics==] - New Paremeters, swap chain reset required.
+[00:01:01] [===Timer====] - Timer Stoped.
+[00:01:01] [===Timer====] - Timer Average FPS = 64
+[00:01:01] [====Core====] - Finalization Started.
+[00:01:01] [==Network===] - Finalization Started.
+[00:01:01] [==Network===] - Finalization Finished.
+[00:01:01] [===Audio====] - Finalization Started
+[00:01:01] [===Audio====] - Finalization Finished
+[00:01:01] [==Graphics==] - Finalization Started.
+[00:01:01] [==Shaders===] - (<) Effect Released (fx_Meshes).
+[00:01:01] [==Shaders===] - (-) Effect Finalized: (fx_Meshes).
+[00:01:01] [===Fonts====] - (<) Font Released: (SharedFont1).
+[00:01:01] [==Textures==] - (<) Texture Released (Font_SharedFont1_Texture).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (Font_SharedFont1_Texture).
+[00:01:01] [===Fonts====] - (-) Font Finalized: (SharedFont1)
+[00:01:01] [===Fonts====] - (<) Font Released: (SharedFont0).
+[00:01:01] [==Textures==] - (<) Texture Released (Font_SharedFont0_Texture).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (Font_SharedFont0_Texture).
+[00:01:01] [===Fonts====] - (-) Font Finalized: (SharedFont0)
+[00:01:01] [==Graphics==] - Finalization Finished.
+[00:01:01] [===Timer====] - Finalization Started.
+[00:01:01] [===Timer====] - Finalization Finished.
+[00:01:01] [====Core====] - (W) 3 Modules are unreleased
+[00:01:01] [====Core====] - Module Cleanup Started.
+[00:01:01] [==Textures==] - (<) Texture Released (BBox).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (BBox).
+[00:01:01] [==Textures==] - (<) Texture Released (Border).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (Border).
+[00:01:01] [==Textures==] - (<) Texture Released (DefDiffuse).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (DefDiffuse).
+[00:01:01] [==Textures==] - (<) Texture Released (DefNormals).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (DefNormals).
+[00:01:01] [==Textures==] - (<) Texture Released (DefSpecular).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (DefSpecular).
+[00:01:01] [==Textures==] - (<) Texture Released (Grad).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (Grad).
+[00:01:01] [==Textures==] - (<) Texture Released (Structure).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (Structure).
+[00:01:01] [==Textures==] - (<) Texture Released (TopBG).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (TopBG).
+[00:01:01] [==Textures==] - (<) Texture Released (Wireframe).
+[00:01:01] [==Textures==] - (-) Texture Finalized: (Wireframe).
+[00:01:01] [==Textures==] - (<) Texture Released (Turret01.dds).
+[00:01:02] [==Textures==] - (-) Texture Finalized: (Turret01.dds).
+[00:01:02] [====Core====] - Module Cleanup Finished.
+[00:01:02] [====Core====] - Finalization Finished.
+[00:01:02] Application closed.

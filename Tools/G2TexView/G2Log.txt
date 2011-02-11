@@ -1,0 +1,1068 @@
+Gen2 v1.1 Log
+Application Compiler: Delphi 2010
+Gen2 Config Options:
+  Write Log - ON
+  Report Memory Leaks - ON
+  Enable PerfHUD - OFF
+  Use Inline - OFF
+System Specs:
+  OS: Microsoft Windows 7 , 32-bit
+  CPU: 
+    Access Denied
+    Extensions: [MMX][SSE][SSE2][SSE3]
+  Memory:
+    Total: 4014Mb
+    Available: 1935Mb
+    51% in use
+  Video Memory:
+    Total: 2737Mb
+    Available: 2729Mb
+  Display Device: NVIDIA GeForce GT 330M
+DirectX Info:
+  D3DX SDK Version: 33
+  D3DX Lib: d3dx9_33.dll
+  DirectX Installed Version: Unspecified
+[00:00:00] Application started.
+[00:00:00] [====Core====] - Initialization Started.
+[00:00:00] [===Timer====] - Initialization Started.
+[00:00:00] [===Timer====] - Initialization Finished.
+[00:00:00] [==Graphics==] - Initialization Started.
+[00:00:00] [==Graphics==] - Adapter: NVIDIA GeForce GT 330M
+[00:00:00] [==Graphics==] - Adapter Driver: nvd3dum.dll
+[00:00:00] [==Graphics==] - System Display Mode: 1920x1080 59Hz
+[00:00:00] [==Graphics==] - Initialization Parameters:
+
+                            Windowed 800x600
+                            Back Buffer Format: X8R8G8B8
+                            Render Target Surface Format: A8R8G8B8
+                            Depth-Stencil Surface Format: D24S8
+                            Texture2D Format: DXT3
+                            Render Target Texture2D Format: A8R8G8B8
+                            Depth-Stencil Texture2D Format: D24S8
+                            TextureCube Format: DXT3
+                            Render Target TextureCube Format: A8R8G8B8
+                            TextureVolume Format: DXT3
+                            Vertex Processing: Hardware
+                            Device Settings: [Multithreaded]
+                            Device Capabilities:
+                            Max Texture Size: 8192x8192
+                            Max Texture Blend Stages: 8
+                            Max Simultanious Textures: 8
+                            VertexShader Version: 3.0
+                            PixelShader Version: 3.0
+
+[00:00:00] [=ShaderLib==] - Binary Shader Added: vs_Grass
+[00:00:00] [=ShaderLib==] - Binary Shader Added: vs_Particles3D
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_Landscape
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_Meshes
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_World3D
+[00:00:00] [==Graphics==] - Initialization Finished.
+[00:00:00] [===Audio====] - Initialization Started.
+[00:00:04] [===Audio====] - Initialization Finished.
+[00:00:04] [===Input====] - Initialization Started.
+[00:00:04] [===Input====] - Initialization Finished.
+[00:00:04] [==Network===] - Initialization Started.
+[00:00:04] [==Network===] - Initialization Finished.
+[00:00:04] [====Core====] - Initialization Finished.
+[00:00:04] [==Textures==] - (+) Texture Initialized: (Font_SharedFont0_Texture).
+[00:00:04] [===Fonts====] - (+) Font Initialized: (SharedFont0)
+[00:00:04] [==Textures==] - (>) Texture Loaded (Font_SharedFont0_Texture): Texture2D 512x512 DXT2 1Mip
+[00:00:04] [===Fonts====] - (>) Font Generated (SharedFont0): Arial 16 Texture512x512
+[00:00:04] [==Textures==] - (+) Texture Initialized: (Grid).
+[00:00:04] [==Textures==] - (>) Texture Loaded (Grid): Texture2D 16x16 DXT5 1Mip
+[00:00:04] [==Textures==] - (+) Texture Initialized: (BtnBlob).
+[00:00:04] [==Textures==] - (>) Texture Loaded (BtnBlob): Texture2D 64x64 DXT5 1Mip
+[00:00:04] [==Textures==] - (+) Texture Initialized: (BtnBlobH).
+[00:00:04] [==Textures==] - (>) Texture Loaded (BtnBlobH): Texture2D 64x64 DXT5 1Mip
+[00:00:04] [==Textures==] - (+) Texture Initialized: (BtnSave).
+[00:00:04] [==Textures==] - (>) Texture Loaded (BtnSave): Texture2D 32x32 DXT5 1Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (BtnLoad).
+[00:00:05] [==Textures==] - (>) Texture Loaded (BtnLoad): Texture2D 32x32 DXT5 1Mip
+[00:00:05] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:05] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:05] [===Timer====] - Timer Started.
+[00:00:05] [==Graphics==] - New Paremeters, swap chain reset required.
+[00:00:07] [==Textures==] - (<) Texture Released (Tex).
+[00:00:07] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:07] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:07] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:07] [==Textures==] - (<) Texture Released (Tex).
+[00:00:07] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:07] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:07] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:07] [==Textures==] - (<) Texture Released (Tex).
+[00:00:07] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:07] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:07] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:08] [==Textures==] - (<) Texture Released (Tex).
+[00:00:08] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:08] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:08] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:08] [==Textures==] - (<) Texture Released (Tex).
+[00:00:08] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:08] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:08] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:08] [==Textures==] - (<) Texture Released (Tex).
+[00:00:08] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:08] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:08] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:09] [==Textures==] - (<) Texture Released (Tex).
+[00:00:09] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:09] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:09] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:09] [==Textures==] - (<) Texture Released (Tex).
+[00:00:09] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:09] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:09] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:09] [==Textures==] - (<) Texture Released (Tex).
+[00:00:09] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:10] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:10] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:10] [==Textures==] - (<) Texture Released (Tex).
+[00:00:10] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:10] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:10] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:13] [==Textures==] - (<) Texture Released (Tex).
+[00:00:13] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:13] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:13] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:13] [==Textures==] - (<) Texture Released (Tex).
+[00:00:13] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:13] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:14] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:14] [==Textures==] - (<) Texture Released (Tex).
+[00:00:14] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:14] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:14] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:27] [==Textures==] - (<) Texture Released (Tex).
+[00:00:27] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:27] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:27] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:29] [==Textures==] - (<) Texture Released (Tex).
+[00:00:29] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:29] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:29] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:30] [==Textures==] - (<) Texture Released (Tex).
+[00:00:30] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:30] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:30] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:31] [==Textures==] - (<) Texture Released (Tex).
+[00:00:31] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:31] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:31] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:32] [==Textures==] - (<) Texture Released (Tex).
+[00:00:32] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:32] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:32] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:33] [==Textures==] - (<) Texture Released (Tex).
+[00:00:33] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:33] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:33] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:33] [==Textures==] - (<) Texture Released (Tex).
+[00:00:33] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:33] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:33] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:34] [==Textures==] - (<) Texture Released (Tex).
+[00:00:34] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:34] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:34] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:34] [==Textures==] - (<) Texture Released (Tex).
+[00:00:34] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:34] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:34] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:35] [==Textures==] - (<) Texture Released (Tex).
+[00:00:35] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:35] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:35] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:35] [==Textures==] - (<) Texture Released (Tex).
+[00:00:35] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:35] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:35] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:36] [==Textures==] - (<) Texture Released (Tex).
+[00:00:36] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:36] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:36] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:36] [==Textures==] - (<) Texture Released (Tex).
+[00:00:36] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:36] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:36] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:37] [==Textures==] - (<) Texture Released (Tex).
+[00:00:37] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:37] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:37] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:37] [==Textures==] - (<) Texture Released (Tex).
+[00:00:37] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:37] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:37] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:37] [==Textures==] - (<) Texture Released (Tex).
+[00:00:37] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:37] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:37] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:38] [==Textures==] - (<) Texture Released (Tex).
+[00:00:38] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:38] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:38] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:38] [==Textures==] - (<) Texture Released (Tex).
+[00:00:38] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:38] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:38] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:38] [==Textures==] - (<) Texture Released (Tex).
+[00:00:38] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:38] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:38] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:38] [==Textures==] - (<) Texture Released (Tex).
+[00:00:38] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:38] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:38] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:39] [==Textures==] - (<) Texture Released (Tex).
+[00:00:39] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:39] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:39] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:39] [==Textures==] - (<) Texture Released (Tex).
+[00:00:39] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:39] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:39] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:50] [==Textures==] - (<) Texture Released (Tex).
+[00:00:50] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:50] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:50] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:51] [==Textures==] - (<) Texture Released (Tex).
+[00:00:51] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:51] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:51] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:51] [==Textures==] - (<) Texture Released (Tex).
+[00:00:51] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:51] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:51] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:52] [==Textures==] - (<) Texture Released (Tex).
+[00:00:52] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:52] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:52] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:52] [==Textures==] - (<) Texture Released (Tex).
+[00:00:52] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:52] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:52] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:52] [==Textures==] - (<) Texture Released (Tex).
+[00:00:53] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:53] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:53] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:00:53] [==Textures==] - (<) Texture Released (Tex).
+[00:00:53] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:53] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:53] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:53] [==Textures==] - (<) Texture Released (Tex).
+[00:00:53] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:53] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:53] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 64x64 A8R8G8B8 7Mip
+[00:00:54] [==Textures==] - (<) Texture Released (Tex).
+[00:00:54] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:54] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:54] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:54] [==Textures==] - (<) Texture Released (Tex).
+[00:00:54] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:54] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:54] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:55] [==Textures==] - (<) Texture Released (Tex).
+[00:00:55] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:55] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:55] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:00:55] [==Textures==] - (<) Texture Released (Tex).
+[00:00:55] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:55] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:55] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:00:56] [==Textures==] - (<) Texture Released (Tex).
+[00:00:56] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:56] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:56] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 32x32 A8R8G8B8 6Mip
+[00:00:56] [==Textures==] - (<) Texture Released (Tex).
+[00:00:56] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:00:56] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:00:56] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:02] [==Textures==] - (<) Texture Released (Tex).
+[00:01:02] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:02] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:02] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:03] [==Textures==] - (<) Texture Released (Tex).
+[00:01:03] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:03] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:03] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:14] [==Textures==] - (<) Texture Released (Tex).
+[00:01:14] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:14] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:14] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:17] [==Textures==] - (<) Texture Released (Tex).
+[00:01:17] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:17] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:17] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:18] [==Textures==] - (<) Texture Released (Tex).
+[00:01:18] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:18] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:18] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:20] [==Textures==] - (<) Texture Released (Tex).
+[00:01:20] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:20] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:20] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:01:20] [==Textures==] - (<) Texture Released (Tex).
+[00:01:20] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:20] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:20] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:21] [==Textures==] - (<) Texture Released (Tex).
+[00:01:21] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:21] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:21] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:21] [==Textures==] - (<) Texture Released (Tex).
+[00:01:21] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:21] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:21] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 64x64 A8R8G8B8 7Mip
+[00:01:22] [==Textures==] - (<) Texture Released (Tex).
+[00:01:22] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:22] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:22] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:22] [==Textures==] - (<) Texture Released (Tex).
+[00:01:22] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:22] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:22] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:22] [==Textures==] - (<) Texture Released (Tex).
+[00:01:22] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:22] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:22] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:23] [==Textures==] - (<) Texture Released (Tex).
+[00:01:23] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:23] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:23] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:24] [==Textures==] - (<) Texture Released (Tex).
+[00:01:24] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:24] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:24] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:24] [==Textures==] - (<) Texture Released (Tex).
+[00:01:24] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:24] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:24] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:24] [==Textures==] - (<) Texture Released (Tex).
+[00:01:24] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:24] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:24] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:25] [==Textures==] - (<) Texture Released (Tex).
+[00:01:25] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:25] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:25] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:26] [==Textures==] - (<) Texture Released (Tex).
+[00:01:26] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:26] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:26] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:26] [==Textures==] - (<) Texture Released (Tex).
+[00:01:26] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:26] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:26] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:26] [==Textures==] - (<) Texture Released (Tex).
+[00:01:26] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:26] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:26] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:27] [==Textures==] - (<) Texture Released (Tex).
+[00:01:27] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:27] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:27] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:27] [==Textures==] - (<) Texture Released (Tex).
+[00:01:27] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:27] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:27] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:28] [==Textures==] - (<) Texture Released (Tex).
+[00:01:28] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:28] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:28] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:01:28] [==Textures==] - (<) Texture Released (Tex).
+[00:01:28] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:28] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:28] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:01:29] [==Textures==] - (<) Texture Released (Tex).
+[00:01:29] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:29] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:29] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:29] [==Textures==] - (<) Texture Released (Tex).
+[00:01:29] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:29] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:29] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:29] [==Textures==] - (<) Texture Released (Tex).
+[00:01:29] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:29] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:29] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:01:30] [==Textures==] - (<) Texture Released (Tex).
+[00:01:30] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:30] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:30] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:32] [==Textures==] - (<) Texture Released (Tex).
+[00:01:32] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:32] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:32] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:01:33] [==Textures==] - (<) Texture Released (Tex).
+[00:01:33] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:33] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:33] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:33] [==Textures==] - (<) Texture Released (Tex).
+[00:01:33] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:33] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:34] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:40] [==Textures==] - (<) Texture Released (Tex).
+[00:01:40] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:40] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:40] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:01:41] [==Textures==] - (<) Texture Released (Tex).
+[00:01:41] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:41] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:41] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:41] [==Textures==] - (<) Texture Released (Tex).
+[00:01:41] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:41] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:41] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:42] [==Textures==] - (<) Texture Released (Tex).
+[00:01:42] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:42] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:42] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:43] [==Textures==] - (<) Texture Released (Tex).
+[00:01:43] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:43] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:43] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:47] [==Textures==] - (<) Texture Released (Tex).
+[00:01:47] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:47] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:47] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:49] [==Textures==] - (<) Texture Released (Tex).
+[00:01:49] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:49] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:49] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:01:53] [==Textures==] - (<) Texture Released (Tex).
+[00:01:53] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:53] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:53] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:54] [==Textures==] - (<) Texture Released (Tex).
+[00:01:54] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:54] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:54] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:01:55] [==Textures==] - (<) Texture Released (Tex).
+[00:01:55] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:55] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:55] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:01:56] [==Textures==] - (<) Texture Released (Tex).
+[00:01:56] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:56] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:56] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x128 A8R8G8B8 8Mip
+[00:01:56] [==Textures==] - (<) Texture Released (Tex).
+[00:01:56] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:01:56] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:01:56] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:03] [==Textures==] - (<) Texture Released (Tex).
+[00:02:03] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:04] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:04] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:09] [==Textures==] - (<) Texture Released (Tex).
+[00:02:09] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:09] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:09] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:10] [==Textures==] - (<) Texture Released (Tex).
+[00:02:10] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:10] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:10] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:12] [==Textures==] - (<) Texture Released (Tex).
+[00:02:12] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:12] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:12] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:15] [==Textures==] - (<) Texture Released (Tex).
+[00:02:15] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:15] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:15] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:16] [==Textures==] - (<) Texture Released (Tex).
+[00:02:16] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:16] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:16] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:16] [==Textures==] - (<) Texture Released (Tex).
+[00:02:16] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:16] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:16] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:21] [==Textures==] - (<) Texture Released (Tex).
+[00:02:21] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:21] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:21] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:22] [==Textures==] - (<) Texture Released (Tex).
+[00:02:22] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:22] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:22] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:23] [==Textures==] - (<) Texture Released (Tex).
+[00:02:23] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:23] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:23] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:23] [==Textures==] - (<) Texture Released (Tex).
+[00:02:23] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:23] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:23] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:24] [==Textures==] - (<) Texture Released (Tex).
+[00:02:24] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:24] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:24] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:25] [==Textures==] - (<) Texture Released (Tex).
+[00:02:25] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:25] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:25] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:25] [==Textures==] - (<) Texture Released (Tex).
+[00:02:25] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:25] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:25] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:26] [==Textures==] - (<) Texture Released (Tex).
+[00:02:26] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:26] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:26] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:27] [==Textures==] - (<) Texture Released (Tex).
+[00:02:27] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:27] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:27] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:28] [==Textures==] - (<) Texture Released (Tex).
+[00:02:28] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:28] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:28] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:29] [==Textures==] - (<) Texture Released (Tex).
+[00:02:29] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:29] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:30] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:31] [==Textures==] - (<) Texture Released (Tex).
+[00:02:31] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:31] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:31] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:02:31] [==Textures==] - (<) Texture Released (Tex).
+[00:02:31] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:32] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:32] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:32] [==Textures==] - (<) Texture Released (Tex).
+[00:02:32] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:32] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:32] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:33] [==Textures==] - (<) Texture Released (Tex).
+[00:02:33] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:33] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:33] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:02:33] [==Textures==] - (<) Texture Released (Tex).
+[00:02:33] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:33] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:33] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:02:34] [==Textures==] - (<) Texture Released (Tex).
+[00:02:34] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:34] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:34] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:35] [==Textures==] - (<) Texture Released (Tex).
+[00:02:35] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:35] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:35] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:35] [==Textures==] - (<) Texture Released (Tex).
+[00:02:35] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:35] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:35] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:42] [==Textures==] - (<) Texture Released (Tex).
+[00:02:42] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:42] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:42] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:43] [==Textures==] - (<) Texture Released (Tex).
+[00:02:43] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:43] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:43] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:44] [==Textures==] - (<) Texture Released (Tex).
+[00:02:44] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:44] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:44] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 64x64 A8R8G8B8 7Mip
+[00:02:45] [==Textures==] - (<) Texture Released (Tex).
+[00:02:45] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:45] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:45] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:45] [==Textures==] - (<) Texture Released (Tex).
+[00:02:45] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:45] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:45] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:02:46] [==Textures==] - (<) Texture Released (Tex).
+[00:02:46] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:46] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:46] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:50] [==Textures==] - (<) Texture Released (Tex).
+[00:02:50] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:50] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:50] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:58] [==Textures==] - (<) Texture Released (Tex).
+[00:02:58] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:58] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:58] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:02:58] [==Textures==] - (<) Texture Released (Tex).
+[00:02:58] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:58] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:58] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:02:59] [==Textures==] - (<) Texture Released (Tex).
+[00:02:59] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:02:59] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:02:59] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:00] [==Textures==] - (<) Texture Released (Tex).
+[00:03:00] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:00] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:00] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:01] [==Textures==] - (<) Texture Released (Tex).
+[00:03:01] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:01] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:01] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 64x64 A8R8G8B8 7Mip
+[00:03:01] [==Textures==] - (<) Texture Released (Tex).
+[00:03:01] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:01] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:01] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:02] [==Textures==] - (<) Texture Released (Tex).
+[00:03:02] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:02] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:02] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:03] [==Textures==] - (<) Texture Released (Tex).
+[00:03:03] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:03] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:03] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:03] [==Textures==] - (<) Texture Released (Tex).
+[00:03:03] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:03] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:03] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 32x32 A8R8G8B8 6Mip
+[00:03:04] [==Textures==] - (<) Texture Released (Tex).
+[00:03:04] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:04] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:04] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 2048x1024 A8R8G8B8 8Mip
+[00:03:06] [==Textures==] - (<) Texture Released (Tex).
+[00:03:06] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:07] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:07] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:07] [==Textures==] - (<) Texture Released (Tex).
+[00:03:07] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:07] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:07] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:07] [==Textures==] - (<) Texture Released (Tex).
+[00:03:07] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:07] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:07] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:08] [==Textures==] - (<) Texture Released (Tex).
+[00:03:08] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:08] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:08] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:09] [==Textures==] - (<) Texture Released (Tex).
+[00:03:09] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:09] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:09] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:09] [==Textures==] - (<) Texture Released (Tex).
+[00:03:09] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:09] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:09] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:10] [==Textures==] - (<) Texture Released (Tex).
+[00:03:10] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:10] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:10] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:11] [==Textures==] - (<) Texture Released (Tex).
+[00:03:11] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:11] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:11] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:11] [==Textures==] - (<) Texture Released (Tex).
+[00:03:11] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:11] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:11] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:12] [==Textures==] - (<) Texture Released (Tex).
+[00:03:12] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:12] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:12] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:12] [==Textures==] - (<) Texture Released (Tex).
+[00:03:12] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:12] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:12] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:12] [==Textures==] - (<) Texture Released (Tex).
+[00:03:12] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:12] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:12] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:13] [==Textures==] - (<) Texture Released (Tex).
+[00:03:13] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:13] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:13] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:13] [==Textures==] - (<) Texture Released (Tex).
+[00:03:13] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:13] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:13] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:14] [==Textures==] - (<) Texture Released (Tex).
+[00:03:14] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:14] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:14] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:14] [==Textures==] - (<) Texture Released (Tex).
+[00:03:14] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:14] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:14] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:15] [==Textures==] - (<) Texture Released (Tex).
+[00:03:15] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:15] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:15] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:16] [==Textures==] - (<) Texture Released (Tex).
+[00:03:16] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:16] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:16] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:16] [==Textures==] - (<) Texture Released (Tex).
+[00:03:16] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:16] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:16] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:17] [==Textures==] - (<) Texture Released (Tex).
+[00:03:17] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:17] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:17] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:17] [==Textures==] - (<) Texture Released (Tex).
+[00:03:17] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:17] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:17] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:18] [==Textures==] - (<) Texture Released (Tex).
+[00:03:18] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:18] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:18] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:18] [==Textures==] - (<) Texture Released (Tex).
+[00:03:18] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:18] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:18] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:18] [==Textures==] - (<) Texture Released (Tex).
+[00:03:18] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:18] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:18] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:19] [==Textures==] - (<) Texture Released (Tex).
+[00:03:19] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:19] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:19] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:19] [==Textures==] - (<) Texture Released (Tex).
+[00:03:19] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:19] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:19] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:20] [==Textures==] - (<) Texture Released (Tex).
+[00:03:20] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:20] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:20] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:20] [==Textures==] - (<) Texture Released (Tex).
+[00:03:20] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:20] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:20] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:21] [==Textures==] - (<) Texture Released (Tex).
+[00:03:21] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:21] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:21] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:21] [==Textures==] - (<) Texture Released (Tex).
+[00:03:21] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:21] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:21] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:22] [==Textures==] - (<) Texture Released (Tex).
+[00:03:22] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:22] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:22] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:22] [==Textures==] - (<) Texture Released (Tex).
+[00:03:22] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:22] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:22] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:22] [==Textures==] - (<) Texture Released (Tex).
+[00:03:22] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:22] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:22] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:23] [==Textures==] - (<) Texture Released (Tex).
+[00:03:23] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:23] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:23] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:23] [==Textures==] - (<) Texture Released (Tex).
+[00:03:23] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:23] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:23] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:24] [==Textures==] - (<) Texture Released (Tex).
+[00:03:24] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:24] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:24] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:24] [==Textures==] - (<) Texture Released (Tex).
+[00:03:24] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:24] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:24] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:25] [==Textures==] - (<) Texture Released (Tex).
+[00:03:25] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:25] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:25] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:25] [==Textures==] - (<) Texture Released (Tex).
+[00:03:25] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:25] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:25] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 16x64 A8R8G8B8 7Mip
+[00:03:26] [==Textures==] - (<) Texture Released (Tex).
+[00:03:26] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:26] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:26] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:26] [==Textures==] - (<) Texture Released (Tex).
+[00:03:26] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:26] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:26] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:26] [==Textures==] - (<) Texture Released (Tex).
+[00:03:26] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:26] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:27] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:27] [==Textures==] - (<) Texture Released (Tex).
+[00:03:27] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:27] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:27] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:27] [==Textures==] - (<) Texture Released (Tex).
+[00:03:27] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:27] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:27] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:28] [==Textures==] - (<) Texture Released (Tex).
+[00:03:28] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:28] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:28] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:29] [==Textures==] - (<) Texture Released (Tex).
+[00:03:29] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:29] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:29] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:29] [==Textures==] - (<) Texture Released (Tex).
+[00:03:29] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:29] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:29] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:29] [==Textures==] - (<) Texture Released (Tex).
+[00:03:29] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:29] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:30] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:30] [==Textures==] - (<) Texture Released (Tex).
+[00:03:30] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:30] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:30] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:30] [==Textures==] - (<) Texture Released (Tex).
+[00:03:30] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:30] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:30] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:31] [==Textures==] - (<) Texture Released (Tex).
+[00:03:31] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:31] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:31] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:32] [==Textures==] - (<) Texture Released (Tex).
+[00:03:32] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:32] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:32] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:35] [==Textures==] - (<) Texture Released (Tex).
+[00:03:35] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:35] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:35] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:36] [==Textures==] - (<) Texture Released (Tex).
+[00:03:36] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:36] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:36] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:38] [==Textures==] - (<) Texture Released (Tex).
+[00:03:38] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:38] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:38] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:39] [==Textures==] - (<) Texture Released (Tex).
+[00:03:39] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:39] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:39] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:41] [==Textures==] - (<) Texture Released (Tex).
+[00:03:41] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:41] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:41] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:44] [==Textures==] - (<) Texture Released (Tex).
+[00:03:44] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:44] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:44] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:44] [==Textures==] - (<) Texture Released (Tex).
+[00:03:44] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:44] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:44] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x256 A8R8G8B8 8Mip
+[00:03:45] [==Textures==] - (<) Texture Released (Tex).
+[00:03:45] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:45] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:45] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:48] [==Textures==] - (<) Texture Released (Tex).
+[00:03:48] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:48] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:48] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x256 A8R8G8B8 8Mip
+[00:03:50] [==Textures==] - (<) Texture Released (Tex).
+[00:03:50] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:50] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:50] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 32x32 A8R8G8B8 6Mip
+[00:03:50] [==Textures==] - (<) Texture Released (Tex).
+[00:03:50] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:50] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:50] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:51] [==Textures==] - (<) Texture Released (Tex).
+[00:03:51] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:51] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:51] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:52] [==Textures==] - (<) Texture Released (Tex).
+[00:03:52] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:52] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:52] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:52] [==Textures==] - (<) Texture Released (Tex).
+[00:03:52] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:52] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:52] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x128 A8R8G8B8 8Mip
+[00:03:53] [==Textures==] - (<) Texture Released (Tex).
+[00:03:53] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:53] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:53] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:53] [==Textures==] - (<) Texture Released (Tex).
+[00:03:53] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:53] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:53] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:54] [==Textures==] - (<) Texture Released (Tex).
+[00:03:54] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:54] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:54] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:54] [==Textures==] - (<) Texture Released (Tex).
+[00:03:54] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:54] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:55] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:55] [==Textures==] - (<) Texture Released (Tex).
+[00:03:55] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:55] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:55] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:03:55] [==Textures==] - (<) Texture Released (Tex).
+[00:03:55] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:55] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:55] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:56] [==Textures==] - (<) Texture Released (Tex).
+[00:03:56] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:56] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:56] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:03:56] [==Textures==] - (<) Texture Released (Tex).
+[00:03:56] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:56] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:56] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:03:59] [==Textures==] - (<) Texture Released (Tex).
+[00:03:59] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:03:59] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:03:59] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:00] [==Textures==] - (<) Texture Released (Tex).
+[00:04:00] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:00] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:00] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:04:00] [==Textures==] - (<) Texture Released (Tex).
+[00:04:00] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:00] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:00] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:04:01] [==Textures==] - (<) Texture Released (Tex).
+[00:04:01] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:01] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:01] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:02] [==Textures==] - (<) Texture Released (Tex).
+[00:04:02] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:02] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:02] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:07] [==Textures==] - (<) Texture Released (Tex).
+[00:04:07] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:07] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:07] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:04:08] [==Textures==] - (<) Texture Released (Tex).
+[00:04:08] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:08] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:08] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:08] [==Textures==] - (<) Texture Released (Tex).
+[00:04:08] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:08] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:08] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:10] [==Textures==] - (<) Texture Released (Tex).
+[00:04:10] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:10] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:10] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:11] [==Textures==] - (<) Texture Released (Tex).
+[00:04:11] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:11] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:11] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:12] [==Textures==] - (<) Texture Released (Tex).
+[00:04:12] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:12] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:12] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:12] [==Textures==] - (<) Texture Released (Tex).
+[00:04:12] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:12] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:12] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:04:13] [==Textures==] - (<) Texture Released (Tex).
+[00:04:13] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:13] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:13] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:04:13] [==Textures==] - (<) Texture Released (Tex).
+[00:04:13] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:13] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:13] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:14] [==Textures==] - (<) Texture Released (Tex).
+[00:04:14] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:14] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:14] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:16] [==Textures==] - (<) Texture Released (Tex).
+[00:04:16] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:16] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:16] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:16] [==Textures==] - (<) Texture Released (Tex).
+[00:04:16] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:16] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:16] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:04:17] [==Textures==] - (<) Texture Released (Tex).
+[00:04:17] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:17] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:17] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:04:18] [==Textures==] - (<) Texture Released (Tex).
+[00:04:18] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:18] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:18] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:18] [==Textures==] - (<) Texture Released (Tex).
+[00:04:18] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:18] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:18] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:04:19] [==Textures==] - (<) Texture Released (Tex).
+[00:04:19] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:19] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:19] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 128x128 A8R8G8B8 8Mip
+[00:04:20] [==Textures==] - (<) Texture Released (Tex).
+[00:04:20] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:20] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:20] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:20] [==Textures==] - (<) Texture Released (Tex).
+[00:04:20] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:20] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:20] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:24] [==Textures==] - (<) Texture Released (Tex).
+[00:04:24] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:24] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:24] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 64x64 A8R8G8B8 7Mip
+[00:04:25] [==Textures==] - (<) Texture Released (Tex).
+[00:04:25] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:25] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:25] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 256x256 A8R8G8B8 8Mip
+[00:04:25] [==Textures==] - (<) Texture Released (Tex).
+[00:04:25] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:25] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:25] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:26] [==Textures==] - (<) Texture Released (Tex).
+[00:04:26] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:26] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:26] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:30] [==Textures==] - (<) Texture Released (Tex).
+[00:04:30] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:30] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:30] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:31] [==Textures==] - (<) Texture Released (Tex).
+[00:04:31] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:04:31] [==Textures==] - (+) Texture Initialized: (Tex).
+[00:04:31] [==Textures==] - (>) Texture Loaded (Tex): Texture2D 512x512 A8R8G8B8 8Mip
+[00:04:33] [==Textures==] - (<) Texture Released (Tex).
+[00:04:33] [==Textures==] - (-) Texture Finalized: (Tex).
+[00:05:01] [===Timer====] - Timer Stoped.
+[00:05:01] [===Timer====] - Timer Average FPS = 62
+[00:05:01] [====Core====] - Finalization Started.
+[00:05:01] [==Network===] - Finalization Started.
+[00:05:01] [==Network===] - Finalization Finished.
+[00:05:01] [===Audio====] - Finalization Started
+[00:05:01] [===Audio====] - Finalization Finished
+[00:05:01] [==Graphics==] - Finalization Started.
+[00:05:01] [===Fonts====] - (<) Font Released: (SharedFont0).
+[00:05:01] [==Textures==] - (<) Texture Released (Font_SharedFont0_Texture).
+[00:05:01] [==Textures==] - (-) Texture Finalized: (Font_SharedFont0_Texture).
+[00:05:01] [===Fonts====] - (-) Font Finalized: (SharedFont0)
+[00:05:01] [==Graphics==] - Finalization Finished.
+[00:05:01] [===Timer====] - Finalization Started.
+[00:05:01] [===Timer====] - Finalization Finished.
+[00:05:01] [====Core====] - (W) 1 Modules are unreleased
+[00:05:01] [====Core====] - Module Cleanup Started.
+[00:05:01] [==Textures==] - (<) Texture Released (BtnBlobH).
+[00:05:01] [==Textures==] - (-) Texture Finalized: (BtnBlobH).
+[00:05:01] [==Textures==] - (<) Texture Released (BtnBlob).
+[00:05:01] [==Textures==] - (-) Texture Finalized: (BtnBlob).
+[00:05:01] [==Textures==] - (<) Texture Released (BtnLoad).
+[00:05:01] [==Textures==] - (-) Texture Finalized: (BtnLoad).
+[00:05:01] [==Textures==] - (<) Texture Released (BtnSave).
+[00:05:01] [==Textures==] - (-) Texture Finalized: (BtnSave).
+[00:05:01] [==Textures==] - (<) Texture Released (Grid).
+[00:05:01] [==Textures==] - (-) Texture Finalized: (Grid).
+[00:05:01] [====Core====] - Module Cleanup Finished.
+[00:05:01] [====Core====] - Finalization Finished.
+[00:05:01] Application closed.

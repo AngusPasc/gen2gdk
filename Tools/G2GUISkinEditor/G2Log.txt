@@ -1,0 +1,137 @@
+Gen2 v1.1 Log
+Application Compiler: Delphi 2010
+Gen2 Config Options:
+  Write Log - ON
+  Report Memory Leaks - ON
+  Enable PerfHUD - OFF
+  Use Inline - ON
+System Specs:
+  OS: Microsoft Windows XP Professional Service Pack 3
+  CPU: 
+    Name: Intel(R) Core(TM)2 Quad  CPU   Q9300  @ 2.50GHz
+    Identifier: x86 Family 6 Model 23 Stepping 7
+    Vendor: GenuineIntel
+    Speed: 2499MHz
+    Core Count: 4
+    Extensions: [MMX][SSE][SSE2][SSE3]
+  Memory:
+    Total: 2046Mb
+    Available: 1102Mb
+    46% in use
+  Video Memory:
+    Total: 498Mb
+    Available: 496Mb
+  Display Device: NVIDIA GeForce 9800 GX2
+DirectX Info:
+  D3DX SDK Version: 33
+  D3DX Lib: d3dx9_33.dll
+  DirectX Installed Version: 4.09.00.0904
+[00:00:00] Application started.
+[00:00:00] [====Core====] - Initialization Started.
+[00:00:00] [===Timer====] - Initialization Started.
+[00:00:00] [===Timer====] - Initialization Finished.
+[00:00:00] [==Graphics==] - Initialization Started.
+[00:00:00] [==Graphics==] - Adapter: NVIDIA GeForce 9800 GX2
+[00:00:00] [==Graphics==] - Adapter Driver: nv4_disp.dll
+[00:00:00] [==Graphics==] - System Display Mode: 1920x1080 60Hz
+[00:00:00] [==Graphics==] - Initialization Parameters:
+
+                            Windowed 674x446
+                            Back Buffer Format: X8R8G8B8
+                            Render Target Surface Format: A8R8G8B8
+                            Depth-Stencil Surface Format: D24S8
+                            Texture2D Format: DXT3
+                            Render Target Texture2D Format: A8R8G8B8
+                            Depth-Stencil Texture2D Format: D24S8
+                            TextureCube Format: DXT3
+                            Render Target TextureCube Format: A8R8G8B8
+                            TextureVolume Format: DXT3
+                            Vertex Processing: Hardware
+                            Device Settings: [Multithreaded]
+                            Device Capabilities:
+                            Max Texture Size: 8192x8192
+                            Max Texture Blend Stages: 8
+                            Max Simultanious Textures: 8
+                            VertexShader Version: 3.0
+                            PixelShader Version: 3.0
+
+[00:00:00] [=ShaderLib==] - Binary Shader Added: vs_Grass
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_Landscape
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_Meshes
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_Misc
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_Particles3D
+[00:00:00] [=ShaderLib==] - Binary Shader Added: fx_World3D
+[00:00:00] [==Graphics==] - Initialization Finished.
+[00:00:00] [===Audio====] - Initialization Started.
+[00:00:00] [===Audio====] - Initialization Finished.
+[00:00:00] [===Input====] - Initialization Started.
+[00:00:00] [===Input====] - Initialization Finished.
+[00:00:00] [==Network===] - Initialization Started.
+[00:00:00] [==Network===] - Initialization Finished.
+[00:00:00] [====Core====] - Initialization Finished.
+[00:00:00] [==Textures==] - (+) Texture Initialized: (Font_SharedFont0_Texture).
+[00:00:00] [===Fonts====] - (+) Font Initialized: (SharedFont0)
+[00:00:00] [==Textures==] - (>) Texture Loaded (Font_SharedFont0_Texture): Texture2D 512x512 DXT2 1Mip
+[00:00:00] [===Fonts====] - (>) Font Generated (SharedFont0): Arial 16 Texture512x512
+[00:00:00] [===Timer====] - Timer Started.
+[00:00:23] [==Textures==] - (+) Texture Initialized: (brick01d).
+[00:00:23] [==Textures==] - (>) Texture Loaded (brick01d): Texture2D 512x512 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (brick01h).
+[00:00:23] [==Textures==] - (>) Texture Loaded (brick01h): Texture2D 512x512 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (brick01n).
+[00:00:23] [==Textures==] - (>) Texture Loaded (brick01n): Texture2D 512x512 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (brick02c).
+[00:00:23] [==Textures==] - (>) Texture Loaded (brick02c): Texture2D 512x512 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (brick02d).
+[00:00:23] [==Textures==] - (>) Texture Loaded (brick02d): Texture2D 512x512 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (brick02h).
+[00:00:23] [==Textures==] - (>) Texture Loaded (brick02h): Texture2D 512x512 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (brick02n).
+[00:00:23] [==Textures==] - (>) Texture Loaded (brick02n): Texture2D 512x512 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (dirt01c).
+[00:00:23] [==Textures==] - (>) Texture Loaded (dirt01c): Texture2D 256x256 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (dirt01d).
+[00:00:23] [==Textures==] - (>) Texture Loaded (dirt01d): Texture2D 256x256 DXT3 1Mip
+[00:00:23] [==Textures==] - (+) Texture Initialized: (dirt01h).
+[00:00:23] [==Textures==] - (>) Texture Loaded (dirt01h): Texture2D 256x256 DXT3 1Mip
+[00:00:29] [==Graphics==] - New Paremeters, swap chain reset required.
+[00:01:16] [===Timer====] - Timer Stoped.
+[00:01:16] [===Timer====] - Timer Average FPS = 62
+[00:01:16] [====Core====] - Finalization Started.
+[00:01:16] [==Network===] - Finalization Started.
+[00:01:16] [==Network===] - Finalization Finished.
+[00:01:16] [===Audio====] - Finalization Started
+[00:01:16] [===Audio====] - Finalization Finished
+[00:01:16] [==Graphics==] - Finalization Started.
+[00:01:16] [===Fonts====] - (<) Font Released: (SharedFont0).
+[00:01:16] [==Textures==] - (<) Texture Released (Font_SharedFont0_Texture).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (Font_SharedFont0_Texture).
+[00:01:16] [===Fonts====] - (-) Font Finalized: (SharedFont0)
+[00:01:16] [==Graphics==] - Finalization Finished.
+[00:01:16] [===Timer====] - Finalization Started.
+[00:01:16] [===Timer====] - Finalization Finished.
+[00:01:16] [====Core====] - (W) 1 Modules are unreleased
+[00:01:16] [====Core====] - Module Cleanup Started.
+[00:01:16] [==Textures==] - (<) Texture Released (brick02n).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (brick02n).
+[00:01:16] [==Textures==] - (<) Texture Released (brick02h).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (brick02h).
+[00:01:16] [==Textures==] - (<) Texture Released (brick02d).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (brick02d).
+[00:01:16] [==Textures==] - (<) Texture Released (brick02c).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (brick02c).
+[00:01:16] [==Textures==] - (<) Texture Released (brick01n).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (brick01n).
+[00:01:16] [==Textures==] - (<) Texture Released (brick01h).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (brick01h).
+[00:01:16] [==Textures==] - (<) Texture Released (brick01d).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (brick01d).
+[00:01:16] [==Textures==] - (<) Texture Released (dirt01h).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (dirt01h).
+[00:01:16] [==Textures==] - (<) Texture Released (dirt01d).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (dirt01d).
+[00:01:16] [==Textures==] - (<) Texture Released (dirt01c).
+[00:01:16] [==Textures==] - (-) Texture Finalized: (dirt01c).
+[00:01:16] [====Core====] - Module Cleanup Finished.
+[00:01:16] [====Core====] - Finalization Finished.
+[00:01:16] Application closed.
