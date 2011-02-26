@@ -98,8 +98,9 @@ type
   TG2IB = class;
   TG2ScriptMgr = class;
   TG2Script = class;
-  TG2GUI = class;
-  //TG2GUIWindow = class;
+  TG2UI = class;
+  TG2UISkin = class;
+  TG2UIFrame = class;
   TG2RenderStates = class;
   TG2SamplerStates = class;
   TG2TextureStageStates = class;
@@ -120,6 +121,7 @@ type
   TG2ShaderBin = class;
   TG2Scene3D = class;
   TG2SkyBox = class;
+  TG2PostProcess = class;
   TG2App = class;
   TG2Thread = class;
 
@@ -141,7 +143,7 @@ type
 
   CG2ModClass = class of TG2Module;
   CG2PlugClass = class of TG2Plug;
-  //CG2GUIWindowClass = class of TG2GUIWindow;
+  CG2UIFrameClass = class of TG2UIFrame;
 
   TG2Result = (
     grOk,
@@ -467,9 +469,10 @@ type
     property Capacity: Integer read GetCapacity write SetCapacity;
     property Count: Integer read m_ItemCount;
     property Items[const Index: Integer]: Pointer read GetItem write SetItem; default;
-    function AddItem(const Item: Pointer): Integer;
-    procedure DeleteItem(const Index: Integer);
-    procedure RemoveItem(const Item: Pointer);
+    function Add(const Item: Pointer): Integer;
+    function Insert(const Index: Integer; const Item: Pointer): Integer;
+    procedure Delete(const Index: Integer);
+    procedure Remove(const Item: Pointer);
     procedure Clear;
   end;
   PG2QuickList = ^TG2QuickList;
@@ -495,10 +498,10 @@ type
     property Capacity: Integer read GetCapacity write SetCapacity;
     property Count: Integer read m_ItemCount;
     property Items[const Index: Integer]: Pointer read GetItem write SetItem; default;
-    function AddItem(const Item: Pointer; const Order: Single): Integer; overload;
-    function AddItem(const Item: Pointer): Integer; overload;
-    procedure DeleteItem(const Index: Integer);
-    procedure RemoveItem(const Item: Pointer);
+    function Add(const Item: Pointer; const Order: Single): Integer; overload;
+    function Add(const Item: Pointer): Integer; overload;
+    procedure Delete(const Index: Integer);
+    procedure Remove(const Item: Pointer);
     procedure Clear;
   end;
   PG2QuickSortList = ^TG2QuickSortList;
@@ -731,8 +734,8 @@ type
     property Compression: Boolean read m_Compression write SetCompression;
     constructor Create;
     destructor Destroy; override;
-    procedure OpenRead(const FileName: String);
-    procedure OpenWrite(const FileName: String);
+    procedure OpenRead(const FileName: WideString);
+    procedure OpenWrite(const FileName: WideString);
     procedure Close;
     function Seek(const Offset: Int64; Origin: TSeekOrigin = soCurrent): Int64;
     procedure ReadBuffer(var Buffer; const Size: Integer);
@@ -1009,14 +1012,15 @@ type
     type TFormatScoreArray = array[0..0] of TFormatScore;
     type PFormatScoreArray = ^TFormatScoreArray;
     type TResolution = record
-    private
-      var AspX, AspY: Integer;
     public
+      var AspX, AspY: Integer;
       var Width: DWord;
       var Height: DWord;
+      var RefreshRates: array of DWord;
     end;
     type PResolution = ^TResolution;
     var m_Resolutions: array of TResolution;
+    var m_ResolutionsComp: array of TResolution;
     var m_Antialias: array of Integer;
   const
     FormatScoresTexture: array[0..8] of TFormatScore = (
@@ -1051,7 +1055,6 @@ type
       (Format: D3DFMT_D32; Score: 28),
       (Format: D3DFMT_D24S8; Score: 34)
     );
-    procedure FindAsp(const Width, Height: Integer; var X, Y: Integer);
     function FindFormat(
       const Format: TD3DFormat;
       const Usage: DWord;
@@ -1064,6 +1067,8 @@ type
     procedure FindResolutions;
     function GetResolution(const Index: Integer): PResolution; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetResolutionCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetResolutionComp(const Index: Integer): PResolution; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetResolutionCompCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetAntialiasSamples(const Index: Integer): Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetAntialiasCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   private
@@ -1074,8 +1079,10 @@ type
     constructor Create(const G2Graphics: TG2Graphics);
     destructor Destroy; override;
     procedure Initialize;
-    property CompatiableResolutions[const Index: Integer]: PResolution read GetResolution;
-    property CompatiableResolutionCount: Integer read GetResolutionCount;
+    property Resolutions[const Index: Integer]: PResolution read GetResolution;
+    property ResolutionCount: Integer read GetResolutionCount;
+    property CompatiableResolutions[const Index: Integer]: PResolution read GetResolutionComp;
+    property CompatiableResolutionCount: Integer read GetResolutionCompCount;
     property AntialiasSamples[const Index: Integer]: Integer read GetAntialiasSamples;
     property AntialiasCount: Integer read GetAntialiasCount;
     function FindCompatiableTexture2DFormat(const Format: TD3DFormat): TD3DFormat;
@@ -1086,6 +1093,7 @@ type
     function FindCompatiableTextureVolumeFormat(const Format: TD3DFormat): TD3DFormat;
     function FindCompatiableSurfaceRTFormat(const Format: TD3DFormat): TD3DFormat;
     function FindCompatiableSurfaceDSFormat(const Format: TD3DFormat): TD3DFormat;
+    procedure FindAsp(const Width, Height: Integer; var X, Y: Integer);
     function GetVRAM: DWord;
     function GetVRAMFree: DWord;
   end;
@@ -1544,11 +1552,11 @@ type
 //TG2ResMgr BEGIN
   TG2ResMgr = class (TG2Module)
   strict protected
-    m_Resources: TList;
+    m_Resources: TG2QuickList;
     function GetCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   protected
-    function FindResourceIndex(const NameCache: DWord): Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function FindResource(const Name: AnsiString): TG2Res;
+    function FindResourceIndex(const NameCache: PWordArray; const Len: Integer): Integer;
+    function FindResource(const Name: WideString): TG2Res;
     procedure AddResource(const Res: TG2Res); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure RemoveResource(const Res: TG2Res); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure DeleteResource(const Index: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -1565,15 +1573,15 @@ type
 //TG2Res BEGIN
   TG2Res = class (TG2HighClass)
   strict private
-    m_Name: AnsiString;
-    procedure SetName(const Value: AnsiString);
+    m_Name: WideString;
+    procedure SetName(const Value: WideString);
   private
-    m_NameCache: DWord;
-    m_Mgrs: TList;
+    NameCache: array of Word;
+    Mgrs: TG2QuickList;
   public
     constructor Create; override;
     destructor Destroy; override;
-    property Name: AnsiString read m_Name write SetName;
+    property Name: WideString read m_Name write SetName;
   end;
 //TG2Res END
 
@@ -1586,8 +1594,8 @@ type
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function FindMusic(const Name: AnsiString): TG2Music;
-    function CreateMusic(const Name: AnsiString): TG2Music;
+    function FindMusic(const Name: WideString): TG2Music;
+    function CreateMusic(const Name: WideString): TG2Music;
   end;
 //TG2MusicMgr END
 
@@ -1625,7 +1633,7 @@ type
     property PlayRate: Single read GetPlayRate write SetPlayRate;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    procedure OpenFile(const f: AnsiString);
+    procedure OpenFile(const f: WideString);
     procedure Close;
     procedure Play;
     procedure Pause;
@@ -1644,9 +1652,9 @@ type
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function FindSound(const Name: AnsiString): TG2Sound;
-    function CreateSound(const Name: AnsiString): TG2Sound;
-    function CreateSoundFromFile(const Name, f: AnsiString): TG2Sound;
+    function FindSound(const Name: WideString): TG2Sound;
+    function CreateSound(const Name: WideString): TG2Sound;
+    function CreateSoundFromFile(const Name, f: WideString): TG2Sound;
   end;
 //TG2SoundMgr END
 
@@ -1711,7 +1719,7 @@ type
     property Enable3D: Boolean read m_Enable3D write SetEnable3D;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function LoadFile(const f: AnsiString): TG2Result;
+    function LoadFile(const f: WideString): TG2Result;
     procedure UnLoad;
     procedure Play;
     procedure Stop;
@@ -1792,7 +1800,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
     function CreateTexture2D(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer;
       const MipLevels: Integer = 8;
       const Usage: DWord = 0;
@@ -1800,45 +1808,45 @@ type
       const Pool: TD3DPool = D3DPOOL_MANAGED
     ): TG2Texture2D;
     function CreateTexture2DFromFile(
-      const Name: AnsiString;
-      const f: AnsiString;
+      const Name: WideString;
+      const f: WideString;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
     function CreateTexture2DFromStream(
-      const Name: AnsiString;
+      const Name: WideString;
       const s: TMemoryStream;
       const Size: Integer;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
     function CreateTexture2DFromBuffer(
-      const Name: AnsiString;
+      const Name: WideString;
       const b: Pointer;
       const Size: Integer;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
     function CreateTexture2DFromGraphic(
-      const Name: AnsiString;
+      const Name: WideString;
       const g: TGraphic;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
     function CreateTexture2DFromPack(
-      const Name: AnsiString;
+      const Name: WideString;
       const FolderName, FileName: AnsiString;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
     function CreateTexture2DFromTexture2D(
-      const Name: AnsiString;
+      const Name: WideString;
       const Tex: TG2Texture2DBase;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
     function CreateTexture2DNormalMap(
-      const Name: AnsiString;
+      const Name: WideString;
       const HeightMap: TG2Texture2D;
       const Amplitude: Single = 1;
       const MipLevels: Integer = 8;
@@ -1846,20 +1854,20 @@ type
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
     function CreateTexture2DRT(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2DRT;
     function CreateTexture2DDS(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer
     ): TG2Texture2DDS;
     function CreateTexture2DVideo(
-      const Name: AnsiString;
-      const f: AnsiString
+      const Name: WideString;
+      const f: WideString
     ): TG2Texture2DVideo;
     function CreateTextureCube(
-      const Name: AnsiString;
+      const Name: WideString;
       const Size: Integer;
       const MipLevels: Integer = 8;
       const Usage: DWord = 0;
@@ -1867,17 +1875,17 @@ type
       const Pool: TD3DPool = D3DPOOL_MANAGED
     ): TG2TextureCube;
     function CreateTextureCubeFromFile(
-      const Name: AnsiString;
-      const f: AnsiString;
+      const Name: WideString;
+      const f: WideString;
       const MipLevels: Integer = 1;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2TextureCube;
     function CreateTextureCubeRT(
-      const Name: AnsiString;
+      const Name: WideString;
       const Size: Integer;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2TextureCubeRT;
-    function FindTexture(const Name: AnsiString): TG2TextureBase; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function FindTexture(const Name: WideString): TG2TextureBase; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure AddTexture(const Texture: TG2TextureBase); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure DeleteTexture(const Index: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure RemoveTexture(const Texture: TG2TextureBase); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -1986,9 +1994,11 @@ type
     m_RealHeight: Integer;
     m_DrawRect: TG2Rect;
     m_Desc: TD3DSurfaceDesc;
+    procedure SetDrawRect;
     function GetTexture: IDirect3DBaseTexture9; override;
     procedure SetTexture(const Value: IDirect3DBaseTexture9); override;
     function GetProjMatrix: TG2Mat; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetTexelSize: TG2Vec2; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1998,6 +2008,7 @@ type
     property RealHeight: Integer read m_RealHeight;
     property DrawRect: PG2Rect read GetDrawRect;
     property ProjMatrix: TG2Mat read GetProjMatrix;
+    property TexelSize: TG2Vec2 read GetTexelSize;
     function SaveToFile(const FileName: String): TG2Result;
     procedure Release; override;
   end;
@@ -2007,7 +2018,6 @@ type
   TG2Texture2D = class (TG2Texture2DBase)
   strict private
     m_Surfaces: array of TG2TextureSurface;
-    procedure SetDrawRect;
     procedure InitLevels;
     procedure UnInitLevels;
     function GetSurface(const SurfaceLevel: Integer): TG2TextureSurface; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -2018,7 +2028,7 @@ type
     destructor Destroy; override;
     property Surfaces[const SurfaceLevel: Integer]: TG2TextureSurface read GetSurface;
     function LoadFromFile(
-      const f: AnsiString;
+      const f: WideString;
       const MipLevels: Integer = 8;
       const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Result;
@@ -2177,7 +2187,7 @@ type
     var m_PinIn, m_PinOut: IPin;
     var m_AllocatorPresenter: TG2VMRAllocatorPresenter;
     var m_PrevPos: Int64;
-    var m_FName: AnsiString;
+    var m_FName: WideString;
     var m_Loaded: Boolean;
     function AddFilter(
       CLSID: TGUID;
@@ -2199,7 +2209,7 @@ type
     property Position: Int64 read GetPosition write SetPosition;
     property Duration: Int64 read GetDuration;
     property Loaded: Boolean read m_Loaded;
-    function StreamFile(const f: AnsiString): TG2Result;
+    function StreamFile(const f: WideString): TG2Result;
     procedure Play;
     procedure Pause;
     procedure Stop;
@@ -2224,7 +2234,7 @@ type
     property Width: Integer read m_Width;
     property Height: Integer read m_Height;
     property Depth: Integer read m_Depth;
-    function SaveToFile(const FileName: AnsiString): TG2Result;
+    function SaveToFile(const FileName: WideString): TG2Result;
     procedure Release; override;
   end;
 //TG2TextureCubeBase END
@@ -2242,7 +2252,7 @@ type
     destructor Destroy; override;
     property Surfaces[const Face: TD3DCubemapFaces; const SurfaceLevel: Integer]: TG2TextureSurface read GetSurface;
     function LoadFromFile(
-      const f: AnsiString;
+      const f: WideString;
       const MipLevels: Integer = 1;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Result;
@@ -2295,7 +2305,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
     function LoadFromFile(
-      const FileName: AnsiString;
+      const FileName: WideString;
       const MipLevels: Integer = 1;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Result;
@@ -2313,16 +2323,16 @@ type
     constructor Create; override;
     destructor Destroy; override;
     function CreateRenderTargetSurface(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2SurfaceRT;
     function CreateDepthStencilSurface(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2SurfaceDS;
-    function FindSurface(const Name: AnsiString): TG2Surface;
+    function FindSurface(const Name: WideString): TG2Surface;
     procedure DeleteSurface(const Index: Integer);
     procedure RemoveSurface(const Surface: TG2Surface);
     function Initialize(const G2Core: TG2Core): TG2Result; override;
@@ -2537,13 +2547,13 @@ type
     destructor Destroy; override;
     property Fonts[const Index: Integer]: TG2Font read GetFont;
     function CreateFont(
-      const Name: AnsiString;
+      const Name: WideString;
       const FontFace: AnsiString;
       const Size: Integer
     ): TG2Font;
     function CreateFontFromFile(
-      const Name: AnsiString;
-      const FileName: String;
+      const Name: WideString;
+      const FileName: WideString;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Font;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
@@ -2594,10 +2604,10 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-    function CreateMeshFromFile(const Name: AnsiString; const f: String): TG2Mesh;
-    function CreateMeshFromBuffer(const Name: AnsiString; const Buffer: Pointer; const Size: Integer): TG2Mesh;
-    function CreateMeshFromPack(const Name, FolderName, FileName: AnsiString): TG2Mesh;
-    function FindMesh(const Name: AnsiString): TG2Mesh; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function CreateMeshFromFile(const Name: WideString; const f: WideString): TG2Mesh;
+    function CreateMeshFromBuffer(const Name: WideString; const Buffer: Pointer; const Size: Integer): TG2Mesh;
+    function CreateMeshFromPack(const Name: WideString; const FolderName, FileName: AnsiString): TG2Mesh;
+    function FindMesh(const Name: WideString): TG2Mesh; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure AddMesh(const Mesh: TG2Mesh); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure DeleteMesh(const Index: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure RemoveMesh(const Mesh: TG2Mesh); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -2867,14 +2877,14 @@ type
     destructor Destroy; override;
     property VertexBuffers[const Index: Integer]: TG2VB read GetVB;
     function CreateVertexBuffer(
-      const Name: AnsiString;
+      const Name: WideString;
       const NewStride: DWord;
       const NewCount: DWord;
       const NewUsage: DWord;
       const NewFVF: DWord;
       const NewPool: TD3DPool
     ): TG2VB;
-    function FindVB(const Name: AnsiString): TG2VB;
+    function FindVB(const Name: WideString): TG2VB;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
   end;
@@ -2932,13 +2942,13 @@ type
     destructor Destroy; override;
     property IndexBuffers[const Index: Integer]: TG2IB read GetIB;
     function CreateIndexBuffer(
-      const Name: AnsiString;
+      const Name: WideString;
       const NewSize: DWord;
       const NewUsage: DWord;
       const NewFormat: TD3DFormat;
       const NewPool: TD3DPool
     ): TG2IB;
-    function FindIB(const Name: AnsiString): TG2IB;
+    function FindIB(const Name: WideString): TG2IB;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
   end;
@@ -3001,10 +3011,24 @@ type
   end;
 //TG2Script END
 
-//TG2GUI BEGIN
-  TG2GUI = class sealed (TG2Module)
+//TG2UI BEGIN
+  TG2UI = class sealed (TG2Module)
   strict private
+    var m_Root: TG2UIFrame;
+    var m_PlugInput: TG2PlugInput;
+    var m_PlugGraphics: TG2PlugGraphics;
+    var m_Skin: TG2UISkin;
     procedure InitBuffers;
+    procedure OnDeviceLost;
+    procedure OnDeviceReset;
+    procedure OnParamsChange;
+    procedure OnKeyDown(const Key: Byte);
+    procedure OnKeyUp(const Key: Byte);
+    procedure OnKeyPress(const Key: AnsiChar);
+    procedure OnMouseDown(const Button: Byte);
+    procedure OnMouseUp(const Button: Byte);
+    procedure OnMouseMove(const Shift: TPoint);
+    procedure OnWheelMove(const Shift: Integer);
   private
     type TVertex = record
     public
@@ -3015,16 +3039,26 @@ type
     type PVertexArr = ^TVertexArr;
     var VB: TG2VB;
     var IB: TG2IB;
+    var Skins: TG2QuickList;
+    class function ParentToClientRect(const RectParent, RectClient: TRect): TRect;
+    class function ClipRect(const Rect1, Rect2: TRect): TRect;
+    procedure UpdateRects;
+    function FrameAtPoint(const Pt: TPoint): TG2UIFrame;
   public
+    property Root: TG2UIFrame read m_Root;
+    property Skin: TG2UISkin read m_Skin write m_Skin;
+    property PlugInput: TG2PlugInput read m_PlugInput;
     constructor Create; override;
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
+    procedure Update;
+    procedure Render;
   end;
-//TG2GUI END
+//TG2UI END
 
-//TG2GUISkin BEGIN
-  TG2GUISkin = class
+//TG2UISkin BEGIN
+  TG2UISkin = class
   strict private
     type TMapping = (mtStretch, mtTile, mtBorder);
     type TElement = record
@@ -3042,45 +3076,103 @@ type
       var Layers: array[0..3] of PElement;
     end;
     type PTemplate = ^TTemplate;
-    var m_GUI: TG2GUI;
     var m_Textures: array of TG2Texture2D;
     var m_Elements: array of TElement;
     var m_Templates: array of TTemplate;
+  private
+    var GUI: TG2UI;
   public
-    constructor Create(const GUI: TG2GUI);
+    constructor Create(const OwnerGUI: TG2UI);
     destructor Destroy; override;
     function LoadFromFile(const f: WideString): TG2Result;
     function FindTemplate(const Name: WideString): PTemplate;
     procedure DrawTemplate(const TemplateName: WideString; const R: TRect);
   end;
-//TG2GUISkin END
+//TG2UISkin END
 
-//TG2GUIFrame BEGIN
-  TG2GUIFrame = class
+//TG2UIFrame BEGIN
+  TG2UIFrame = class
   strict private
-    var m_Parent: TG2GUIFrame;
+    var m_Parent: TG2UIFrame;
     var m_SubFrames: TG2QuickList;
-    procedure SetParent(const Value: TG2GUIFrame);
+    var m_RectSelf: TRect;
+    var m_RectClient: TRect;
+    procedure SetParent(const Value: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetSubFrameCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function GetSubFrame(const Index: Integer): TG2GUIFrame; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetSubFrame(const Index: Integer): TG2UIFrame; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetLeft: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetLeft(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetTop: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetTop(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetRight: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetRight(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetBottom: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetBottom(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetX(const Value: Integer);
+    procedure SetY(const Value: Integer);
+    function GetWidth: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetWidth(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetHeight: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetHeight(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   strict protected
-    var GUI: TG2GUI;
-    var RectSelf: TRect;
-    var RectClient: TRect;
-    procedure AdjustClientRect; virtual;
+    var GUI: TG2UI;
+    procedure ClientRectAdjust; virtual;
+    procedure ScreenRectAdjust;
     procedure Initialize; virtual;
     procedure Finalize; virtual;
+    procedure OnUpdate; virtual;
+    procedure OnRender; virtual;
+    procedure OnDeviceLost; virtual;
+    procedure OnDeviceReset; virtual;
+    procedure OnParamsChange; virtual;
+    procedure OnKeyOnwn(const Key: Byte); virtual;
+    procedure OnKeyUp(const Key: Byte); virtual;
+    procedure OnKeyPress(const Key: AnsiChar); virtual;
+    procedure OnMouseOnwn(const Button: Byte); virtual;
+    procedure OnMouseUp(const Button: Byte); virtual;
+    procedure OnMouseMove(const Shift: TPoint); virtual;
+    procedure OnWheelMove(const Shift: Integer); virtual;
+    function IsMouseOver: Boolean;
   private
-    procedure AddSubFrame(const Frame: TG2GUIFrame);
-    procedure RemoveSubFrame(const Frame: TG2GUIFrame);
+    var RectScreen: TRect;
+    var RectClip: TRect;
+    procedure SubFrameAdd(const Frame: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SubFrameRemove(const Frame: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    property Parent: TG2GUIFrame read m_Parent write SetParent;
+    property Parent: TG2UIFrame read m_Parent write SetParent;
     property SubFrameCount: Integer read GetSubFrameCount;
-    property SubFrames[const Index: Integer]: TG2GUIFrame read GetSubFrame;
-    constructor Create(const OwnerGUI: TG2GUI);
+    property SubFrames[const Index: Integer]: TG2UIFrame read GetSubFrame;
+    property Left: Integer read GetLeft write SetLeft;
+    property Top: Integer read GetTop write SetTop;
+    property Right: Integer read GetRight write SetRight;
+    property Bottom: Integer read GetBottom write SetBottom;
+    property X: Integer read GetLeft write SetX;
+    property Y: Integer read GetTop write SetY;
+    property Width: Integer read GetWidth write SetWidth;
+    property Height: Integer read GetHeight write SetHeight;
+    property RectLocal: TRect read m_RectSelf;
+    property RectGlobal: TRect read RectScreen;
+    property RectClient: TRect read m_RectClient;
+    constructor Create(const OwnerGUI: TG2UI);
     destructor Destroy; override;
+    procedure Update;
+    procedure Render;
   end;
-//TG2GUIFrame END
+//TG2UIFrame END
+
+//TG2UIPanel BEGIN
+  TG2UIPanel = class (TG2UIFrame)
+  strict protected
+    procedure OnRender; override;
+  end;
+//TG2UIPanel END
+
+//TG2UIButton BEGIN
+  TG2UIButton = class (TG2UIFrame)
+  strict protected
+    procedure OnRender; override;
+  end;
+//TG2UIButton END
 
 (*
 //TG2GUI BEGIN
@@ -4827,15 +4919,15 @@ type
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function CreateVertexShaderFromFile(const Name: AnsiString; const f: AnsiString): TG2VertexShader;
-    function CreateVertexShaderFromFileCompiled(const Name: AnsiString; const f: String): TG2VertexShader;
-    function CreateVertexShaderFromMemory(const Name: AnsiString; const Ptr: Pointer; const Size: DWord): TG2VertexShader;
-    function CreateVertexShaderFromFunction(const Name: AnsiString; const Func: PDWord): TG2VertexShader;
-    function CreatePixelShaderFromFile(const Name: AnsiString; const f: AnsiString): TG2PixelShader;
-    function CreatePixelShaderFromFileCompiled(const Name: AnsiString; const f: String): TG2PixelShader;
-    function CreatePixelShaderFromMemory(const Name: AnsiString; const Ptr: Pointer; const Size: DWord): TG2PixelShader;
-    function CreatePixelShaderFromFunction(const Name: AnsiString; const Func: PDWord): TG2PixelShader;
-    function FindShader(const Name: AnsiString): TG2Shader;
+    function CreateVertexShaderFromFile(const Name: WideString; const f: WideString): TG2VertexShader;
+    function CreateVertexShaderFromFileCompiled(const Name: WideString; const f: WideString): TG2VertexShader;
+    function CreateVertexShaderFromMemory(const Name: WideString; const Ptr: Pointer; const Size: DWord): TG2VertexShader;
+    function CreateVertexShaderFromFunction(const Name: WideString; const Func: PDWord): TG2VertexShader;
+    function CreatePixelShaderFromFile(const Name: WideString; const f: WideString): TG2PixelShader;
+    function CreatePixelShaderFromFileCompiled(const Name: WideString; const f: WideString): TG2PixelShader;
+    function CreatePixelShaderFromMemory(const Name: WideString; const Ptr: Pointer; const Size: DWord): TG2PixelShader;
+    function CreatePixelShaderFromFunction(const Name: WideString; const Func: PDWord): TG2PixelShader;
+    function FindShader(const Name: WideString): TG2Shader;
   end;
 //TG2ShaderMgr END
 
@@ -4849,8 +4941,8 @@ type
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function LoadFromFile(const f: AnsiString): TG2Result; virtual;
-    function LoadFromFileCompiled(const f: String): TG2Result; virtual;
+    function LoadFromFile(const f: WideString): TG2Result; virtual;
+    function LoadFromFileCompiled(const f: WideString): TG2Result; virtual;
     function LoadFromMemory(const Ptr: Pointer; const Size: DWord): TG2Result; virtual;
     function LoadFromFunction(const Func: PDWord): TG2Result; virtual;
     procedure Release; virtual;
@@ -4869,8 +4961,8 @@ type
     property Shader: IDirect3DVertexShader9 read m_Shader;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function LoadFromFile(const f: AnsiString): TG2Result; override;
-    function LoadFromFileCompiled(const f: String): TG2Result; override;
+    function LoadFromFile(const f: WideString): TG2Result; override;
+    function LoadFromFileCompiled(const f: WideString): TG2Result; override;
     function LoadFromMemory(const Ptr: Pointer; const Size: DWord): TG2Result; override;
     function LoadFromFunction(const Func: PDWord): TG2Result; override;
     procedure SetConstantF(const r: DWord; const c: PSingle; const F4Count: DWord); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -4893,8 +4985,8 @@ type
     property Shader: IDirect3DPixelShader9 read m_Shader;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function LoadFromFile(const f: AnsiString): TG2Result; override;
-    function LoadFromFileCompiled(const f: String): TG2Result; override;
+    function LoadFromFile(const f: WideString): TG2Result; override;
+    function LoadFromFileCompiled(const f: WideString): TG2Result; override;
     function LoadFromMemory(const Ptr: Pointer; const Size: DWord): TG2Result; override;
     function LoadFromFunction(const Func: PDWord): TG2Result; override;
     procedure SetConstantF(const c: DWord; const Value: PSingle; const F4Count: DWord); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -4918,9 +5010,9 @@ type
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function CreateEffectFromFile(const Name: AnsiString; f: AnsiString): TG2Effect;
-    function CreateEffectFromMemory(const Name: AnsiString; const Ptr: Pointer; const Size: Integer): TG2Effect;
-    function FindEffect(const Name: AnsiString): TG2Effect;
+    function CreateEffectFromFile(const Name: WideString; const f: WideString): TG2Effect;
+    function CreateEffectFromMemory(const Name: WideString; const Ptr: Pointer; const Size: Integer): TG2Effect;
+    function FindEffect(const Name: WideString): TG2Effect;
   end;
 //TG2EffectMgr END
 
@@ -4998,7 +5090,7 @@ type
     function GetAnnotationByName(hObject: TD3DXHandle; pName: PAnsiChar): TD3DXHandle; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    function LoadFromFile(f: AnsiString): TG2Result;
+    function LoadFromFile(const f: WideString): TG2Result;
     function LoadFromMemory(const Ptr: Pointer; const Size: Integer): TG2Result;
     procedure Release;  {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure OnLostDevice; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -5017,11 +5109,11 @@ type
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
-    procedure CreateShaderBin(const Name: AnsiString; const Ptr: Pointer; const Size: DWord); overload;
-    procedure CreateShaderBin(const Name: AnsiString; const Func: PDWord); overload;
-    function RequestVertexShader(const Name: AnsiString): TG2VertexShader;
-    function RequestPixelShader(const Name: AnsiString): TG2PixelShader;
-    function RequestEffect(const Name: AnsiString): TG2Effect;
+    procedure CreateShaderBin(const Name: WideString; const Ptr: Pointer; const Size: DWord); overload;
+    procedure CreateShaderBin(const Name: WideString; const Func: PDWord); overload;
+    function RequestVertexShader(const Name: WideString): TG2VertexShader;
+    function RequestPixelShader(const Name: WideString): TG2PixelShader;
+    function RequestEffect(const Name: WideString): TG2Effect;
   end;
 //TG2ShaderLib END
 
@@ -5197,6 +5289,131 @@ type
   end;
 //TG2SkyBox END
 
+//TG2PostProcess BEGIN
+  TG2PostProcess = class
+  strict private
+    type TVertex1 = record
+    public
+      var Pos: TG2Vec4;
+      var Tex0: TG2Vec2;
+    end;
+    type TVertex2 = record
+    public
+      var Pos: TG2Vec4;
+      var Tex0: TG2Vec2;
+      var Tex1: TG2Vec2;
+    end;
+    type TVertex3 = record
+    public
+      var Pos: TG2Vec4;
+      var Tex0: TG2Vec2;
+      var Tex1: TG2Vec2;
+      var Tex2: TG2Vec2;
+    end;
+    type TVertex4 = record
+    public
+      var Pos: TG2Vec4;
+      var Tex0: TG2Vec2;
+      var Tex1: TG2Vec2;
+      var Tex2: TG2Vec2;
+      var Tex3: TG2Vec2;
+    end;
+    type TVertex1Arr = array[Word] of TVertex1;
+    type PVertex1Arr = ^TVertex1Arr;
+    type TVertex2Arr = array[Word] of TVertex2;
+    type PVertex2Arr = ^TVertex2Arr;
+    type TVertex3Arr = array[Word] of TVertex3;
+    type PVertex3Arr = ^TVertex3Arr;
+    type TVertex4Arr = array[Word] of TVertex4;
+    type PVertex4Arr = ^TVertex4Arr;
+    type TTempSurface = record
+    public
+      var Surface: TG2Texture2DRT;
+      var Width: Integer;
+      var Height: Integer;
+      var Format: TD3DFormat;
+    end;
+    type PTempSurface = ^TTempSurface;
+    var m_Core: TG2Core;
+    var m_Shaders: TG2Effect;
+    var m_Surfaces: TG2QuickList;
+    var m_VB: array [0..3] of TG2VB;
+    procedure LoadBuffer0(const Pos, Tex0: TG2Rect);
+    procedure LoadBuffer1(const Pos, Tex0, Tex1: TG2Rect);
+    procedure LoadBuffer2(const Pos, Tex0, Tex1, Tex2: TG2Rect);
+    procedure LoadBuffer3(const Pos, Tex0, Tex1, Tex2, Tex3: TG2Rect);
+    function RequestSurface(const Width, Height: Integer; const Format: TD3DFormat = D3DFMT_UNKNOWN): TG2Texture2DRT;
+  public
+    constructor Create(const Core: TG2Core);
+    destructor Destroy; override;
+    procedure EffectBlur(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Integer = 1
+    );
+    procedure EffectSharpen(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 10
+    );
+    procedure EffectMonotone(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 1;
+      const Mask: DWord = $ffffffff
+    );
+    procedure EffectContrast(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 1
+    );
+    procedure EffectEmboss(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 10
+    );
+    procedure EffectEdges(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 10;
+      const Power: Single = 1
+    );
+    procedure EffectColorClamp(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const ClampMin: Single = 0;
+      const ClampMax: Single = 1
+    );
+    procedure EffectMonotoneClamp(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const ClampMin: Single = 0;
+      const ClampMax: Single = 1
+    );
+    procedure EffectDistortMap(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const DistortMap: TG2Texture2DBase;
+      const DistortShift: TG2Vec2;
+      const Amount: Single = 10
+    );
+    procedure EffectDistortMap2(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const DistortMap0: TG2Texture2DBase;
+      const DistortMap1: TG2Texture2DBase;
+      const DistortShift0: TG2Vec2;
+      const DistortShift1: TG2Vec2;
+      const Amount: Single = 10
+    );
+    procedure EffectBloom(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Power: Single = 1
+    );
+  end;
+//TG2PostProcess END
+
 //TG2Thread BEGIN
   TG2Thread = class (TThread)
   strict private
@@ -5241,19 +5458,19 @@ type
     var m_WindowArr: array of HWnd;
     procedure SetHandle(const Value: HWnd);
     function GetHandle: HWnd;
-    procedure AppTimer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppRender; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppUpdate; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppDeviceLost; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppDeviceReset; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppParamsChange; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppKeyDown(const Key: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppKeyUp(const Key: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppKeyPress(const Key: AnsiChar); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppMouseDown(const Button: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppMouseUp(const Button: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppMouseMove(const Shift: TPoint); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure AppWheelMove(const Shift: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure AppTimer;
+    procedure AppRender;
+    procedure AppUpdate;
+    procedure AppDeviceLost;
+    procedure AppDeviceReset;
+    procedure AppParamsChange;
+    procedure AppKeyDown(const Key: Byte);
+    procedure AppKeyUp(const Key: Byte);
+    procedure AppKeyPress(const Key: AnsiChar);
+    procedure AppMouseDown(const Button: Byte);
+    procedure AppMouseUp(const Button: Byte);
+    procedure AppMouseMove(const Shift: TPoint);
+    procedure AppWheelMove(const Shift: Integer);
   strict protected
     procedure OnTimer; virtual;
     procedure OnRender; virtual;
@@ -5344,7 +5561,7 @@ const
 
 var
   AppTime: DWord;
-  AppPath: AnsiString;
+  AppPath: WideString;
   AppCompiler: AnsiString;
   G2VMRID: DWord = 0;
 
@@ -6250,7 +6467,7 @@ begin
   Result := Length(m_Items);
 end;
 
-function TG2QuickList.AddItem(const Item: Pointer): Integer;
+function TG2QuickList.Add(const Item: Pointer): Integer;
 begin
   if Length(m_Items) <= m_ItemCount then
   SetLength(m_Items, Length(m_Items) + 32);
@@ -6259,7 +6476,27 @@ begin
   Inc(m_ItemCount);
 end;
 
-procedure TG2QuickList.DeleteItem(const Index: Integer);
+function TG2QuickList.Insert(const Index: Integer; const Item: Pointer): Integer;
+  var i: Integer;
+begin
+  if Length(m_Items) <= m_ItemCount then
+  SetLength(m_Items, Length(m_Items) + 32);
+  if Index < m_ItemCount then
+  begin
+    for i := m_ItemCount downto Index do
+    m_Items[i + 1] := m_Items[i];
+    m_Items[Index] := Item;
+    Result := Index;
+  end
+  else
+  begin
+    m_Items[m_ItemCount] := Item;
+    Result := m_ItemCount;
+  end;
+  Inc(m_ItemCount);
+end;
+
+procedure TG2QuickList.Delete(const Index: Integer);
   var i: Integer;
 begin
   for i := Index to m_ItemCount - 2 do
@@ -6267,13 +6504,13 @@ begin
   Dec(m_ItemCount);
 end;
 
-procedure TG2QuickList.RemoveItem(const Item: Pointer);
+procedure TG2QuickList.Remove(const Item: Pointer);
   var i: Integer;
 begin
   for i := 0 to m_ItemCount - 1 do
   if m_Items[i] = Item then
   begin
-    DeleteItem(i);
+    Delete(i);
     Exit;
   end;
 end;
@@ -6320,7 +6557,7 @@ begin
   Result := Length(m_Items);
 end;
 
-function TG2QuickSortList.AddItem(const Item: Pointer; const Order: Single): Integer;
+function TG2QuickSortList.Add(const Item: Pointer; const Order: Single): Integer;
   var l, h, m: Integer;
 begin
   l := 0;
@@ -6335,7 +6572,7 @@ begin
   Result := l;
 end;
 
-function TG2QuickSortList.AddItem(const Item: Pointer): Integer;
+function TG2QuickSortList.Add(const Item: Pointer): Integer;
 begin
   if Length(m_Items) <= m_ItemCount then
   SetLength(m_Items, Length(m_Items) + 32);
@@ -6345,7 +6582,7 @@ begin
   Inc(m_ItemCount);
 end;
 
-procedure TG2QuickSortList.DeleteItem(const Index: Integer);
+procedure TG2QuickSortList.Delete(const Index: Integer);
   var i: Integer;
 begin
   for i := Index to m_ItemCount - 2 do
@@ -6356,13 +6593,13 @@ begin
   Dec(m_ItemCount);
 end;
 
-procedure TG2QuickSortList.RemoveItem(const Item: Pointer);
+procedure TG2QuickSortList.Remove(const Item: Pointer);
   var i: Integer;
 begin
   for i := 0 to m_ItemCount - 1 do
   if m_Items[i].Data = Item then
   begin
-    DeleteItem(i);
+    Delete(i);
     Exit;
   end;
 end;
@@ -7236,7 +7473,7 @@ begin
   m_ProcWriteColor := WriteColorProc;
 end;
 
-procedure TG2FileRW.OpenRead(const FileName: String);
+procedure TG2FileRW.OpenRead(const FileName: WideString);
 begin
   if m_Open then Close;
   m_fs := TFileStream.Create(FileName, fmOpenRead);
@@ -7247,7 +7484,7 @@ begin
   SetProcs;
 end;
 
-procedure TG2FileRW.OpenWrite(const FileName: String);
+procedure TG2FileRW.OpenWrite(const FileName: WideString);
 begin
   if m_Open then Close;
   m_fs := TFileStream.Create(FileName, fmCreate);
@@ -8877,27 +9114,6 @@ begin
   inherited Destroy;
 end;
 
-procedure TG2GraphicsSpecs.FindAsp(const Width, Height: Integer; var X, Y: Integer);
-  var MaxDiv, d: Integer;
-begin
-  x := Width;
-  y := Height;
-  MaxDiv := Min(x, y);
-  d := 2;
-  while d <= MaxDiv do
-  begin
-    if (x mod d = 0) and (y mod d = 0) then
-    begin
-      x := x div d;
-      y := y div d;
-      d := 2;
-      MaxDiv := Min(x, y);
-    end
-    else
-    Inc(d);
-  end;
-end;
-
 function TG2GraphicsSpecs.FindFormat(
       const Format: TD3DFormat;
       const Usage: DWord;
@@ -8955,7 +9171,7 @@ begin
 end;
 
 procedure TG2GraphicsSpecs.FindResolutions;
-  var ac, i, j, sw, sh, sax, say, ax, ay: Integer;
+  var ac, i, j, t, Pos, sw, sh, sax, say, ax, ay: Integer;
   var Mode: TD3DDisplayMode;
   var r: PResolution;
   var AddMode: Boolean;
@@ -8967,6 +9183,56 @@ begin
   for i := 0 to ac - 1 do
   begin
     m_Gfx.D3D9.EnumAdapterModes(0, D3DFMT_X8R8G8B8, i, Mode);
+    AddMode := True;
+    for j := 0 to m_List.Count - 1 do
+    if (PResolution(m_List[j])^.Width = Mode.Width)
+    and ((PResolution(m_List[j])^.Height = Mode.Height)) then
+    begin
+      Pos := 0;
+      for t := 0 to High(PResolution(m_List[j])^.RefreshRates) do
+      begin
+        if PResolution(m_List[j])^.RefreshRates[t] = Mode.RefreshRate then
+        begin
+          AddMode := False;
+          Break;
+        end
+        else
+        if PResolution(m_List[j])^.RefreshRates[t] < Mode.RefreshRate then
+        Pos := t + 1;
+      end;
+      if AddMode then
+      begin
+        SetLength(PResolution(m_List[j])^.RefreshRates, Length(PResolution(m_List[j])^.RefreshRates) + 1);
+        for t := Pos to High(PResolution(m_List[j])^.RefreshRates) - 1 do
+        PResolution(m_List[j])^.RefreshRates[t + 1] := PResolution(m_List[j])^.RefreshRates[t];
+        PResolution(m_List[j])^.RefreshRates[Pos] := Mode.RefreshRate;
+      end;
+      AddMode := False;
+      Break;
+    end;
+    if AddMode then
+    begin
+      FindAsp(Mode.Width, Mode.Height, ax, ay);
+      New(r);
+      r^.AspX := ax;
+      r^.AspY := ay;
+      r^.Width := Mode.Width;
+      r^.Height := Mode.Height;
+      SetLength(r^.RefreshRates, 1);
+      r^.RefreshRates[0] := Mode.RefreshRate;
+      m_List.Add(r, Mode.Width * Mode.Height);
+    end;
+  end;
+  SetLength(m_Resolutions, m_List.Count);
+  for i := 0 to m_List.Count - 1 do
+  begin
+    m_Resolutions[i] := PResolution(m_List[i])^;
+    Dispose(PResolution(m_List[i]));
+  end;
+  m_List.Clear;
+  for i := 0 to ac - 1 do
+  begin
+    m_Gfx.D3D9.EnumAdapterModes(0, D3DFMT_X8R8G8B8, i, Mode);
     FindAsp(Mode.Width, Mode.Height, ax, ay);
     if (ax = sax) and (ay = say) then
     begin
@@ -8975,6 +9241,25 @@ begin
       if (PResolution(m_List[j])^.Width = Mode.Width)
       and ((PResolution(m_List[j])^.Height = Mode.Height)) then
       begin
+        Pos := 0;
+        for t := 0 to High(PResolution(m_List[j])^.RefreshRates) do
+        begin
+          if PResolution(m_List[j])^.RefreshRates[t] = Mode.RefreshRate then
+          begin
+            AddMode := False;
+            Break;
+          end
+          else
+          if PResolution(m_List[j])^.RefreshRates[t] < Mode.RefreshRate then
+          Pos := t + 1;
+        end;
+        if AddMode then
+        begin
+          SetLength(PResolution(m_List[j])^.RefreshRates, Length(PResolution(m_List[j])^.RefreshRates) + 1);
+          for t := Pos to High(PResolution(m_List[j])^.RefreshRates) - 1 do
+          PResolution(m_List[j])^.RefreshRates[t + 1] := PResolution(m_List[j])^.RefreshRates[t];
+          PResolution(m_List[j])^.RefreshRates[Pos] := Mode.RefreshRate;
+        end;
         AddMode := False;
         Break;
       end;
@@ -8985,14 +9270,16 @@ begin
         r^.AspY := ay;
         r^.Width := Mode.Width;
         r^.Height := Mode.Height;
+        SetLength(r^.RefreshRates, 1);
+        r^.RefreshRates[0] := Mode.RefreshRate;
         m_List.Add(r, Mode.Width * Mode.Height);
       end;
     end;
   end;
-  SetLength(m_Resolutions, m_List.Count);
+  SetLength(m_ResolutionsComp, m_List.Count);
   for i := 0 to m_List.Count - 1 do
   begin
-    m_Resolutions[i] := PResolution(m_List[i])^;
+    m_ResolutionsComp[i] := PResolution(m_List[i])^;
     Dispose(PResolution(m_List[i]));
   end;
   m_List.Clear;
@@ -9006,6 +9293,16 @@ end;
 function TG2GraphicsSpecs.GetResolutionCount: Integer;
 begin
   Result := Length(m_Resolutions);
+end;
+
+function TG2GraphicsSpecs.GetResolutionComp(const Index: Integer): PResolution;
+begin
+  Result := @m_ResolutionsComp[Index];
+end;
+
+function TG2GraphicsSpecs.GetResolutionCompCount: Integer;
+begin
+  Result := Length(m_ResolutionsComp);
 end;
 
 function TG2GraphicsSpecs.GetAntialiasSamples(const Index: Integer): Integer;
@@ -9128,6 +9425,27 @@ begin
     34,
     m_Gfx.m_InitParamsActual.FormatSurfaceDS
   );
+end;
+
+procedure TG2GraphicsSpecs.FindAsp(const Width, Height: Integer; var X, Y: Integer);
+  var MaxDiv, d: Integer;
+begin
+  x := Width;
+  y := Height;
+  MaxDiv := Min(x, y);
+  d := 2;
+  while d <= MaxDiv do
+  begin
+    if (x mod d = 0) and (y mod d = 0) then
+    begin
+      x := x div d;
+      y := y div d;
+      d := 2;
+      MaxDiv := Min(x, y);
+    end
+    else
+    Inc(d);
+  end;
 end;
 
 function TG2GraphicsSpecs.GetVRAM: DWord;
@@ -11070,13 +11388,13 @@ end;
 constructor TG2ResMgr.Create;
 begin
   inherited Create;
-  m_Resources := TList.Create;
+  m_Resources.Clear;
 end;
 
 destructor TG2ResMgr.Destroy;
 begin
   Finalize;
-  m_Resources.Free;
+  m_Resources.Clear;
   inherited Destroy;
 end;
 
@@ -11085,84 +11403,78 @@ begin
   Result := m_Resources.Count;
 end;
 
-function TG2ResMgr.FindResourceIndex(const NameCache: DWord): Integer;
+function TG2ResMgr.FindResourceIndex(const NameCache: PWordArray; const Len: Integer): Integer;
 var
-  l, h, m: Integer;
+  i, j, Incr, l, h, m: Integer;
 begin
   l := 0;
   h := m_Resources.Count - 1;
   while l <= h do
   begin
     m := (l + h) div 2;
-    if Integer(TG2Res(m_Resources[m]).m_NameCache) - Integer(NameCache) < 0 then
-    l := m + 1
+    j := Length(TG2Res(m_Resources[m]).NameCache);
+    if j < Len then
+    begin
+      j := j - 1;
+      Incr := 1;
+    end
     else
-    h := m - 1;
+    begin
+      j := Len - 1;
+      Incr := -1;
+    end;
+    for i := 0 to j do
+    if TG2Res(m_Resources[m]).NameCache[i] < NameCache^[i] then
+    begin
+      Incr := 1;
+      Break;
+    end
+    else if TG2Res(m_Resources[m]).NameCache[i] > NameCache^[i] then
+    begin
+      Incr := -1;
+      Break;
+    end;
+    if Incr > 0 then l := m + 1 else h := m - 1;
   end;
   Result := l;
 end;
 
-function TG2ResMgr.FindResource(const Name: AnsiString): TG2Res;
-var
-  Cache: DWord;
-  Ind, i, j: Integer;
+function TG2ResMgr.FindResource(const Name: WideString): TG2Res;
+  var Cache: array of Word;
+  var Ind, i: Integer;
+  var n: WideString;
 begin
-  for i := 0 to m_Resources.Count - 1 do
-  if TG2Res(m_Resources[i]).Name = Name then
+  SetLength(Cache, Length(Name));
+  for i := 0 to High(Cache) do
+  Cache[i] := Ord(UpperCase(Name[i + 1])[1]);
+  Ind := FindResourceIndex(@Cache[0], Length(Cache));
+  if (Ind < m_Resources.Count) then
   begin
-    Result := TG2Res(m_Resources[i]);
-    Exit;
-  end;
+    n := TG2Res(m_Resources[Ind]).Name;
+    if (UpperCase(n) = UpperCase(Name)) then
+    Result := TG2Res(m_Resources[Ind])
+    else
+    Result := nil;
+  end
+  else
   Result := nil;
-  {Result := nil;
-  if m_Resources.Count = 0 then Exit;
-  Cache := 0;
-  for i := 0 to Min(Length(Name) - 1, 3) do
-  Cache := Cache or ((Ord(Name[i + 1]) and $ff) shl (24 - i * 8));
-  Ind := FindResourceIndex(Cache);
-  i := Ind - 1;
-  j := Ind;
-  while
-  ((i >= 0) and (Cache = TG2Res(m_Resources[i]).m_NameCache))
-  or
-  ((j < m_Resources.Count) and (Cache = TG2Res(m_Resources[j]).m_NameCache)) do
-  begin
-    if i >= 0 then
-    begin
-      if (TG2Res(m_Resources[i]).Name = Name) then
-      begin
-        Result := TG2Res(m_Resources[i]);
-        Exit;
-      end;
-      Dec(i);
-    end;
-    if j < m_Resources.Count then
-    begin
-      if (TG2Res(m_Resources[j]).Name = Name) then
-      begin
-        Result := TG2Res(m_Resources[j]);
-        Exit;
-      end;
-     Inc(j);
-    end;
-  end; }
 end;
 
 procedure TG2ResMgr.AddResource(const Res: TG2Res);
 begin
-  m_Resources.Insert(FindResourceIndex(Res.m_NameCache), Res);
-  Res.m_Mgrs.Add(Self);
+  m_Resources.Insert(FindResourceIndex(@Res.NameCache[0], Length(Res.NameCache)), Res);
+  Res.Mgrs.Add(Self);
 end;
 
 procedure TG2ResMgr.RemoveResource(const Res: TG2Res);
 begin
   m_Resources.Remove(Res);
-  Res.m_Mgrs.Remove(Self);
+  Res.Mgrs.Remove(Self);
 end;
 
 procedure TG2ResMgr.DeleteResource(const Index: Integer);
 begin
-  TG2Res(m_Resources[Index]).m_Mgrs.Remove(Self);
+  TG2Res(m_Resources[Index]).Mgrs.Remove(Self);
   m_Resources.Delete(Index);
 end;
 
@@ -11173,7 +11485,7 @@ begin
   i := 0;
   j := m_Resources.Count - 1;
   while i <= j do
-  if TG2Res(m_Resources[i]).m_Mgrs.Count <= 1 then
+  if TG2Res(m_Resources[i]).Mgrs.Count <= 1 then
   begin
     TG2Res(m_Resources[i]).Finalize;
     TG2Res(m_Resources[i]).Free;
@@ -11205,31 +11517,31 @@ constructor TG2Res.Create;
 begin
   inherited Create;
   m_Name := '';
-  m_NameCache := 0;
-  m_Mgrs := TList.Create;
+  NameCache := nil;
+  Mgrs.Clear;
 end;
 
 destructor TG2Res.Destroy;
 begin
-  while m_Mgrs.Count > 0 do
-  TG2ResMgr(m_Mgrs[0]).RemoveResource(Self);
-  m_Mgrs.Free;
+  while Mgrs.Count > 0 do
+  TG2ResMgr(Mgrs[0]).RemoveResource(Self);
+  Mgrs.Clear;
   Finalize;
   inherited Destroy;
 end;
 
-procedure TG2Res.SetName(const Value: AnsiString);
+procedure TG2Res.SetName(const Value: WideString);
 var
   i: Integer;
 begin
   m_Name := Value;
-  m_NameCache := 0;
-  for i := 0 to Min(Length(m_Name) - 1, 3) do
-  m_NameCache := m_NameCache or ((Ord(m_Name[i + 1]) and $ff) shl (24 - i * 8));
-  for i := 0 to m_Mgrs.Count - 1 do
+  SetLength(NameCache, Length(m_Name));
+  for i := 0 to High(NameCache) do
+  NameCache[i] := Ord(UpperCase(m_Name[i + 1])[1]);
+  for i := 0 to Mgrs.Count - 1 do
   begin
-    TG2ResMgr(m_Mgrs[i]).RemoveResource(Self);
-    TG2ResMgr(m_Mgrs[i]).AddResource(Self);
+    TG2ResMgr(Mgrs[i]).RemoveResource(Self);
+    TG2ResMgr(Mgrs[i]).AddResource(Self);
   end;
 end;
 //TG2Res END
@@ -11270,12 +11582,12 @@ begin
   Result := grOk;
 end;
 
-function TG2MusicMgr.FindMusic(const Name: AnsiString): TG2Music;
+function TG2MusicMgr.FindMusic(const Name: WideString): TG2Music;
 begin
   Result := TG2Music(FindResource(Name));
 end;
 
-function TG2MusicMgr.CreateMusic(const Name: AnsiString): TG2Music;
+function TG2MusicMgr.CreateMusic(const Name: WideString): TG2Music;
 begin
   Result := TG2Music.Create;
   Result.Initialize(Core);
@@ -11449,33 +11761,33 @@ begin
   Result := inherited Initialize(G2Core);
   if G2ResFail(Result) then Exit;
   m_G2Audio := Core.Audio;
-  G2WriteLogTimed('(+) Music Initialized: (' + Name + ').');
+  G2WriteLogTimed(AnsiString('(+) Music Initialized: (' + Name + ').'));
 end;
 
 function TG2Music.Finalize: TG2Result;
 begin
   Result := inherited Finalize;
   if G2ResFail(Result) then Exit;
-  G2WriteLogTimed('(-) Music Finalized: (' + Name + ').');
+  G2WriteLogTimed(AnsiString('(-) Music Finalized: (' + Name + ').'));
 end;
 
-procedure TG2Music.OpenFile(const f: AnsiString);
+procedure TG2Music.OpenFile(const f: WideString);
 begin
   ClearGraph;
   m_Open := Succeeded(
-    m_Graph.RenderFile(PWideChar(StringToWideString(f)), nil)
+    m_Graph.RenderFile(PWideChar(f), nil)
   );
   if m_Open then
   begin
     Volume := 1;
-    G2WriteLogTimed('(>) Music Loaded (' + Name + ').');
+    G2WriteLogTimed(AnsiString('(>) Music Loaded (' + Name + ').'));
   end;
 end;
 
 procedure TG2Music.Close;
 begin
   if m_Open then
-  G2WriteLogTimed('(<) Music Released (' + Name + ').');
+  G2WriteLogTimed(AnsiString('(<) Music Released (' + Name + ').'));
   ClearGraph;
 end;
 
@@ -11573,12 +11885,12 @@ begin
   Result := grOk;
 end;
 
-function TG2SoundMgr.FindSound(const Name: AnsiString): TG2Sound;
+function TG2SoundMgr.FindSound(const Name: WideString): TG2Sound;
 begin
   Result := TG2Sound(FindResource(Name));
 end;
 
-function TG2SoundMgr.CreateSound(const Name: AnsiString): TG2Sound;
+function TG2SoundMgr.CreateSound(const Name: WideString): TG2Sound;
 begin
   Result := TG2Sound.Create;
   Result.Name := Name;
@@ -11586,7 +11898,7 @@ begin
   AddResource(Result);
 end;
 
-function TG2SoundMgr.CreateSoundFromFile(const Name, f: AnsiString): TG2Sound;
+function TG2SoundMgr.CreateSoundFromFile(const Name, f: WideString): TG2Sound;
 begin
   Result := TG2Sound.Create;
   Result.Name := Name;
@@ -11826,7 +12138,7 @@ begin
   m_Listener.SetAllParameters(ListenerParams, DS3D_IMMEDIATE);
   m_Buffer.GetFrequency(m_Frequency);
   m_PlayTime := GetTickCount - 1000;
-  G2WriteLogTimed('(+) Sound Initialized: (' + Name + ').', 'Sounds');
+  G2WriteLogTimed(AnsiString('(+) Sound Initialized: (' + Name + ').'), 'Sounds');
 end;
 
 function TG2Sound.Finalize: TG2Result;
@@ -11838,17 +12150,17 @@ begin
   SafeRelease(m_Buffer3D);
   SafeRelease(m_Buffer);
   SafeRelease(m_AudioPath);
-  G2WriteLogTimed('(+) Sound Finalized: (' + Name + ').', 'Sounds');
+  G2WriteLogTimed(AnsiString('(+) Sound Finalized: (' + Name + ').'), 'Sounds');
 end;
 
-function TG2Sound.LoadFile(const f: AnsiString): TG2Result;
+function TG2Sound.LoadFile(const f: WideString): TG2Result;
 begin
   Result := grFail;
   if SUCCEEDED(
     m_G2Audio.m_Loader.LoadObjectFromFile(
       CLSID_DirectMusicSegment,
       IID_IDirectMusicSegment8,
-      PWideChar(StringToWideString(f)),
+      PWideChar(f),
       m_Segment
     )
   ) then
@@ -11859,7 +12171,7 @@ begin
     begin
       m_Loaded := True;
       Result := grOk;
-      G2WriteLogTimed('(>) Sound Loaded (' + Name + ').', 'Sounds');
+      G2WriteLogTimed(AnsiString('(>) Sound Loaded (' + Name + ').'), 'Sounds');
     end;
   end;
 end;
@@ -11871,7 +12183,7 @@ begin
     m_Segment.Unload(m_AudioPath);
     SafeRelease(m_Segment);
     m_Loaded := False;
-    G2WriteLogTimed('(<) Sound Released (' + Name + ').', 'Sounds');
+    G2WriteLogTimed(AnsiString('(<) Sound Released (' + Name + ').'), 'Sounds');
   end;
 end;
 
@@ -12208,7 +12520,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2D(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer;
       const MipLevels: Integer = 8;
       const Usage: DWord = 0;
@@ -12224,13 +12536,13 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DFromFile(
-      const Name: AnsiString;
-      const f: AnsiString;
+      const Name: WideString;
+      const f: WideString;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
 begin
-  if FileExists(String(f)) then
+  if FileExists(f) then
   begin
     Result := TG2Texture2D.Create;
     Result.Name := Name;
@@ -12238,12 +12550,14 @@ begin
     if G2ResOk(Result.LoadFromFile(f, MipLevels, Format)) then
     AddResource(Result) else FreeAndNil(Result);
     Exit;
-  end;
+  end
+  else
+  G2WriteLogTimed('(W) Texture file missing: ' + AnsiString(f), 'Textures');
   Result := nil;
 end;
 
 function TG2TextureMgr.CreateTexture2DFromStream(
-      const Name: AnsiString;
+      const Name: WideString;
       const s: TMemoryStream;
       const Size: Integer;
       const MipLevels: Integer = 8;
@@ -12258,7 +12572,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DFromBuffer(
-      const Name: AnsiString;
+      const Name: WideString;
       const b: Pointer;
       const Size: Integer;
       const MipLevels: Integer = 8;
@@ -12273,7 +12587,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DFromGraphic(
-      const Name: AnsiString;
+      const Name: WideString;
       const g: TGraphic;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
@@ -12287,7 +12601,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DFromPack(
-      const Name: AnsiString;
+      const Name: WideString;
       const FolderName, FileName: AnsiString;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
@@ -12315,7 +12629,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DFromTexture2D(
-      const Name: AnsiString;
+      const Name: WideString;
       const Tex: TG2Texture2DBase;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
@@ -12329,7 +12643,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DNormalMap(
-      const Name: AnsiString;
+      const Name: WideString;
       const HeightMap: TG2Texture2D;
       const Amplitude: Single = 1;
       const MipLevels: Integer = 8;
@@ -12349,7 +12663,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DRT(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2DRT;
@@ -12362,7 +12676,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DDS(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer
     ): TG2Texture2DDS;
 begin
@@ -12374,8 +12688,8 @@ begin
 end;
 
 function TG2TextureMgr.CreateTexture2DVideo(
-      const Name: AnsiString;
-      const f: AnsiString
+      const Name: WideString;
+      const f: WideString
     ): TG2Texture2DVideo;
 begin
   Result := TG2Texture2DVideo.Create;
@@ -12386,7 +12700,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTextureCube(
-      const Name: AnsiString;
+      const Name: WideString;
       const Size: Integer;
       const MipLevels: Integer = 8;
       const Usage: DWord = 0;
@@ -12410,8 +12724,8 @@ begin
 end;
 
 function TG2TextureMgr.CreateTextureCubeFromFile(
-      const Name: AnsiString;
-      const f: AnsiString;
+      const Name: WideString;
+      const f: WideString;
       const MipLevels: Integer = 1;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2TextureCube;
@@ -12424,7 +12738,7 @@ begin
 end;
 
 function TG2TextureMgr.CreateTextureCubeRT(
-      const Name: AnsiString;
+      const Name: WideString;
       const Size: Integer;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2TextureCubeRT;
@@ -12440,7 +12754,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2TextureMgr.FindTexture(const Name: AnsiString): TG2TextureBase;
+function TG2TextureMgr.FindTexture(const Name: WideString): TG2TextureBase;
 begin
   Result := TG2TextureBase(FindResource(Name));
 end;
@@ -13030,7 +13344,7 @@ begin
   if G2ResFail(Result) then Exit;
   m_Gfx := Core.Graphics;
   Result := grOk;
-  G2WriteLogTimed('(+) Texture Initialized: (' + Name + ').', 'Textures');
+  G2WriteLogTimed(AnsiString('(+) Texture Initialized: (' + Name + ').'), 'Textures');
 end;
 
 function TG2TextureBase.Finalize: TG2Result;
@@ -13039,7 +13353,7 @@ begin
   if G2ResFail(Result) then Exit;
   Release;
   Result := grOk;
-  G2WriteLogTimed('(-) Texture Finalized: (' + Name + ').', 'Textures');
+  G2WriteLogTimed(AnsiString('(-) Texture Finalized: (' + Name + ').'), 'Textures');
 end;
 //TG2TextureBase END
 
@@ -13064,6 +13378,11 @@ end;
 function TG2Texture2DBase.GetDrawRect: PG2Rect;
 begin
   Result := @m_DrawRect;
+end;
+
+procedure TG2Texture2DBase.SetDrawRect;
+begin
+  m_DrawRect := G2Rect(0, 0, m_Width / m_RealWidth, m_Height / m_RealHeight);
 end;
 
 function TG2Texture2DBase.GetTexture: IDirect3DBaseTexture9;
@@ -13098,6 +13417,11 @@ begin
   Result.e30 := OffsetX;
   Result.e31 := OffsetY;
   Result.e33 := 1.0;
+end;
+
+function TG2Texture2DBase.GetTexelSize: TG2Vec2;
+begin
+  Result.SetValue(1 / m_RealWidth, 1 / m_RealHeight);
 end;
 
 function TG2Texture2DBase.SaveToFile(const FileName: String): TG2Result;
@@ -13185,7 +13509,7 @@ end;
 procedure TG2Texture2DBase.Release;
 begin
   if Assigned(m_Texture) then
-  G2WriteLogTimed('(<) Texture Released (' + Name + ').', 'Textures');
+  G2WriteLogTimed(AnsiString('(<) Texture Released (' + Name + ').'), 'Textures');
   SafeRelease(m_Texture);
   m_Width := 0;
   m_Height := 0;
@@ -13207,11 +13531,6 @@ end;
 destructor TG2Texture2D.Destroy;
 begin
   inherited Destroy;
-end;
-
-procedure TG2Texture2D.SetDrawRect;
-begin
-  m_DrawRect := G2Rect(0, 0, m_Width / m_RealWidth, m_Height / m_RealHeight);
 end;
 
 procedure TG2Texture2D.InitLevels;
@@ -13244,7 +13563,7 @@ begin
 end;
 
 function TG2Texture2D.LoadFromFile(
-      const f: AnsiString;
+      const f: WideString;
       const MipLevels: Integer = 8;
       const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Result;
@@ -13259,9 +13578,9 @@ begin
   m_Format := m_Gfx.Specs.FindCompatiableTexture2DFormat(NewFormat);
 
   if Failed(
-    D3DXCreateTextureFromFileExA(
+    D3DXCreateTextureFromFileExW(
       m_Gfx.Device,
-      PAnsiChar(f),
+      PWideChar(f),
       0, 0,
       MipLevels,
       0,
@@ -13893,7 +14212,7 @@ begin
   m_SurfaceRT.Surface := RenderTargetSurface;
 
   m_Texture.GetLevelDesc(0, m_Desc);
-  m_DrawRect := G2Rect(0, 0, (m_Width - 1) / (m_RealWidth - 1), (m_Height - 1) / (m_RealHeight - 1));
+  SetDrawRect;
 
   m_Levels := 1;
   Result := grOk;
@@ -14382,7 +14701,7 @@ begin
   end;
 end;
 
-function TG2Texture2DVideo.StreamFile(const f: AnsiString): TG2Result;
+function TG2Texture2DVideo.StreamFile(const f: WideString): TG2Result;
 var
   FilterConfig: IVMRFilterConfig9;
   CurPin: IPin;
@@ -14475,7 +14794,7 @@ begin
       Exit;
     end;
     if Failed(
-      m_Graph.RenderFile(PWideChar(StringToWideString(f, CP_ACP)), nil)
+      m_Graph.RenderFile(PWideChar(f), nil)
     ) then
     begin
       Release;
@@ -14592,11 +14911,11 @@ begin
   m_Depth := Desc.Width;
 end;
 
-function TG2TextureCubeBase.SaveToFile(const FileName: AnsiString): TG2Result;
+function TG2TextureCubeBase.SaveToFile(const FileName: WideString): TG2Result;
 begin
   if Succeeded(
-    D3DXSaveTextureToFileA(
-      PAnsiChar(FileName),
+    D3DXSaveTextureToFileW(
+      PWideChar(FileName),
       D3DXIFF_DDS,
       m_Texture,
       nil
@@ -14610,7 +14929,7 @@ end;
 procedure TG2TextureCubeBase.Release;
 begin
   if Assigned(m_Texture) then
-  G2WriteLogTimed('(<) Texture Released (' + Name + ').', 'Textures');
+  G2WriteLogTimed(AnsiString('(<) Texture Released (' + Name + ').'), 'Textures');
   SafeRelease(m_Texture);
 end;
 //TG2TextureCubeBase END
@@ -14662,7 +14981,7 @@ begin
 end;
 
 function TG2TextureCube.LoadFromFile(
-      const f: AnsiString;
+      const f: WideString;
       const MipLevels: Integer = 1;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Result;
@@ -14677,9 +14996,9 @@ begin
   m_Format := m_Gfx.Specs.FindCompatiableTextureCubeFormat(Format);
 
   if Failed(
-    D3DXCreateCubeTextureFromFileExA(
+    D3DXCreateCubeTextureFromFileExW(
       m_Gfx.Device,
-      PAnsiChar(f),
+      PWideChar(f),
       0,
       MipLevels,
       0,
@@ -14931,7 +15250,7 @@ begin
 end;
 
 function TG2TextureVolume.LoadFromFile(
-      const FileName: AnsiString;
+      const FileName: WideString;
       const MipLevels: Integer = 1;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Result;
@@ -14946,9 +15265,9 @@ begin
   m_Format := m_Gfx.Specs.FindCompatiableTextureVolumeFormat(Format);
 
   if Failed(
-    D3DXCreateVolumeTextureFromFileExA(
+    D3DXCreateVolumeTextureFromFileExW(
       m_Gfx.Device,
-      PAnsiChar(FileName),
+      PWideChar(FileName),
       0, 0, 0,
       MipLevels,
       0,
@@ -15016,7 +15335,7 @@ begin
 end;
 
 function TG2SurfaceMgr.CreateRenderTargetSurface(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2SurfaceRT;
@@ -15029,7 +15348,7 @@ begin
 end;
 
 function TG2SurfaceMgr.CreateDepthStencilSurface(
-      const Name: AnsiString;
+      const Name: WideString;
       const Width, Height: Integer;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2SurfaceDS;
@@ -15041,7 +15360,7 @@ begin
   AddResource(Result) else Result.Free;
 end;
 
-function TG2SurfaceMgr.FindSurface(const Name: AnsiString): TG2Surface;
+function TG2SurfaceMgr.FindSurface(const Name: WideString): TG2Surface;
 begin
   Result := TG2Surface(FindResource(Name));
 end;
@@ -15420,7 +15739,9 @@ begin
 end;
 
 procedure TG2NetServer.AddConnection(const NewSock: Integer; const NewAddr: PSockAddrIn);
+{$IFDEF G2_WRITE_LOG}
   var hadr: Integer;
+{$ENDIF}
 begin
   if NewSock <> INVALID_SOCKET then
   begin
@@ -15806,7 +16127,7 @@ begin
 end;
 
 function TG2FontMgr.CreateFont(
-      const Name: AnsiString;
+      const Name: WideString;
       const FontFace: AnsiString;
       const Size: Integer
     ): TG2Font;
@@ -15819,8 +16140,8 @@ begin
 end;
 
 function TG2FontMgr.CreateFontFromFile(
-      const Name: AnsiString;
-      const FileName: String;
+      const Name: WideString;
+      const FileName: WideString;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Font;
 begin
@@ -16107,7 +16428,7 @@ end;
 procedure TG2Font.Release;
 begin
   if Assigned(m_Texture.Texture) then
-  G2WriteLogTimed('(<) Font Released: (' + Name + ').', 'Fonts');
+  G2WriteLogTimed(AnsiString('(<) Font Released: (' + Name + ').'), 'Fonts');
   m_Texture.Release;
 end;
 
@@ -16122,7 +16443,7 @@ begin
   m_FontFace := '';
   m_Size := 0;
   Result := grOk;
-  G2WriteLogTimed('(+) Font Initialized: (' + Name + ')', 'Fonts');
+  G2WriteLogTimed(AnsiString('(+) Font Initialized: (' + Name + ')'), 'Fonts');
 end;
 
 function TG2Font.Finalize: TG2Result;
@@ -16132,7 +16453,7 @@ begin
   Release;
   m_Texture.Free;
   Result := grOk;
-  G2WriteLogTimed('(-) Font Finalized: (' + Name + ')', 'Fonts');
+  G2WriteLogTimed(AnsiString('(-) Font Finalized: (' + Name + ')'), 'Fonts');
 end;
 //TG2Font END
 
@@ -16148,7 +16469,7 @@ begin
   inherited Destroy;
 end;
 
-function TG2MeshMgr.CreateMeshFromFile(const Name: AnsiString; const f: String): TG2Mesh;
+function TG2MeshMgr.CreateMeshFromFile(const Name: WideString; const f: WideString): TG2Mesh;
   var i: Integer;
   var LoaderClass: CG2MeshLoaderClass;
   var Loader: TG2MeshLoader;
@@ -16177,7 +16498,7 @@ begin
   AddResource(Result);
 end;
 
-function TG2MeshMgr.CreateMeshFromBuffer(const Name: AnsiString; const Buffer: Pointer; const Size: Integer): TG2Mesh;
+function TG2MeshMgr.CreateMeshFromBuffer(const Name: WideString; const Buffer: Pointer; const Size: Integer): TG2Mesh;
   var ms: TMemoryStream;
   var i: Integer;
   var LoaderClass: CG2MeshLoaderClass;
@@ -16212,7 +16533,7 @@ begin
   ms.Free;
 end;
 
-function TG2MeshMgr.CreateMeshFromPack(const Name, FolderName, FileName: AnsiString): TG2Mesh;
+function TG2MeshMgr.CreateMeshFromPack(const Name: WideString; const FolderName, FileName: AnsiString): TG2Mesh;
   var Data: Pointer;
   var DataSize: DWord;
 begin
@@ -16223,7 +16544,7 @@ begin
   Result := nil;
 end;
 
-function TG2MeshMgr.FindMesh(const Name: AnsiString): TG2Mesh;
+function TG2MeshMgr.FindMesh(const Name: WideString): TG2Mesh;
 begin
   Result := TG2Mesh(FindResource(Name));
 end;
@@ -17725,7 +18046,7 @@ begin
     Exit;
   end;
   Result := m_VBMgr.CreateVertexBuffer(
-    AnsiString('SharedVertexBuffer' + IntToStr(m_LastVBID)),
+    'SharedVertexBuffer' + IntToStr(m_LastVBID),
     NewStride,
     NewCount,
     NewUsage,
@@ -17757,7 +18078,7 @@ begin
     Exit;
   end;
   Result := m_IBMgr.CreateIndexBuffer(
-    AnsiString('SharedIndexBuffer' + IntToStr(m_LastIBID)),
+    'SharedIndexBuffer' + IntToStr(m_LastIBID),
     NewCount,
     NewUsage,
     NewFormat,
@@ -17781,7 +18102,7 @@ begin
     Exit;
   end;
   Result := m_FontMgr.CreateFont(
-    AnsiString('SharedFont' + IntToStr(m_LastFontID)),
+    'SharedFont' + IntToStr(m_LastFontID),
     FontFace, Size
   );
   Inc(m_LastFontID);
@@ -17844,7 +18165,7 @@ begin
 end;
 
 function TG2VBMgr.CreateVertexBuffer(
-      const Name: AnsiString;
+      const Name: WideString;
       const NewStride: DWord;
       const NewCount: DWord;
       const NewUsage: DWord;
@@ -17867,7 +18188,7 @@ begin
   Result.Free;
 end;
 
-function TG2VBMgr.FindVB(const Name: AnsiString): TG2VB;
+function TG2VBMgr.FindVB(const Name: WideString): TG2VB;
 begin
   Result := TG2VB(FindResource(Name));
 end;
@@ -18035,7 +18356,7 @@ begin
 end;
 
 function TG2IBMgr.CreateIndexBuffer(
-      const Name: AnsiString;
+      const Name: WideString;
       const NewSize: DWord;
       const NewUsage: DWord;
       const NewFormat: TD3DFormat;
@@ -18056,7 +18377,7 @@ begin
   Result.Free;
 end;
 
-function TG2IBMgr.FindIB(const Name: AnsiString): TG2IB;
+function TG2IBMgr.FindIB(const Name: WideString): TG2IB;
 begin
   Result := TG2IB(FindResource(Name));
 end;
@@ -18241,8 +18562,8 @@ begin
 end;
 //TG2Script END
 
-//TG2GUI BEGIN
-procedure TG2GUI.InitBuffers;
+//TG2UI BEGIN
+procedure TG2UI.InitBuffers;
   var Indices: PG2Index16Array;
   var CurInd: Integer;
   procedure AddIndQuad(const i0, i1, i2, i3: Word);
@@ -18276,44 +18597,198 @@ begin
   IB.UnLock;
 end;
 
-constructor TG2GUI.Create;
+procedure TG2UI.OnDeviceLost;
 begin
-  inherited Create;
+
 end;
 
-destructor TG2GUI.Destroy;
+procedure TG2UI.OnDeviceReset;
+begin
+
+end;
+
+procedure TG2UI.OnParamsChange;
+begin
+  m_Root.Left := 0;
+  m_Root.Top := 0;
+  m_Root.Width := Core.Graphics.Params.Width;
+  m_Root.Height := Core.Graphics.Params.Height;
+end;
+
+procedure TG2UI.OnKeyDown(const Key: Byte);
+begin
+
+end;
+
+procedure TG2UI.OnKeyUp(const Key: Byte);
+begin
+
+end;
+
+procedure TG2UI.OnKeyPress(const Key: AnsiChar);
+begin
+
+end;
+
+procedure TG2UI.OnMouseDown(const Button: Byte);
+begin
+
+end;
+
+procedure TG2UI.OnMouseUp(const Button: Byte);
+begin
+
+end;
+
+procedure TG2UI.OnMouseMove(const Shift: TPoint);
+begin
+
+end;
+
+procedure TG2UI.OnWheelMove(const Shift: Integer);
+begin
+
+end;
+
+class function TG2UI.ParentToClientRect(const RectParent, RectClient: TRect): TRect;
+begin
+  Result.Left := RectParent.Left + RectClient.Left;
+  Result.Top := RectParent.Top + RectClient.Top;
+  Result.Right := RectParent.Left + RectClient.Right;
+  Result.Bottom := RectParent.Top + RectClient.Bottom;
+end;
+
+class function TG2UI.ClipRect(const Rect1, Rect2: TRect): TRect;
+begin
+  if Rect1.Left > Rect2.Left then Result.Left := Rect1.Left else Result.Left := Rect2.Left;
+  if Rect1.Top > Rect2.Top then Result.Top := Rect1.Top else Result.Top := Rect2.Top;
+  if Rect1.Right < Rect2.Right then Result.Right := Rect1.Right else Result.Right := Rect2.Right;
+  if Rect1.Bottom < Rect2.Bottom then Result.Bottom := Rect1.Bottom else Result.Bottom := Rect2.Bottom;
+end;
+
+procedure TG2UI.UpdateRects;
+  procedure ProcessFrame(const Frame: TG2UIFrame);
+    var r: TRect;
+  begin
+    if Frame.Parent = nil then
+    begin
+      Frame.RectScreen := Frame.RectLocal;
+      Frame.RectClip := Frame.RectLocal;
+    end
+    else
+    begin
+      r := ParentToClientRect(Frame.Parent.RectScreen, Frame.Parent.RectClient);
+      Frame.RectScreen := ParentToClientRect(r, Frame.RectLocal);
+      Frame.RectClip := ClipRect(r, Frame.Parent.RectClip);
+    end;
+  end;
+begin
+  ProcessFrame(m_Root);
+end;
+
+function TG2UI.FrameAtPoint(const Pt: TPoint): TG2UIFrame;
+  var TargetFrame: TG2UIFrame;
+  function CheckFrame(const Frame: TG2UIFrame): Boolean;
+    var i: Integer;
+  begin
+    if PtInRect(Frame.RectClip, Pt) then
+    begin
+      for i := Frame.SubFrameCount - 1 downto 0 do
+      if CheckFrame(Frame.SubFrames[i]) then
+      begin
+        Result := True;
+        Exit;
+      end;
+      TargetFrame := Frame;
+    end;
+    Result := False;
+  end;
+begin
+  TargetFrame := nil;
+  CheckFrame(m_Root);
+  Result := TargetFrame;
+end;
+
+constructor TG2UI.Create;
+begin
+  inherited Create;
+  m_Root := nil;
+end;
+
+destructor TG2UI.Destroy;
 begin
   inherited Destroy;
 end;
 
-function TG2GUI.Initialize(const G2Core: TG2Core): TG2Result;
+function TG2UI.Initialize(const G2Core: TG2Core): TG2Result;
 begin
   Result := inherited Initialize(G2Core);
   if G2ResFail(Result) then Exit;
   Result := grOk;
   InitBuffers;
+  Core.RequestPlug(TG2PlugInput, @m_PlugInput);
+  Core.RequestPlug(TG2PlugGraphics, @m_PlugGraphics);
+  m_Root := TG2UIFrame.Create(Self);
+  m_Root.Left := 0;
+  m_Root.Top := 0;
+  m_Root.Width := Core.Graphics.Params.Width;
+  m_Root.Height := Core.Graphics.Params.Height;
+  m_PlugGraphics.OnDeviceLost := OnDeviceLost;
+  m_PlugGraphics.OnDeviceReset := OnDeviceReset;
+  m_PlugGraphics.OnParamsChange := OnParamsChange;
+  m_PlugInput.OnKeyDown := OnKeyDown;
+  m_PlugInput.OnKeyUp := OnKeyUp;
+  m_PlugInput.OnKeyPress := OnKeyPress;
+  m_PlugInput.OnMouseDown := OnMouseDown;
+  m_PlugInput.OnMouseUp := OnMouseUp;
+  m_PlugInput.OnMouseMove := OnMouseMove;
+  m_PlugInput.OnWheelMove := OnWheelMove;
+  Skins.Clear;
+  m_Skin := nil;
 end;
 
-function TG2GUI.Finalize: TG2Result;
+function TG2UI.Finalize: TG2Result;
+  var i: Integer;
 begin
   Result := inherited Finalize;
   if G2ResFail(Result) then Exit;
   Result := grOk;
+  Core.ReleasePlug(@m_PlugGraphics);
+  Core.ReleasePlug(@m_PlugInput);
+  m_Root.Free;
+  m_Root := nil;
+  for i := 0 to Skins.Count - 1 do
+  TG2UISkin(Skins[i]).Free;
   IB.Free;
   VB.Free;
 end;
-//TG2GUI END
 
-//TG2GUISkin BEGIN
-constructor TG2GUISkin.Create(const GUI: TG2GUI);
+procedure TG2UI.Update;
 begin
-  inherited Create;
-  m_GUI := GUI;
+  m_Root.Update;
 end;
 
-destructor TG2GUISkin.Destroy;
+procedure TG2UI.Render;
+begin
+  Core.Graphics.RenderStates.ScissorTestEnable := True;
+  if m_Skin <> nil then
+  m_Root.Render;
+  Core.Graphics.RenderStates.ScissorTestEnable := False;
+end;
+//TG2UI END
+
+//TG2UISkin BEGIN
+constructor TG2UISkin.Create(const OwnerGUI: TG2UI);
+begin
+  inherited Create;
+  GUI := OwnerGUI;
+  GUI.Skins.Add(Self);
+end;
+
+destructor TG2UISkin.Destroy;
   var i: Integer;
 begin
+  GUI.Skins.Remove(Self);
   for i := 0 to High(m_Textures) do
   m_Textures[i].Free;
   m_Textures := nil;
@@ -18322,12 +18797,13 @@ begin
   inherited Destroy;
 end;
 
-function TG2GUISkin.LoadFromFile(const f: WideString): TG2Result;
+function TG2UISkin.LoadFromFile(const f: WideString): TG2Result;
   var Header: array[0..3] of AnsiChar;
   var fs: TG2FileRW;
   var i, j, t, TexSize: Integer;
   var Data: array of Byte;
 begin
+  Result := grOk;
   fs := TG2FileRW.Create;
   fs.OpenRead(f);
   try
@@ -18338,8 +18814,8 @@ begin
       for i := 0 to High(m_Textures) do
       begin
         m_Textures[i] := TG2Texture2D.Create;
-        m_Textures[i].Initialize(m_GUI.Core);
-        m_Textures[i].Name := AnsiString(fs.ReadWideString);
+        m_Textures[i].Initialize(GUI.Core);
+        m_Textures[i].Name := fs.ReadWideString;
         TexSize := fs.ReadSInt4;
         if Length(Data) < TexSize then
         SetLength(Data, TexSize);
@@ -18385,7 +18861,7 @@ begin
   end;
 end;
 
-function TG2GUISkin.FindTemplate(const Name: WideString): PTemplate;
+function TG2UISkin.FindTemplate(const Name: WideString): PTemplate;
   var i: Integer;
 begin
   for i := 0 to High(m_Templates) do
@@ -18397,22 +18873,22 @@ begin
   Result := nil;
 end;
 
-procedure TG2GUISkin.DrawTemplate(const TemplateName: WideString; const R: TRect);
-  var Vertices: TG2GUI.PVertexArr;
+procedure TG2UISkin.DrawTemplate(const TemplateName: WideString; const R: TRect);
+  var Vertices: TG2UI.PVertexArr;
   var RectWidth, RectHeight, bgw, bgh: Single;
   var CurrentStage: Integer;
   procedure SetPositions(const bs: Single);
     var x0, x1, x2, x3, y0, y1, y2, y3: Single;
-    const POS_BIAS = -0.0125;
+    const POS_BIAS = 0.51;
   begin
-    x0 := R.Left + POS_BIAS;
-    x1 := R.Left + bs + POS_BIAS;
-    x2 := R.Right + 1 - bs + POS_BIAS;
-    x3 := R.Right + 1 + POS_BIAS;
-    y0 := R.Top + POS_BIAS;
-    y1 := R.Top + bs + POS_BIAS;
-    y2 := R.Bottom + 1 - bs + POS_BIAS;
-    y3 := R.Bottom + 1 + POS_BIAS;
+    x0 := R.Left - POS_BIAS;
+    x1 := R.Left + bs - POS_BIAS;
+    x2 := R.Right - bs + POS_BIAS;
+    x3 := R.Right + POS_BIAS;
+    y0 := R.Top - POS_BIAS;
+    y1 := R.Top + bs - POS_BIAS;
+    y2 := R.Bottom - bs + POS_BIAS;
+    y3 := R.Bottom + POS_BIAS;
     Vertices^[0].Pos.SetValue(x0, y0, 0, 1);
     Vertices^[1].Pos.SetValue(x1, y0, 0, 1);
     Vertices^[2].Pos.SetValue(x2, y0, 0, 1);
@@ -18525,7 +19001,7 @@ begin
   RectHeight := (R.Bottom - R.Top + 1);
   bgw := t^.BorderSize / RectWidth;
   bgh := t^.BorderSize / RectHeight;
-  m_GUI.VB.Lock(0, m_GUI.VB.Count * m_GUI.VB.Stride, Pointer(Vertices), D3DLOCK_DISCARD);
+  GUI.VB.Lock(0, GUI.VB.Count * GUI.VB.Stride, Pointer(Vertices), D3DLOCK_DISCARD);
   SetPositions(t^.BorderSize);
   CurrentStage := 0;
   for i := 0 to 3 do
@@ -18539,108 +19015,361 @@ begin
         mtTile: SetTexCoordsTile(e);
         mtBorder: SetTexCoordsBorder(e);
       end;
-      m_GUI.Core.Graphics.Device.SetTexture(CurrentStage, e^.Texture.Texture);
+      GUI.Core.Graphics.Device.SetTexture(CurrentStage, e^.Texture.Texture);
       if CurrentStage = 0 then
       begin
-        m_GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
-        m_GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_SELECTARG1;
+        GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
+        GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_SELECTARG1;
       end
       else
       begin
         if i = 3 then
         begin
-          m_GUI.Core.Graphics.TextureStageStages.ColorArg1[CurrentStage] := D3DTA_CURRENT;
-          m_GUI.Core.Graphics.TextureStageStages.ColorOp[CurrentStage] := D3DTOP_SELECTARG1;
-          m_GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
-          m_GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_SELECTARG1;
+          GUI.Core.Graphics.TextureStageStages.ColorArg1[CurrentStage] := D3DTA_CURRENT;
+          GUI.Core.Graphics.TextureStageStages.ColorOp[CurrentStage] := D3DTOP_SELECTARG1;
+          GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
+          GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_SELECTARG1;
         end
         else
         begin
-          m_GUI.Core.Graphics.TextureStageStages.ColorArg1[CurrentStage] := D3DTA_CURRENT;
-          m_GUI.Core.Graphics.TextureStageStages.ColorArg2[CurrentStage] := D3DTA_TEXTURE;
-          m_GUI.Core.Graphics.TextureStageStages.ColorOp[CurrentStage] := D3DTOP_BLENDCURRENTALPHA;
-          m_GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
-          m_GUI.Core.Graphics.TextureStageStages.AlphaArg2[CurrentStage] := D3DTA_CURRENT;
-          m_GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_ADD;
+          GUI.Core.Graphics.TextureStageStages.ColorArg1[CurrentStage] := D3DTA_CURRENT;
+          GUI.Core.Graphics.TextureStageStages.ColorArg2[CurrentStage] := D3DTA_TEXTURE;
+          GUI.Core.Graphics.TextureStageStages.ColorOp[CurrentStage] := D3DTOP_BLENDCURRENTALPHA;
+          GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
+          GUI.Core.Graphics.TextureStageStages.AlphaArg2[CurrentStage] := D3DTA_CURRENT;
+          GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_ADD;
         end;
       end;
       Inc(CurrentStage);
     end;
   end;
-  m_GUI.VB.UnLock;
+  GUI.VB.UnLock;
   if CurrentStage > 0 then
   begin
-    m_GUI.IB.SetToDevice;
-    m_GUI.VB.SetToDevice;
-    m_GUI.Core.Graphics.Device.DrawIndexedPrimitive(
+    GUI.IB.SetToDevice;
+    GUI.VB.SetToDevice;
+    GUI.Core.Graphics.Device.DrawIndexedPrimitive(
       D3DPT_TRIANGLELIST,
-      0, 0, m_GUI.VB.Count,
-      0, m_GUI.IB.Count div 3
+      0, 0, GUI.VB.Count,
+      0, GUI.IB.Count div 3
     );
-    m_GUI.Core.Graphics.TextureStageStages.SetDefaults;
+    GUI.Core.Graphics.TextureStageStages.SetDefaults;
   end;
 end;
-//TG2GUISkin END
+//TG2UISkin END
 
-//TG2GUIFrame BEGIN
-procedure TG2GUIFrame.SetParent(const Value: TG2GUIFrame);
+//TG2UIFrame BEGIN
+procedure TG2UIFrame.SetParent(const Value: TG2UIFrame);
 begin
   if m_Parent <> nil then
-  m_Parent.RemoveSubFrame(Self);
+  m_Parent.SubFrameRemove(Self);
   m_Parent := Value;
   if m_Parent <> nil then
-  m_Parent.AddSubFrame(Self);
+  m_Parent.SubFrameAdd(Self);
+  ClientRectAdjust;
+  ScreenRectAdjust;
 end;
 
-function TG2GUIFrame.GetSubFrameCount: Integer;
+function TG2UIFrame.GetSubFrameCount: Integer;
 begin
   Result := m_SubFrames.Count;
 end;
 
-function TG2GUIFrame.GetSubFrame(const Index: Integer): TG2GUIFrame;
+function TG2UIFrame.GetSubFrame(const Index: Integer): TG2UIFrame;
 begin
-  Result := TG2GUIFrame(m_SubFrames[Index]);
+  Result := TG2UIFrame(m_SubFrames[Index]);
 end;
 
-procedure TG2GUIFrame.AdjustClientRect;
+function TG2UIFrame.GetLeft: Integer;
 begin
-  RectClient := RectSelf;
+  Result := m_RectSelf.Left;
 end;
 
-procedure TG2GUIFrame.Initialize;
+procedure TG2UIFrame.SetLeft(const Value: Integer);
+begin
+  m_RectSelf.Left := Value;
+  if m_RectSelf.Right < m_RectSelf.Left then
+  m_RectSelf.Right := m_RectSelf.Left;
+  ClientRectAdjust;
+  ScreenRectAdjust;
+end;
+
+function TG2UIFrame.GetTop: Integer;
+begin
+  Result := m_RectSelf.Top;
+end;
+
+procedure TG2UIFrame.SetTop(const Value: Integer);
+begin
+  m_RectSelf.Top := Value;
+  if m_RectSelf.Bottom < m_RectSelf.Top then
+  m_RectSelf.Bottom := m_RectSelf.Top;
+  ClientRectAdjust;
+  ScreenRectAdjust;
+end;
+
+function TG2UIFrame.GetRight: Integer;
+begin
+  Result := m_RectSelf.Right;
+end;
+
+procedure TG2UIFrame.SetRight(const Value: Integer);
+begin
+  m_RectSelf.Right := Value;
+  if m_RectSelf.Left > m_RectSelf.Right then
+  m_RectSelf.Left := m_RectSelf.Right;
+  ClientRectAdjust;
+  ScreenRectAdjust;
+end;
+
+function TG2UIFrame.GetBottom: Integer;
+begin
+  Result := m_RectSelf.Bottom;
+end;
+
+procedure TG2UIFrame.SetBottom(const Value: Integer);
+begin
+  m_RectSelf.Bottom := Value;
+  if m_RectSelf.Top > m_RectSelf.Bottom then
+  m_RectSelf.Top := m_RectSelf.Bottom;
+  ClientRectAdjust;
+  ScreenRectAdjust;
+end;
+
+procedure TG2UIFrame.SetX(const Value: Integer);
+  var AdjustRight: Integer;
+begin
+  AdjustRight := m_RectSelf.Right - m_RectSelf.Left;
+  m_RectSelf.Left := Value;
+  m_RectSelf.Right := m_RectSelf.Left + AdjustRight;
+  ClientRectAdjust;
+  ScreenRectAdjust;
+end;
+
+procedure TG2UIFrame.SetY(const Value: Integer);
+  var AdjustBottom: Integer;
+begin
+  AdjustBottom := m_RectSelf.Bottom - m_RectSelf.Top;
+  m_RectSelf.Top := Value;
+  m_RectSelf.Bottom := m_RectSelf.Top + AdjustBottom;
+  ClientRectAdjust;
+  ScreenRectAdjust;
+end;
+
+function TG2UIFrame.GetWidth: Integer;
+begin
+  Result := m_RectSelf.Right - m_RectSelf.Left + 1;
+end;
+
+procedure TG2UIFrame.SetWidth(const Value: Integer);
+begin
+  if Value < 0 then Exit;
+  m_RectSelf.Right := m_RectSelf.Left + (Value - 1);
+  ClientRectAdjust;
+  ScreenRectAdjust;
+end;
+
+function TG2UIFrame.GetHeight: Integer;
+begin
+  Result := m_RectSelf.Bottom - m_RectSelf.Top + 1;
+end;
+
+procedure TG2UIFrame.SetHeight(const Value: Integer);
+begin
+  if Value < 0 then Exit;
+  m_RectSelf.Bottom := m_RectSelf.Top + (Value - 1);
+  ClientRectAdjust;
+  ScreenRectAdjust;
+end;
+
+procedure TG2UIFrame.ClientRectAdjust;
+begin
+  m_RectClient.Left := 0;
+  m_RectClient.Top := 0;
+  m_RectClient.Right := Width - 1;
+  m_RectClient.Bottom := Height - 1;
+end;
+
+procedure TG2UIFrame.ScreenRectAdjust;
+  var r: TRect;
+begin
+  if Parent = nil then
+  begin
+    RectScreen := RectLocal;
+    RectClip := RectLocal;
+  end
+  else
+  begin
+    r := GUI.ParentToClientRect(Parent.RectScreen, Parent.RectClient);
+    RectScreen := GUI.ParentToClientRect(r, RectLocal);
+    RectClip := GUI.ClipRect(r, Parent.RectClip);
+  end;
+end;
+
+procedure TG2UIFrame.Initialize;
 begin
 
 end;
 
-procedure TG2GUIFrame.Finalize;
+procedure TG2UIFrame.Finalize;
 begin
 
 end;
 
-procedure TG2GUIFrame.AddSubFrame(const Frame: TG2GUIFrame);
+procedure TG2UIFrame.OnUpdate;
 begin
-  m_SubFrames.AddItem(Frame);
+
 end;
 
-procedure TG2GUIFrame.RemoveSubFrame(const Frame: TG2GUIFrame);
+procedure TG2UIFrame.OnRender;
 begin
-  m_SubFrames.RemoveItem(Frame);
+
 end;
 
-constructor TG2GUIFrame.Create(const OwnerGUI: TG2GUI);
+procedure TG2UIFrame.OnDeviceLost;
+begin
+
+end;
+
+procedure TG2UIFrame.OnDeviceReset;
+begin
+
+end;
+
+procedure TG2UIFrame.OnParamsChange;
+begin
+
+end;
+
+procedure TG2UIFrame.OnKeyOnwn(const Key: Byte);
+begin
+
+end;
+
+procedure TG2UIFrame.OnKeyUp(const Key: Byte);
+begin
+
+end;
+
+procedure TG2UIFrame.OnKeyPress(const Key: AnsiChar);
+begin
+
+end;
+
+procedure TG2UIFrame.OnMouseOnwn(const Button: Byte);
+begin
+
+end;
+
+procedure TG2UIFrame.OnMouseUp(const Button: Byte);
+begin
+
+end;
+
+procedure TG2UIFrame.OnMouseMove(const Shift: TPoint);
+begin
+
+end;
+
+procedure TG2UIFrame.OnWheelMove(const Shift: Integer);
+begin
+
+end;
+
+function TG2UIFrame.IsMouseOver: Boolean;
+begin
+  Result := PtInRect(
+    GUI.ClipRect(RectClip, RectScreen),
+    GUI.PlugInput.MousePos
+  );
+end;
+
+procedure TG2UIFrame.SubFrameAdd(const Frame: TG2UIFrame);
+begin
+  m_SubFrames.Add(Frame);
+end;
+
+procedure TG2UIFrame.SubFrameRemove(const Frame: TG2UIFrame);
+begin
+  m_SubFrames.Remove(Frame);
+end;
+
+//function TG2UIFrame.GetRectGlobal: TRect;
+//  var cr: TRect;
+//begin
+//  if m_Parent = nil then
+//  Result := m_RectSelf
+//  else
+//  begin
+//    Result := m_Parent.RectGlobal;
+//    cr := m_Parent.RectClient;
+//    Result := Rect(
+//      Result.Left + cr.Left + m_RectSelf.Left,
+//      Result.Top + cr.Top + m_RectSelf.Top,
+//      Result.Left + cr.Left + m_RectSelf.Right,
+//      Result.Top + cr.Top + m_RectSelf.Bottom
+//    );
+//  end;
+//end;
+
+constructor TG2UIFrame.Create(const OwnerGUI: TG2UI);
 begin
   inherited Create;
+  GUI := OwnerGUI;
   m_SubFrames.Capacity := 16;
   m_SubFrames.Clear;
+  Parent := GUI.Root;
+  m_RectSelf := Rect(0, 0, 63, 63);
+  ClientRectAdjust;
+  ScreenRectAdjust;
   Initialize;
 end;
 
-destructor TG2GUIFrame.Destroy;
+destructor TG2UIFrame.Destroy;
+  var i: Integer;
 begin
   Finalize;
+  for i := m_SubFrames.Count - 1 downto 0 do
+  TG2UIFrame(m_SubFrames[i]).Free;
+  Parent := nil;
   inherited Destroy;
 end;
-//TG2GUIFrame END
+
+procedure TG2UIFrame.Update;
+  var i: Integer;
+begin
+  OnUpdate;
+  for i := 0 to m_SubFrames.Count - 1 do
+  TG2UIFrame(m_SubFrames[i]).Update;
+end;
+
+procedure TG2UIFrame.Render;
+  var i: Integer;
+  var RectPrev: TRect;
+begin
+  GUI.Core.Graphics.Device.SetScissorRect(@RectClip);
+  OnRender;
+  for i := 0 to m_SubFrames.Count - 1 do
+  TG2UIFrame(m_SubFrames[i]).Render;
+end;
+//TG2UIFrame END
+
+//TG2UIPanel BEGIN
+procedure TG2UIPanel.OnRender;
+begin
+  GUI.Skin.DrawTemplate('Panel', RectGlobal);
+end;
+//TG2UIPanel END
+
+//TG2UIButton BEGIN
+procedure TG2UIButton.OnRender;
+begin
+  if IsMouseOver then
+  GUI.Skin.DrawTemplate('ButtonHover', RectGlobal)
+  else
+  GUI.Skin.DrawTemplate('ButtonStandard', RectGlobal);
+end;
+//TG2UIButton END
 
 (*
 //TG2GUI BEGIN
@@ -22191,9 +22920,9 @@ begin
   BlendFactor := $ffffffff;
   SRGBWriteEnable := False;
   DepthBias := 0;
-  SeparateAlphaBlendEnable := False;
-  SrcBlendAlpha := D3DBLEND_SRCALPHA;
-  DestBlendAlpha := D3DBLEND_DESTALPHA;
+  SeparateAlphaBlendEnable := True;
+  SrcBlendAlpha := D3DBLEND_ONE;
+  DestBlendAlpha := D3DBLEND_ONE;
   BlendopAlpha := D3DBLENDOP_ADD;
 end;
 
@@ -25687,13 +26416,13 @@ function TG2Primitives2D.DrawRect4Col(
 var
   x1, y1, x2, y2: Single;
 begin
-  x1 := x - 0.25;
-  y1 := y - 0.25;
+  x1 := x - 0.5;
+  y1 := y - 0.5;
   x2 := X + Width - 1 + 0.5;
   y2 := Y + Height - 1 + 0.5;
   Result := DrawQuad4Col(
-    G2Vec2(x, y), G2Vec2(x2, y),
-    G2Vec2(x, y2), G2Vec2(x2, y2),
+    G2Vec2(x1, y1), G2Vec2(x2, y1),
+    G2Vec2(x1, y2), G2Vec2(x2, y2),
     c1, c2, c3, c4
   );
 end;
@@ -25704,10 +26433,10 @@ function TG2Primitives2D.DrawRect4Col(
     ): TG2Result;
   var x1, y1, x2, y2: Single;
 begin
-  x1 := R.Left - 0.25;
-  y1 := R.Top - 0.25;
-  x2 := R.Right + 0.25;
-  y2 := R.Bottom + 0.25;
+  x1 := R.Left - 0.5;
+  y1 := R.Top - 0.5;
+  x2 := R.Right + 0.5;
+  y2 := R.Bottom + 0.5;
   Result := DrawQuad4Col(
     G2Vec2(x1, y1), G2Vec2(x2, y1),
     G2Vec2(x1, y2), G2Vec2(x2, y2),
@@ -25765,11 +26494,11 @@ function TG2Primitives2D.DrawRectHollow(
     ): TG2Result;
   var x1, y1, x2, y2: Single;
 begin
-  x1 := x - 0.25;
-  y1 := y - 0.25;
-  x2 := x + Width - 1 + 0.25;
-  y2 := y + Height - 1 + 0.25;
-  DrawQuadHollow(
+  x1 := x - 0.5;
+  y1 := y - 0.5;
+  x2 := x + Width - 1 + 0.5;
+  y2 := y + Height - 1 + 0.5;
+  Result := DrawQuadHollow(
     G2Vec2(x1, y1), G2Vec2(x2, y1),
     G2Vec2(x1, y2), G2Vec2(x2, y2),
     Color
@@ -25782,11 +26511,11 @@ function TG2Primitives2D.DrawRectHollow(
     ): TG2Result;
   var x1, y1, x2, y2: Single;
 begin
-  x1 := R.Left - 0.25;
-  y1 := R.Top - 0.25;
-  x2 := R.Right + 0.25;
-  y2 := R.Bottom + 0.25;
-  DrawQuadHollow(
+  x1 := R.Left - 0.5;
+  y1 := R.Top - 0.5;
+  x2 := R.Right + 0.5;
+  y2 := R.Bottom + 0.5;
+  Result := DrawQuadHollow(
     G2Vec2(x1, y1), G2Vec2(x2, y1),
     G2Vec2(x1, y2), G2Vec2(x2, y2),
     Color
@@ -25799,11 +26528,11 @@ function TG2Primitives2D.DrawRectHollow4Col(
     ): TG2Result;
   var x1, y1, x2, y2: Single;
 begin
-  x1 := x - 0.25;
-  y1 := y - 0.25;
-  x2 := x + Width - 1 + 0.25;
-  y2 := y + Height - 1 + 0.25;
-  DrawQuadHollow4Col(
+  x1 := x - 0.5;
+  y1 := y - 0.5;
+  x2 := x + Width - 1 + 0.5;
+  y2 := y + Height - 1 + 0.5;
+  Result := DrawQuadHollow4Col(
     G2Vec2(x1, y1), G2Vec2(x2, y1),
     G2Vec2(x1, y2), G2Vec2(x2, y2),
     c1, c2, c3, c4
@@ -25816,11 +26545,11 @@ function TG2Primitives2D.DrawRectHollow4Col(
     ): TG2Result;
   var x1, y1, x2, y2: Single;
 begin
-  x1 := R.Left - 0.25;
-  y1 := R.Top - 0.25;
-  x2 := R.Right + 0.25;
-  y2 := R.Bottom + 0.25;
-  DrawQuadHollow4Col(
+  x1 := R.Left - 0.5;
+  y1 := R.Top - 0.5;
+  x2 := R.Right + 0.5;
+  y2 := R.Bottom + 0.5;
+  Result := DrawQuadHollow4Col(
     G2Vec2(x1, y1), G2Vec2(x2, y1),
     G2Vec2(x1, y2), G2Vec2(x2, y2),
     c1, c2, c3, c4
@@ -25832,7 +26561,7 @@ function TG2Primitives2D.DrawQuadHollow(
       const Color: TG2Color
     ): TG2Result;
 begin
-  DrawQuadHollow4Col(
+  Result := DrawQuadHollow4Col(
     v1, v2, v3, v4,
     Color, Color, Color, Color
   );
@@ -26950,7 +27679,7 @@ begin
   Result := grOk;
 end;
 
-function TG2ShaderMgr.CreateVertexShaderFromFile(const Name: AnsiString; const f: AnsiString): TG2VertexShader;
+function TG2ShaderMgr.CreateVertexShaderFromFile(const Name: WideString; const f: WideString): TG2VertexShader;
 begin
   Result := TG2VertexShader.Create;
   Result.Name := Name;
@@ -26959,7 +27688,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2ShaderMgr.CreateVertexShaderFromFileCompiled(const Name: AnsiString; const f: String): TG2VertexShader;
+function TG2ShaderMgr.CreateVertexShaderFromFileCompiled(const Name: WideString; const f: WideString): TG2VertexShader;
 begin
   Result := TG2VertexShader.Create;
   Result.Name := Name;
@@ -26968,7 +27697,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2ShaderMgr.CreateVertexShaderFromMemory(const Name: AnsiString; const Ptr: Pointer; const Size: DWord): TG2VertexShader;
+function TG2ShaderMgr.CreateVertexShaderFromMemory(const Name: WideString; const Ptr: Pointer; const Size: DWord): TG2VertexShader;
 begin
   Result := TG2VertexShader.Create;
   Result.Name := Name;
@@ -26977,7 +27706,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2ShaderMgr.CreateVertexShaderFromFunction(const Name: AnsiString; const Func: PDWord): TG2VertexShader;
+function TG2ShaderMgr.CreateVertexShaderFromFunction(const Name: WideString; const Func: PDWord): TG2VertexShader;
 begin
   Result := TG2VertexShader.Create;
   Result.Name := Name;
@@ -26986,7 +27715,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2ShaderMgr.CreatePixelShaderFromFile(const Name: AnsiString; const f: AnsiString): TG2PixelShader;
+function TG2ShaderMgr.CreatePixelShaderFromFile(const Name: WideString; const f: WideString): TG2PixelShader;
 begin
   Result := TG2PixelShader.Create;
   Result.Name := Name;
@@ -26995,7 +27724,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2ShaderMgr.CreatePixelShaderFromFileCompiled(const Name: AnsiString; const f: String): TG2PixelShader;
+function TG2ShaderMgr.CreatePixelShaderFromFileCompiled(const Name: WideString; const f: WideString): TG2PixelShader;
 begin
   Result := TG2PixelShader.Create;
   Result.Name := Name;
@@ -27004,7 +27733,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2ShaderMgr.CreatePixelShaderFromMemory(const Name: AnsiString; const Ptr: Pointer; const Size: DWord): TG2PixelShader;
+function TG2ShaderMgr.CreatePixelShaderFromMemory(const Name: WideString; const Ptr: Pointer; const Size: DWord): TG2PixelShader;
 begin
   Result := TG2PixelShader.Create;
   Result.Name := Name;
@@ -27013,7 +27742,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2ShaderMgr.CreatePixelShaderFromFunction(const Name: AnsiString; const Func: PDWord): TG2PixelShader;
+function TG2ShaderMgr.CreatePixelShaderFromFunction(const Name: WideString; const Func: PDWord): TG2PixelShader;
 begin
   Result := TG2PixelShader.Create;
   Result.Name := Name;
@@ -27022,7 +27751,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2ShaderMgr.FindShader(const Name: AnsiString): TG2Shader;
+function TG2ShaderMgr.FindShader(const Name: WideString): TG2Shader;
 begin
   Result := TG2Shader(FindResource(Name));
 end;
@@ -27053,7 +27782,7 @@ begin
   Release;
 end;
 
-function TG2Shader.LoadFromFile(const f: AnsiString): TG2Result;
+function TG2Shader.LoadFromFile(const f: WideString): TG2Result;
 var
   ShaderBuffer: ID3DXBuffer;
   ErrorBuffer: ID3DXBuffer;
@@ -27061,8 +27790,8 @@ var
 begin
   Release;
   if Failed(
-    D3DXAssembleShaderFromFileA(
-      PAnsiChar(f),
+    D3DXAssembleShaderFromFileW(
+      PWideChar(f),
       nil,
       nil,
       0,
@@ -27075,7 +27804,7 @@ begin
     SetLength(ErrorLog, ErrorBuffer.GetBufferSize);
     Move(PChar(ErrorBuffer.GetBufferPointer)^, ErrorLog[1], ErrorBuffer.GetBufferSize);
     SafeRelease(ErrorBuffer);
-    G2WriteLogTimed('(E) Shader compilation failed (' + Name + '): '#$D#$A + ErrorLog, 'Shaders');
+    G2WriteLogTimed(AnsiString('(E) Shader compilation failed (' + Name + '): '#$D#$A + String(ErrorLog)), 'Shaders');
     Exit;
   end;
   New(m_CompiledShader);
@@ -27086,7 +27815,7 @@ begin
   Result := grOk;
 end;
 
-function TG2Shader.LoadFromFileCompiled(const f: String): TG2Result;
+function TG2Shader.LoadFromFileCompiled(const f: WideString): TG2Result;
 var
   fs: TFileStream;
 begin
@@ -27161,7 +27890,7 @@ begin
   Result := inherited Initialize(G2Core);
   if G2ResFail(Result) then Exit;
   Result := grOk;
-  G2WriteLogTimed('(+) VertexShader Initialized: (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(+) VertexShader Initialized: (' + Name + ').'), 'Shaders');
 end;
 
 function TG2VertexShader.Finalize: TG2Result;
@@ -27169,10 +27898,10 @@ begin
   Result := inherited Finalize;
   if G2ResFail(Result) then Exit;
   Result := grOk;
-  G2WriteLogTimed('(-) VertexShader Finalized: (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(-) VertexShader Finalized: (' + Name + ').'), 'Shaders');
 end;
 
-function TG2VertexShader.LoadFromFile(const f: AnsiString): TG2Result;
+function TG2VertexShader.LoadFromFile(const f: WideString): TG2Result;
 begin
   SafeRelease(m_Shader);
   Result := inherited LoadFromFile(f);
@@ -27185,10 +27914,10 @@ begin
   ) then
   Result := grFail
   else
-  G2WriteLogTimed('(>) VertexShader Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) VertexShader Loaded (' + Name + ').'), 'Shaders');
 end;
 
-function TG2VertexShader.LoadFromFileCompiled(const f: String): TG2Result;
+function TG2VertexShader.LoadFromFileCompiled(const f: WideString): TG2Result;
 begin
   SafeRelease(m_Shader);
   Result := inherited LoadFromFileCompiled(f);
@@ -27201,7 +27930,7 @@ begin
   ) then
   Result := grFail
   else
-  G2WriteLogTimed('(>) VertexShader Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) VertexShader Loaded (' + Name + ').'), 'Shaders');
 end;
 
 function TG2VertexShader.LoadFromMemory(const Ptr: Pointer; const Size: DWord): TG2Result;
@@ -27217,7 +27946,7 @@ begin
   ) then
   Result := grFail
   else
-  G2WriteLogTimed('(>) VertexShader Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) VertexShader Loaded (' + Name + ').'), 'Shaders');
 end;
 
 function TG2VertexShader.LoadFromFunction(const Func: PDWord): TG2Result;
@@ -27233,7 +27962,7 @@ begin
   ) then
   Result := grFail
   else
-  G2WriteLogTimed('(>) VertexShader Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) VertexShader Loaded (' + Name + ').'), 'Shaders');
 end;
 
 procedure TG2VertexShader.SetConstantF(const r: DWord; const c: PSingle; const F4Count: DWord);
@@ -27259,7 +27988,7 @@ end;
 procedure TG2VertexShader.Release;
 begin
   if Assigned(m_Shader) then
-  G2WriteLogTimed('(<) VertexShader Released: (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(<) VertexShader Released: (' + Name + ').'), 'Shaders');
   SafeRelease(m_Shader);
   inherited Release;
 end;
@@ -27300,7 +28029,7 @@ begin
   Result := inherited Initialize(G2Core);
   if G2ResFail(Result) then Exit;
   Result := grOk;
-  G2WriteLogTimed('(+) PixelShader Initialized: (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(+) PixelShader Initialized: (' + Name + ').'), 'Shaders');
 end;
 
 function TG2PixelShader.Finalize: TG2Result;
@@ -27308,10 +28037,10 @@ begin
   Result := inherited Finalize;
   if G2ResFail(Result) then Exit;
   Result := grOk;
-  G2WriteLogTimed('(+) PixelShader Finalized: (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(+) PixelShader Finalized: (' + Name + ').'), 'Shaders');
 end;
 
-function TG2PixelShader.LoadFromFile(const f: AnsiString): TG2Result;
+function TG2PixelShader.LoadFromFile(const f: WideString): TG2Result;
 begin
   SafeRelease(m_Shader);
   Result := inherited LoadFromFile(f);
@@ -27324,10 +28053,10 @@ begin
   ) then
   Result := grFail
   else
-  G2WriteLogTimed('(>) PixelShader Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) PixelShader Loaded (' + Name + ').'), 'Shaders');
 end;
 
-function TG2PixelShader.LoadFromFileCompiled(const f: String): TG2Result;
+function TG2PixelShader.LoadFromFileCompiled(const f: WideString): TG2Result;
 begin
   SafeRelease(m_Shader);
   Result := inherited LoadFromFileCompiled(f);
@@ -27340,7 +28069,7 @@ begin
   ) then
   Result := grFail
   else
-  G2WriteLogTimed('(>) PixelShader Loaded (' + Name +').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) PixelShader Loaded (' + Name +').'), 'Shaders');
 end;
 
 function TG2PixelShader.LoadFromMemory(const Ptr: Pointer; const Size: DWord): TG2Result;
@@ -27356,7 +28085,7 @@ begin
   ) then
   Result := grFail
   else
-  G2WriteLogTimed('(>) PixelShader Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) PixelShader Loaded (' + Name + ').'), 'Shaders');
 end;
 
 function TG2PixelShader.LoadFromFunction(const Func: PDWord): TG2Result;
@@ -27372,7 +28101,7 @@ begin
   ) then
   Result := grFail
   else
-  G2WriteLogTimed('(>) PixelShader Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) PixelShader Loaded (' + Name + ').'), 'Shaders');
 end;
 
 procedure TG2PixelShader.SetConstantF(const c: DWord; const Value: PSingle; const F4Count: DWord);
@@ -27398,7 +28127,7 @@ end;
 procedure TG2PixelShader.Release;
 begin
   if Assigned(m_Shader) then
-  G2WriteLogTimed('(<) PixelShader Released (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(<) PixelShader Released (' + Name + ').'), 'Shaders');
   SafeRelease(m_Shader);
   inherited Release;
 end;
@@ -27468,17 +28197,17 @@ begin
   Result := grOk;
 end;
 
-function TG2EffectMgr.CreateEffectFromFile(const Name: AnsiString; f: AnsiString): TG2Effect;
+function TG2EffectMgr.CreateEffectFromFile(const Name: WideString; const f: WideString): TG2Effect;
 begin
   Result := TG2Effect.Create;
   Result.Name := Name;
   Result.Initialize(Core);
-  if FileExists(String(f)) then
+  if FileExists(f) then
   if G2ResOk(Result.LoadFromFile(f)) then
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2EffectMgr.CreateEffectFromMemory(const Name: AnsiString; const Ptr: Pointer; const Size: Integer): TG2Effect;
+function TG2EffectMgr.CreateEffectFromMemory(const Name: WideString; const Ptr: Pointer; const Size: Integer): TG2Effect;
 begin
   Result := TG2Effect.Create;
   Result.Name := Name;
@@ -27487,7 +28216,7 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
-function TG2EffectMgr.FindEffect(const Name: AnsiString): TG2Effect;
+function TG2EffectMgr.FindEffect(const Name: WideString): TG2Effect;
 begin
   Result := TG2Effect(FindResource(Name));
 end;
@@ -27829,7 +28558,7 @@ begin
   Result := inherited Initialize(G2Core);
   if G2ResFail(Result) then Exit;
   Result := grOk;
-  G2WriteLogTimed('(+) Effect Initialized: (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(+) Effect Initialized: (' + Name + ').'), 'Shaders');
 end;
 
 function TG2Effect.Finalize: TG2Result;
@@ -27838,19 +28567,19 @@ begin
   if G2ResFail(Result) then Exit;
   Release;
   Result := grOk;
-  G2WriteLogTimed('(-) Effect Finalized: (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(-) Effect Finalized: (' + Name + ').'), 'Shaders');
 end;
 
-function TG2Effect.LoadFromFile(f: AnsiString): TG2Result;
+function TG2Effect.LoadFromFile(const f: WideString): TG2Result;
 var
   ErrorBuffer: ID3DXBuffer;
   ErrorStr: AnsiString;
 begin
   Release;
   if FAILED(
-    D3DXCreateEffectFromFileA(
+    D3DXCreateEffectFromFileW(
       Core.Graphics.Device,
-      PAnsiChar(f),
+      PWideChar(f),
       nil,
       nil,
       0,
@@ -27861,14 +28590,14 @@ begin
   ) then
   begin
     SetLength(ErrorStr, ErrorBuffer.GetBufferSize);
-    Move(PChar(ErrorBuffer.GetBufferPointer)^, ErrorStr[1], ErrorBuffer.GetBufferSize);
+    Move(ErrorBuffer.GetBufferPointer^, ErrorStr[1], ErrorBuffer.GetBufferSize);
     SafeRelease(ErrorBuffer);
-    G2WriteLogTimed('(E) Failed to load effect(' + Name + '): '#$D#$A + ErrorStr, 'Shaders');
+    G2WriteLogTimed(AnsiString('(E) Failed to load effect(' + Name + '): '#$D#$A + String(ErrorStr)), 'Shaders');
     Result := grFail;
     Exit;
   end;
   Result := grOk;
-  G2WriteLogTimed('(>) Effect Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) Effect Loaded (' + Name + ').'), 'Shaders');
 end;
 
 function TG2Effect.LoadFromMemory(const Ptr: Pointer; const Size: Integer): TG2Result;
@@ -27894,18 +28623,18 @@ begin
     SetLength(ErrorStr, ErrorBuffer.GetBufferSize);
     Move(PChar(ErrorBuffer.GetBufferPointer)^, ErrorStr[1], ErrorBuffer.GetBufferSize);
     SafeRelease(ErrorBuffer);
-    G2WriteLogTimed('(E) Faield to load effect(' + Name + '): '#$D#$A + ErrorStr, 'Shaders');
+    G2WriteLogTimed(AnsiString('(E) Faield to load effect(' + Name + '): '#$D#$A + String(ErrorStr)), 'Shaders');
     Result := grFail;
     Exit;
   end;
   Result := grOk;
-  G2WriteLogTimed('(>) Effect Loaded (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(>) Effect Loaded (' + Name + ').'), 'Shaders');
 end;
 
 procedure TG2Effect.Release;
 begin
   if Assigned(m_Effect) then
-  G2WriteLogTimed('(<) Effect Released (' + Name + ').', 'Shaders');
+  G2WriteLogTimed(AnsiString('(<) Effect Released (' + Name + ').'), 'Shaders');
   SafeRelease(m_Effect);
 end;
 
@@ -27953,7 +28682,7 @@ begin
   Result := grOk;
 end;
 
-procedure TG2ShaderLib.CreateShaderBin(const Name: AnsiString; const Ptr: Pointer; const Size: DWord);
+procedure TG2ShaderLib.CreateShaderBin(const Name: WideString; const Ptr: Pointer; const Size: DWord);
 var
   ShaderBin: TG2ShaderBin;
 begin
@@ -27962,10 +28691,10 @@ begin
   ShaderBin.Name := Name;
   ShaderBin.LoadBuffer(Ptr, Size);
   AddResource(ShaderBin);
-  G2WriteLogTimed('Binary Shader Added: ' + Name, 'ShaderLib');
+  G2WriteLogTimed(AnsiString('Binary Shader Added: ' + Name), 'ShaderLib');
 end;
 
-procedure TG2ShaderLib.CreateShaderBin(const Name: AnsiString; const Func: PDWord);
+procedure TG2ShaderLib.CreateShaderBin(const Name: WideString; const Func: PDWord);
 var
   ShaderBin: TG2ShaderBin;
 begin
@@ -27974,10 +28703,10 @@ begin
   ShaderBin.Name := Name;
   ShaderBin.LoadFunction(Func);
   AddResource(ShaderBin);
-  G2WriteLogTimed('Binary Shader Added: ' + Name, 'ShaderLib');
+  G2WriteLogTimed(AnsiString('Binary Shader Added: ' + Name), 'ShaderLib');
 end;
 
-function TG2ShaderLib.RequestVertexShader(const Name: AnsiString): TG2VertexShader;
+function TG2ShaderLib.RequestVertexShader(const Name: WideString): TG2VertexShader;
 var
   ShaderBin: TG2ShaderBin;
 begin
@@ -28000,11 +28729,11 @@ begin
       );
     end
     else
-    G2WriteLogTimed('(E)' + Name + ' is not in the shader library.', 'ShaderLib');
+    G2WriteLogTimed(AnsiString('(E)' + Name + ' is not in the shader library.'), 'ShaderLib');
   end;
 end;
 
-function TG2ShaderLib.RequestPixelShader(const Name: AnsiString): TG2PixelShader;
+function TG2ShaderLib.RequestPixelShader(const Name: WideString): TG2PixelShader;
 var
   ShaderBin: TG2ShaderBin;
 begin
@@ -28027,11 +28756,11 @@ begin
       )
     end
     else
-    G2WriteLogTimed('(E)' + Name + ' is not in the shader library.', 'ShaderLib');
+    G2WriteLogTimed(AnsiString('(E)' + Name + ' is not in the shader library.'), 'ShaderLib');
   end;
 end;
 
-function TG2ShaderLib.RequestEffect(const Name: AnsiString): TG2Effect;
+function TG2ShaderLib.RequestEffect(const Name: WideString): TG2Effect;
 var
   ShaderBin: TG2ShaderBin;
 begin
@@ -28046,7 +28775,7 @@ begin
       ShaderBin.Size
     )
     else
-    G2WriteLogTimed('(E)' + Name + ' is not in the shader library.', 'ShaderLib');
+    G2WriteLogTimed(AnsiString('(E)' + Name + ' is not in the shader library.'), 'ShaderLib');
   end;
 end;
 //TG2ShaderLib END
@@ -28798,6 +29527,658 @@ begin
   end;
 end;
 //TG2SkyBox END
+
+//TG2PostProcess BEGIN
+procedure TG2PostProcess.LoadBuffer0(const Pos, Tex0: TG2Rect);
+  var Vertices: PVertex1Arr;
+begin
+  m_VB[0].Lock(0, SizeOf(TVertex1) * 4, Pointer(Vertices), D3DLOCK_DISCARD);
+  Vertices^[0].Pos.x := Pos.Left - 0.5; Vertices^[0].Pos.y := Pos.Top - 0.5; Vertices^[0].Pos.z := 0; Vertices^[0].Pos.w := 1;
+  Vertices^[1].Pos.x := Pos.Right + 0.5; Vertices^[1].Pos.y := Pos.Top - 0.5; Vertices^[1].Pos.z := 0; Vertices^[1].Pos.w := 1;
+  Vertices^[2].Pos.x := Pos.Left - 0.5; Vertices^[2].Pos.y := Pos.Bottom + 0.5; Vertices^[2].Pos.z := 0; Vertices^[2].Pos.w := 1;
+  Vertices^[3].Pos.x := Pos.Right + 0.5; Vertices^[3].Pos.y := Pos.Bottom + 0.5; Vertices^[3].Pos.z := 0; Vertices^[3].Pos.w := 1;
+  Vertices^[0].Tex0.SetValue(Tex0.Left, Tex0.Top);
+  Vertices^[1].Tex0.SetValue(Tex0.Right, Tex0.Top);
+  Vertices^[2].Tex0.SetValue(Tex0.Left, Tex0.Bottom);
+  Vertices^[3].Tex0.SetValue(Tex0.Right, Tex0.Bottom);
+  m_VB[0].UnLock;
+end;
+
+procedure TG2PostProcess.LoadBuffer1(const Pos, Tex0, Tex1: TG2Rect);
+  var Vertices: PVertex2Arr;
+begin
+  m_VB[1].Lock(0, SizeOf(TVertex2) * 4, Pointer(Vertices), D3DLOCK_DISCARD);
+  Vertices^[0].Pos.x := Pos.Left - 0.5; Vertices^[0].Pos.y := Pos.Top - 0.5; Vertices^[0].Pos.z := 0; Vertices^[0].Pos.w := 1;
+  Vertices^[1].Pos.x := Pos.Right + 0.5; Vertices^[1].Pos.y := Pos.Top - 0.5; Vertices^[1].Pos.z := 0; Vertices^[1].Pos.w := 1;
+  Vertices^[2].Pos.x := Pos.Left - 0.5; Vertices^[2].Pos.y := Pos.Bottom + 0.5; Vertices^[2].Pos.z := 0; Vertices^[2].Pos.w := 1;
+  Vertices^[3].Pos.x := Pos.Right + 0.5; Vertices^[3].Pos.y := Pos.Bottom + 0.5; Vertices^[3].Pos.z := 0; Vertices^[3].Pos.w := 1;
+  Vertices^[0].Tex0.SetValue(Tex0.Left, Tex0.Top);
+  Vertices^[1].Tex0.SetValue(Tex0.Right, Tex0.Top);
+  Vertices^[2].Tex0.SetValue(Tex0.Left, Tex0.Bottom);
+  Vertices^[3].Tex0.SetValue(Tex0.Right, Tex0.Bottom);
+  Vertices^[0].Tex1.SetValue(Tex1.Left, Tex1.Top);
+  Vertices^[1].Tex1.SetValue(Tex1.Right, Tex1.Top);
+  Vertices^[2].Tex1.SetValue(Tex1.Left, Tex1.Bottom);
+  Vertices^[3].Tex1.SetValue(Tex1.Right, Tex1.Bottom);
+  m_VB[1].UnLock;
+end;
+
+procedure TG2PostProcess.LoadBuffer2(const Pos, Tex0, Tex1, Tex2: TG2Rect);
+  var Vertices: PVertex3Arr;
+begin
+  m_VB[2].Lock(0, SizeOf(TVertex3) * 4, Pointer(Vertices), D3DLOCK_DISCARD);
+  Vertices^[0].Pos.x := Pos.Left - 0.5; Vertices^[0].Pos.y := Pos.Top - 0.5; Vertices^[0].Pos.z := 0; Vertices^[0].Pos.w := 1;
+  Vertices^[1].Pos.x := Pos.Right + 0.5; Vertices^[1].Pos.y := Pos.Top - 0.5; Vertices^[1].Pos.z := 0; Vertices^[1].Pos.w := 1;
+  Vertices^[2].Pos.x := Pos.Left - 0.5; Vertices^[2].Pos.y := Pos.Bottom + 0.5; Vertices^[2].Pos.z := 0; Vertices^[2].Pos.w := 1;
+  Vertices^[3].Pos.x := Pos.Right + 0.5; Vertices^[3].Pos.y := Pos.Bottom + 0.5; Vertices^[3].Pos.z := 0; Vertices^[3].Pos.w := 1;
+  Vertices^[0].Tex0.SetValue(Tex0.Left, Tex0.Top);
+  Vertices^[1].Tex0.SetValue(Tex0.Right, Tex0.Top);
+  Vertices^[2].Tex0.SetValue(Tex0.Left, Tex0.Bottom);
+  Vertices^[3].Tex0.SetValue(Tex0.Right, Tex0.Bottom);
+  Vertices^[0].Tex1.SetValue(Tex1.Left, Tex1.Top);
+  Vertices^[1].Tex1.SetValue(Tex1.Right, Tex1.Top);
+  Vertices^[2].Tex1.SetValue(Tex1.Left, Tex1.Bottom);
+  Vertices^[3].Tex1.SetValue(Tex1.Right, Tex1.Bottom);
+  Vertices^[0].Tex2.SetValue(Tex2.Left, Tex2.Top);
+  Vertices^[1].Tex2.SetValue(Tex2.Right, Tex2.Top);
+  Vertices^[2].Tex2.SetValue(Tex2.Left, Tex2.Bottom);
+  Vertices^[3].Tex2.SetValue(Tex2.Right, Tex2.Bottom);
+  m_VB[2].UnLock;
+end;
+
+procedure TG2PostProcess.LoadBuffer3(const Pos, Tex0, Tex1, Tex2, Tex3: TG2Rect);
+  var Vertices: PVertex4Arr;
+begin
+  m_VB[3].Lock(0, SizeOf(TVertex4) * 4, Pointer(Vertices), D3DLOCK_DISCARD);
+  Vertices^[0].Pos.x := Pos.Left - 0.5; Vertices^[0].Pos.y := Pos.Top - 0.5; Vertices^[0].Pos.z := 0; Vertices^[0].Pos.w := 1;
+  Vertices^[1].Pos.x := Pos.Right + 0.5; Vertices^[1].Pos.y := Pos.Top - 0.5; Vertices^[1].Pos.z := 0; Vertices^[1].Pos.w := 1;
+  Vertices^[2].Pos.x := Pos.Left - 0.5; Vertices^[2].Pos.y := Pos.Bottom + 0.5; Vertices^[2].Pos.z := 0; Vertices^[2].Pos.w := 1;
+  Vertices^[3].Pos.x := Pos.Right + 0.5; Vertices^[3].Pos.y := Pos.Bottom + 0.5; Vertices^[3].Pos.z := 0; Vertices^[3].Pos.w := 1;
+  Vertices^[0].Tex0.SetValue(Tex0.Left, Tex0.Top);
+  Vertices^[1].Tex0.SetValue(Tex0.Right, Tex0.Top);
+  Vertices^[2].Tex0.SetValue(Tex0.Left, Tex0.Bottom);
+  Vertices^[3].Tex0.SetValue(Tex0.Right, Tex0.Bottom);
+  Vertices^[0].Tex1.SetValue(Tex1.Left, Tex1.Top);
+  Vertices^[1].Tex1.SetValue(Tex1.Right, Tex1.Top);
+  Vertices^[2].Tex1.SetValue(Tex1.Left, Tex1.Bottom);
+  Vertices^[3].Tex1.SetValue(Tex1.Right, Tex1.Bottom);
+  Vertices^[0].Tex2.SetValue(Tex2.Left, Tex2.Top);
+  Vertices^[1].Tex2.SetValue(Tex2.Right, Tex2.Top);
+  Vertices^[2].Tex2.SetValue(Tex2.Left, Tex2.Bottom);
+  Vertices^[3].Tex2.SetValue(Tex2.Right, Tex2.Bottom);
+  Vertices^[0].Tex3.SetValue(Tex3.Left, Tex3.Top);
+  Vertices^[1].Tex3.SetValue(Tex3.Right, Tex3.Top);
+  Vertices^[2].Tex3.SetValue(Tex3.Left, Tex3.Bottom);
+  Vertices^[3].Tex3.SetValue(Tex3.Right, Tex3.Bottom);
+  m_VB[3].UnLock;
+end;
+
+function TG2PostProcess.RequestSurface(const Width, Height: Integer; const Format: TD3DFormat = D3DFMT_UNKNOWN): TG2Texture2DRT;
+  var i: Integer;
+  var TmpSurf: PTempSurface;
+begin
+  for i := 0 to m_Surfaces.Count - 1 do
+  if (
+    (PTempSurface(m_Surfaces[i])^.Width = Width)
+    and (PTempSurface(m_Surfaces[i])^.Height = Height)
+    and (PTempSurface(m_Surfaces[i])^.Format = Format)
+  ) or (
+    (PTempSurface(m_Surfaces[i])^.Surface.Width = Width)
+    and (PTempSurface(m_Surfaces[i])^.Surface.Height = Height)
+    and (PTempSurface(m_Surfaces[i])^.Surface.Format = Format)
+  ) then
+  begin
+    Result := PTempSurface(m_Surfaces[i])^.Surface;
+    Exit;
+  end;
+  Result := TG2Texture2DRT.Create;
+  Result.Initialize(m_Core);
+  Result.MakeRenderTarget(Width, Height, Format);
+  New(TmpSurf);
+  TmpSurf^.Surface := Result;
+  TmpSurf^.Width := Width;
+  TmpSurf^.Height := Height;
+  TmpSurf^.Format := Format;
+  m_Surfaces.Add(TmpSurf);
+end;
+
+constructor TG2PostProcess.Create(const Core: TG2Core);
+  var i: Integer;
+begin
+  inherited Create;
+  m_Core := Core;
+  m_Shaders := m_Core.Graphics.ShaderLib.RequestEffect('fx_PostProcess');
+  for i := 0 to 3 do
+  begin
+    m_VB[i] := TG2VB.Create;
+    m_VB[i].Initialize(m_Core);
+  end;
+  m_VB[0].Verify(SizeOf(TVertex1), 4, D3DUSAGE_WRITEONLY, D3DFVF_XYZRHW or D3DFVF_TEX1, D3DPOOL_MANAGED);
+  m_VB[1].Verify(SizeOf(TVertex2), 4, D3DUSAGE_WRITEONLY, D3DFVF_XYZRHW or D3DFVF_TEX2, D3DPOOL_MANAGED);
+  m_VB[2].Verify(SizeOf(TVertex3), 4, D3DUSAGE_WRITEONLY, D3DFVF_XYZRHW or D3DFVF_TEX3, D3DPOOL_MANAGED);
+  m_VB[3].Verify(SizeOf(TVertex4), 4, D3DUSAGE_WRITEONLY, D3DFVF_XYZRHW or D3DFVF_TEX4, D3DPOOL_MANAGED);
+end;
+
+destructor TG2PostProcess.Destroy;
+  var i: Integer;
+begin
+  for i := 0 to 3 do
+  begin
+    m_VB[i].Finalize;
+    m_VB[i].Free;
+  end;
+  for i := 0 to m_Surfaces.Count - 1 do
+  begin
+    PTempSurface(m_Surfaces[i])^.Surface.Finalize;
+    PTempSurface(m_Surfaces[i])^.Surface.Free;
+    Dispose(PTempSurface(m_Surfaces[i]));
+  end;
+  m_Surfaces.Clear;
+  m_Shaders.Finalize;
+  m_Shaders.Free;
+  inherited Destroy;
+end;
+
+procedure TG2PostProcess.EffectBlur(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Integer = 1
+    );
+  var Tmp01: TG2Texture2DRT;
+  var ShaderVar: record
+    var Offset: TG2Vec2;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+  var PassID: Integer;
+begin
+  if Amount < 1 then
+  PassID := 0
+  else
+  if Amount > 10 then
+  PassID := 9
+  else
+  case Amount of
+    1: PassID := 0;//3x3
+    2: PassID := 1;//5x5
+    3: PassID := 2;//7x7
+    4: PassID := 3;//9x9
+    5: PassID := 4;//11x11
+    6: PassID := 5;//13x13
+    7: PassID := 6;//15x15
+    8: PassID := 7;//17x17
+    9: PassID := 8;//19x19
+    10: PassID := 9;//21x21
+  end;
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  Tmp01 := RequestSurface(Input.Width, Input.Height);
+  m_Shaders.Technique := 'Blur';
+  m_Core.Graphics.Device.SetRenderTarget(0, Tmp01.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Tmp01.Width - 1, Tmp01.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.Offset.SetValue(1 / Input.RealWidth, 0);
+  m_Shaders.SetValue('VarBlur', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(PassID);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.Offset.SetValue(0, 1 / Input.RealHeight);
+  m_Shaders.SetValue('VarBlur', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.CommitChanges;
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Tmp01.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectSharpen(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 10
+    );
+  var ShaderVar: record
+    var PixelSize: TG2Vec2;
+    var Scale: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'Sharpen';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.PixelSize := Input.TexelSize;
+  ShaderVar.Scale := Amount;
+  m_Shaders.SetValue('VarSharpen', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectMonotone(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 1;
+      const Mask: DWord = $ffffffff
+    );
+  var ShaderVar: record
+    var Amount: Single;
+    var Mask: TG2Vec4;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'Monotone';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.Amount := Amount;
+  ShaderVar.Mask.SetValue(((Mask shr 16) and $ff) * Rcp255, ((Mask shr 8) and $ff) * Rcp255, (Mask and $ff) * Rcp255, ((Mask shr 24) and $ff) * Rcp255);
+  m_Shaders.SetValue('VarMonotone', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectContrast(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 1
+    );
+  var ShaderVar: record
+    var Amount: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'Contrast';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.Amount := Amount;
+  m_Shaders.SetValue('VarContrast', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectEmboss(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 10
+    );
+  var ShaderVar: record
+    var PixelSize: TG2Vec2;
+    var Scale: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'Emboss';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.PixelSize := Input.TexelSize;
+  ShaderVar.Scale := Amount;
+  m_Shaders.SetValue('VarEmboss', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectEdges(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Amount: Single = 10;
+      const Power: Single = 1
+    );
+  var ShaderVar: record
+    var PixelSize: TG2Vec2;
+    var Scale: Single;
+    var Power: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'Edge';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.PixelSize := Input.TexelSize;
+  ShaderVar.Scale := Amount;
+  ShaderVar.Power := Power;
+  m_Shaders.SetValue('VarEdge', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectColorClamp(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const ClampMin: Single = 0;
+      const ClampMax: Single = 1
+    );
+  var ShaderVar: record
+    var ClampMin: Single;
+    var ClampMax: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'ColorClamp';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.ClampMin := ClampMin;
+  ShaderVar.ClampMax := ClampMax;
+  m_Shaders.SetValue('VarColorClamp', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectMonotoneClamp(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const ClampMin: Single = 0;
+      const ClampMax: Single = 1
+    );
+  var ShaderVar: record
+    var ClampMin: Single;
+    var ClampMax: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'MonotoneClamp';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.ClampMin := ClampMin;
+  ShaderVar.ClampMax := ClampMax;
+  m_Shaders.SetValue('VarMonotoneClamp', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectDistortMap(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const DistortMap: TG2Texture2DBase;
+      const DistortShift: TG2Vec2;
+      const Amount: Single = 10
+    );
+  var ShaderVar: record
+    var PixelSize: TG2Vec2;
+    var DistortShift: TG2Vec2;
+    var Amount: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'DistortMap';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer1(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^, DistortMap.DrawRect^
+  );
+  ShaderVar.PixelSize := Input.TexelSize;
+  ShaderVar.DistortShift := DistortShift;
+  ShaderVar.Amount := Amount;
+  m_Shaders.SetValue('VarDistortMap', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[1].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.SetTexture(1, DistortMap.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectDistortMap2(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const DistortMap0: TG2Texture2DBase;
+      const DistortMap1: TG2Texture2DBase;
+      const DistortShift0: TG2Vec2;
+      const DistortShift1: TG2Vec2;
+      const Amount: Single = 10
+    );
+  var ShaderVar: record
+    var PixelSize: TG2Vec2;
+    var DistortShift0: TG2Vec2;
+    var DistortShift1: TG2Vec2;
+    var Amount: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'DistortMap2';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer2(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^, DistortMap0.DrawRect^, DistortMap1.DrawRect^
+  );
+  ShaderVar.PixelSize := Input.TexelSize;
+  ShaderVar.DistortShift0 := DistortShift0;
+  ShaderVar.DistortShift1 := DistortShift1;
+  ShaderVar.Amount := Amount;
+  m_Shaders.SetValue('VarDistortMap2', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[2].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.SetTexture(1, DistortMap0.Texture);
+  m_Core.Graphics.Device.SetTexture(2, DistortMap1.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+
+procedure TG2PostProcess.EffectBloom(
+      const Output: TG2Texture2DRT;
+      const Input: TG2Texture2DBase;
+      const Power: Single = 1
+    );
+  var ShaderVar: record
+    var PixelSize: TG2Vec2;
+    var Power: Single;
+  end;
+  var PrevRT: IDirect3DSurface9;
+  var PrevDS: IDirect3DSurface9;
+  var PrevZEnable: Boolean;
+begin
+  PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
+  m_Core.Graphics.RenderStates.ZEnable := False;
+  m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
+  m_Core.Graphics.Device.SetDepthStencilSurface(nil);
+  m_Shaders.Technique := 'Bloom';
+  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+  LoadBuffer0(
+    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+    Input.DrawRect^
+  );
+  ShaderVar.PixelSize := Input.TexelSize;
+  ShaderVar.Power := Power;
+  m_Shaders.SetValue('VarBloom', @ShaderVar, SizeOf(ShaderVar));
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(0);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  m_Shaders.EndPass;
+  m_Shaders.EndEffect;
+  m_Core.Graphics.Device.SetRenderTarget(0, PrevRT);
+  m_Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
+  SafeRelease(PrevRT);
+  SafeRelease(PrevDS);
+  m_Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+end;
+//TG2PostProcess END
 
 //TG2Thread BEGIN
 procedure TG2Thread.Execute;
@@ -29925,8 +31306,8 @@ const
 begin
   {$IFDEF G2_WRITE_LOG}
   LogStr := Log + #$D#$A;
-  LogHandle := CreateFileA(
-    PAnsiChar(AppPath + 'G2Log.txt'),
+  LogHandle := CreateFileW(
+    PWideChar(AppPath + 'G2Log.txt'),
     FILE_APPEND_DATA,
     FILE_SHARE_READ or FILE_SHARE_WRITE or FILE_SHARE_DELETE,
     nil,

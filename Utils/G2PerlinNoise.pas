@@ -153,7 +153,7 @@ begin
   l_z := z + m_RandFactor;
   n := l_x + l_y * 57 + l_z * 113;
   n := (n shl 13) xor n;
-  Result := (1.0 - ( (n * (n * n * 15731 + 789221) + 1376312589) and $7fffffff) * c1);
+  Result := (1 - ( (n * (n * n * 15731 + 789221) + 1376312589) and $7fffffff) * c1);
 end;
 
 function TG2PerlinNoise.Noise3DSeamless(const x, y, z: Integer): Single;
@@ -177,7 +177,7 @@ begin
   l_z := (m_CurPD - (Abs(z) mod m_CurPD)) + m_RandFactor;
   n := l_x + l_y * 57 + l_z * 113;
   n := (n shl 13) xor n;
-  Result := (1.0 - ( (n * (n * n * 15731 + 789221) + 1376312589) and $7fffffff) * c1);
+  Result := (1 - ( (n * (n * n * 15731 + 789221) + 1376312589) and $7fffffff) * c1);
 end;
 
 function TG2PerlinNoise.Noise3DSmooth(const x, y, z: Integer): Single;
@@ -298,7 +298,8 @@ begin
     l_Amplitude := l_Amplitude * l_Persistence;
     l_Frequency := l_Frequency * 2;
   end;
-  Result := Total;   
+  //if Total > 1 then Total := 1 else if Total < 0 then Total := 0;
+  Result := Total;
 end;
 
 function TG2PerlinNoise.PerlinNoise3D(

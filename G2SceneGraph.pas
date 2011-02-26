@@ -229,14 +229,14 @@ type
     procedure SearchPathAdd(const Dir: String);
     procedure SearchPathsClear;
     function FindTexture(
-      const Name: AnsiString;
+      const Name: WideString;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
-    function FindTextureDiffuse(const Name: AnsiString): TG2Texture2D;
-    function FindTextureSpecular(const Name: AnsiString): TG2Texture2D;
-    function FindTextureNormals(const Name: AnsiString): TG2Texture2D;
-    function FindTextureLightMap(const Name: AnsiString): TG2Texture2D;
+    function FindTextureDiffuse(const Name: WideString): TG2Texture2D;
+    function FindTextureSpecular(const Name: WideString): TG2Texture2D;
+    function FindTextureNormals(const Name: WideString): TG2Texture2D;
+    function FindTextureLightMap(const Name: WideString): TG2Texture2D;
     function FindNode(const Name: AnsiString): TG2SGNode;
     function MaterialAdd: PG2SGMaterial;
     procedure MaterialsClear;
@@ -494,7 +494,7 @@ begin
     New(Link);
     Link^.Query := @Self;
     Link^.Init;
-    TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks.AddItem(Link);
+    TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks.Add(Link);
   end;
   m_OcclusionCullEnable := False;
   m_OcclusionCullQuality := cqFastest;
@@ -522,7 +522,7 @@ begin
   for i := 0 to SceneGraph.Frames.Count - 1 do
   begin
     Link := PG2SGQueryLink(TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks[ID]);
-    TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks.RemoveItem(Link);
+    TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks.Remove(Link);
     Link^.UnInit;
     Dispose(Link);
   end;
@@ -794,7 +794,7 @@ begin
   OcTreeFetchNodes(Item^.Frame.AABox, @Item^.OcTreeNodes, True);
   for i := 0 to Item^.OcTreeNodes.Count - 1 do
   begin
-    POcTreeNode(Item^.OcTreeNodes[i])^.Items.AddItem(Item);
+    POcTreeNode(Item^.OcTreeNodes[i])^.Items.Add(Item);
     POcTreeNode(Item^.OcTreeNodes[i])^.TotalItemsInc();
   end;
 end;
@@ -804,7 +804,7 @@ procedure TG2SceneGraph.OcTreeRemoveItem(const Item: PG2SGOcTreeItem);
 begin
   for i := 0 to Item^.OcTreeNodes.Count - 1 do
   begin
-    POcTreeNode(Item^.OcTreeNodes[i])^.Items.RemoveItem(Item);
+    POcTreeNode(Item^.OcTreeNodes[i])^.Items.Remove(Item);
     POcTreeNode(Item^.OcTreeNodes[i])^.TotalItemsDec();
   end;
   Item^.OcTreeNodes.Clear;
@@ -820,7 +820,7 @@ begin
   for nz := zl to zh do
   if IncludeEmpty
   or (m_OcTreeGrid[nx, ny, nz]^.Items.Count > 0) then
-  List^.AddItem(m_OcTreeGrid[nx, ny, nz]);
+  List^.Add(m_OcTreeGrid[nx, ny, nz]);
 end;
 
 procedure TG2SceneGraph.OcTreeFetchNodes(const Frustum: TG2Frustum; const List: PG2QuickList);
@@ -831,7 +831,7 @@ procedure TG2SceneGraph.OcTreeFetchNodes(const Frustum: TG2Frustum; const List: 
     if n^.DivN then
     begin
       if n^.Items.Count > 0 then
-      List.AddItem(n);
+      List.Add(n);
     end
     else
     for nx := n^.MinX to n^.MaxX do
@@ -852,7 +852,7 @@ procedure TG2SceneGraph.OcTreeFetchNodes(const Frustum: TG2Frustum; const List: 
       if n^.DivN then
       begin
         if n^.Items.Count > 0 then
-        List.AddItem(n);
+        List.Add(n);
       end
       else
       for nx := n^.MinX to n^.MaxX do
@@ -998,28 +998,28 @@ begin
 end;
 
 function TG2SceneGraph.FindTexture(
-      const Name: AnsiString;
+      const Name: WideString;
       const MipLevels: Integer = 8;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Texture2D;
   var i: Integer;
-  var SearchStr: String;
-  var NameNoExt: String;
-  var Ext: String;
+  var SearchStr: WideString;
+  var NameNoExt: WideString;
+  var Ext: WideString;
 begin
   Result := TG2Texture2D(MgrTextures.FindTexture(Name));
   if Assigned(Result) then Exit;
   for i := 0 to High(SearchPaths) do
   begin
-    SearchStr := SearchPaths[i] + '\' + String(Name);
+    SearchStr := SearchPaths[i] + '\' + Name;
     if FileExists(SearchStr) then
     begin
-      Result := MgrTextures.CreateTexture2DFromFile(Name, AnsiString(SearchStr), MipLevels, Format);
+      Result := MgrTextures.CreateTexture2DFromFile(Name, SearchStr, MipLevels, Format);
       if Assigned(Result) then Exit;
     end;
   end;
-  Ext := ExtractFileExt(String(Name));
-  NameNoExt := String(Name);
+  Ext := ExtractFileExt(Name);
+  NameNoExt := Name;
   Delete(NameNoExt, Length(NameNoExt) - Length(Ext) + 1, Length(Ext));
   for i := 0 to High(SearchPaths) do
   begin
@@ -1029,7 +1029,7 @@ begin
   Result := nil;
 end;
 
-function TG2SceneGraph.FindTextureDiffuse(const Name: AnsiString): TG2Texture2D;
+function TG2SceneGraph.FindTextureDiffuse(const Name: WideString): TG2Texture2D;
 begin
   if Length(Name) > 0 then
   begin
@@ -1037,7 +1037,7 @@ begin
     if not Assigned(Result) then
     begin
       if Length(Name) > 0 then
-      G2WriteLogTimed('(W) Missing texture: ' + Name, 'SceneGraph');
+      G2WriteLogTimed(AnsiString('(W) Missing texture: ' + Name), 'SceneGraph');
       Result := TG2Texture2D(MgrTextures.FindTexture('NULL_DIFFUSE'));
     end;
   end
@@ -1045,7 +1045,7 @@ begin
   Result := TG2Texture2D(MgrTextures.FindTexture('NULL_DIFFUSE'));
 end;
 
-function TG2SceneGraph.FindTextureSpecular(const Name: AnsiString): TG2Texture2D;
+function TG2SceneGraph.FindTextureSpecular(const Name: WideString): TG2Texture2D;
 begin
   if Length(Name) > 0 then
   begin
@@ -1053,7 +1053,7 @@ begin
     if not Assigned(Result) then
     begin
       if Length(Name) > 0 then
-      G2WriteLogTimed('(W) Missing texture: ' + Name, 'SceneGraph');
+      G2WriteLogTimed(AnsiString('(W) Missing texture: ' + Name), 'SceneGraph');
       Result := TG2Texture2D(MgrTextures.FindTexture('NULL_SPECULAR'));
     end;
   end
@@ -1061,7 +1061,7 @@ begin
   Result := TG2Texture2D(MgrTextures.FindTexture('NULL_SPECULAR'));
 end;
 
-function TG2SceneGraph.FindTextureNormals(const Name: AnsiString): TG2Texture2D;
+function TG2SceneGraph.FindTextureNormals(const Name: WideString): TG2Texture2D;
 begin
   if Length(Name) > 0 then
   begin
@@ -1069,7 +1069,7 @@ begin
     if not Assigned(Result) then
     begin
       if Length(Name) > 0 then
-      G2WriteLogTimed('(W) Missing texture: ' + Name, 'SceneGraph');
+      G2WriteLogTimed(AnsiString('(W) Missing texture: ' + Name), 'SceneGraph');
       Result := TG2Texture2D(MgrTextures.FindTexture('NULL_NORMALS'));
     end;
   end
@@ -1077,7 +1077,7 @@ begin
   Result := TG2Texture2D(MgrTextures.FindTexture('NULL_NORMALS'));
 end;
 
-function TG2SceneGraph.FindTextureLightMap(const Name: AnsiString): TG2Texture2D;
+function TG2SceneGraph.FindTextureLightMap(const Name: WideString): TG2Texture2D;
 begin
   if Length(Name) > 0 then
   begin
@@ -1085,7 +1085,7 @@ begin
     if not Assigned(Result) then
     begin
       if Length(Name) > 0 then
-      G2WriteLogTimed('(W) Missing texture: ' + Name, 'SceneGraph');
+      G2WriteLogTimed(AnsiString('(W) Missing texture: ' + Name), 'SceneGraph');
       Result := TG2Texture2D(MgrTextures.FindTexture('NULL_LIGHT'));
     end;
   end
@@ -1108,7 +1108,7 @@ end;
 function TG2SceneGraph.MaterialAdd: PG2SGMaterial;
 begin
   New(Result);
-  Materials.AddItem(Result);
+  Materials.Add(Result);
 end;
 
 procedure TG2SceneGraph.MaterialsClear;
@@ -1125,7 +1125,7 @@ begin
   New(Result);
   Result^.SceneGraph := Self;
   i := Queries.Count;
-  Queries.AddItem(Result);
+  Queries.Add(Result);
   Result^.ID := i;
   Result^.Init;
 end;
@@ -1133,7 +1133,7 @@ end;
 procedure TG2SceneGraph.QueryDestroy(const q: PG2SGQuery);
   var i: Integer;
 begin
-  Queries.RemoveItem(q);
+  Queries.Remove(q);
   q^.UnInit;
   Dispose(q);
   for i := 0 to Queries.Count - 1 do
@@ -1231,9 +1231,9 @@ begin
         begin
           Link^.OcclusionTest := False;
           if Query^.DistanceSortEnable then
-          Query^.QueryLists[Frame.QueryListID].AddItem(Frame, Frustum.Planes[4].DistanceToPoint((Frame.AABox.MaxV + Frame.AABox.MinV) * 0.5))
+          Query^.QueryLists[Frame.QueryListID].Add(Frame, Frustum.Planes[4].DistanceToPoint((Frame.AABox.MaxV + Frame.AABox.MinV) * 0.5))
           else
-          Query^.QueryLists[Frame.QueryListID].AddItem(Frame);
+          Query^.QueryLists[Frame.QueryListID].Add(Frame);
           if GetTickCount - Link^.OcclusioonTestTime > 1000 then
           Link^.OcclusionVisible := False;
         end;
@@ -1290,9 +1290,9 @@ begin
         if Frame.QueryListID > -1 then
         begin
           if Query^.DistanceSortEnable then
-          Query^.QueryLists[Frame.QueryListID].AddItem(Frame, Frustum.Planes[4].DistanceToPoint((Frame.AABox.MaxV + Frame.AABox.MinV) * 0.5))
+          Query^.QueryLists[Frame.QueryListID].Add(Frame, Frustum.Planes[4].DistanceToPoint((Frame.AABox.MaxV + Frame.AABox.MinV) * 0.5))
           else
-          Query^.QueryLists[Frame.QueryListID].AddItem(Frame);
+          Query^.QueryLists[Frame.QueryListID].Add(Frame);
         end;
       end;
     end;
@@ -1331,7 +1331,7 @@ begin
   begin
     PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID := m_CurFetchID;
     if AABox.Intersect(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame.AABox) then
-    m_GeomCollideList.AddItem(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame);
+    m_GeomCollideList.Add(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame);
   end;
   for i := 0 to m_GeomCollideList.Count - 1 do
   begin
@@ -1453,7 +1453,7 @@ begin
   begin
     PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID := m_CurFetchID;
     if AABoxChar.Intersect(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame.AABox) then
-    m_GeomCollideList.AddItem(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame);
+    m_GeomCollideList.Add(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame);
   end;
   for i := 0 to m_GeomCollideList.Count - 1 do
   begin
@@ -1615,10 +1615,10 @@ begin
     for j := 0 to Material^.ChannelCount - 1 do
     begin
       Material^.Channels[j].Name := MeshData.Materials[i].Channels[j].Name;
-      Material^.Channels[j].TexDiffuse := FindTextureDiffuse(MeshData.Materials[i].Channels[j].DiffuseMap);
-      Material^.Channels[j].TexNormals := FindTextureNormals(MeshData.Materials[i].Channels[j].NormalMap);
-      Material^.Channels[j].TexSpecular := FindTextureSpecular(MeshData.Materials[i].Channels[j].SpecularMap);
-      Material^.Channels[j].TexLightMap := FindTextureLightMap(MeshData.Materials[i].Channels[j].LightMap);
+      Material^.Channels[j].TexDiffuse := FindTextureDiffuse(WideString(MeshData.Materials[i].Channels[j].DiffuseMap));
+      Material^.Channels[j].TexNormals := FindTextureNormals(WideString(MeshData.Materials[i].Channels[j].NormalMap));
+      Material^.Channels[j].TexSpecular := FindTextureSpecular(WideString(MeshData.Materials[i].Channels[j].SpecularMap));
+      Material^.Channels[j].TexLightMap := FindTextureLightMap(WideString(MeshData.Materials[i].Channels[j].LightMap));
     end;
     MatRef[i] := Material;
   end;
@@ -1851,13 +1851,13 @@ constructor TG2SGNode.Create(const SceneGraph: TG2SceneGraph);
 begin
   inherited Create;
   m_SceneGraph := SceneGraph;
-  m_SceneGraph.Nodes.AddItem(Self);
+  m_SceneGraph.Nodes.Add(Self);
   m_UserData := nil;
 end;
 
 destructor TG2SGNode.Destroy;
 begin
-  m_SceneGraph.Nodes.RemoveItem(Self);
+  m_SceneGraph.Nodes.Remove(Self);
   inherited Destroy;
 end;
 
@@ -1878,7 +1878,7 @@ constructor TG2SGFrame.Create(const SceneGraph: TG2SceneGraph);
   var Link: PG2SGQueryLink;
 begin
   inherited Create(SceneGraph);
-  m_SceneGraph.Frames.AddItem(Self);
+  m_SceneGraph.Frames.Add(Self);
   OcTreeItem.Frame := Self;
   OcTreeItem.FetchID := 0;
   OcTreeItem.QueryLinks.Capacity := 32;
@@ -1890,7 +1890,7 @@ begin
     New(Link);
     Link^.Query := PG2SGQuery(m_SceneGraph.Queries[i]);
     Link^.Init;
-    OcTreeItem.QueryLinks.AddItem(Link);
+    OcTreeItem.QueryLinks.Add(Link);
   end;
   Transform.SetIdentity;
   m_MinGridX := 0; m_MinGridY := 0; m_MinGridX := 0;
@@ -1909,7 +1909,7 @@ begin
     Dispose(Link);
   end;
   m_SceneGraph.OcTreeRemoveItem(@OcTreeItem);
-  m_SceneGraph.Frames.RemoveItem(Self);
+  m_SceneGraph.Frames.Remove(Self);
   inherited Destroy;
 end;
 
@@ -2021,7 +2021,7 @@ end;
 constructor TG2SGGeom.Create(const SceneGraph: TG2SceneGraph);
 begin
   inherited Create(SceneGraph);
-  m_SceneGraph.Geoms.AddItem(Self);
+  m_SceneGraph.Geoms.Add(Self);
   m_Render := False;
   m_Collide := False;
   m_PrevTransform.SetValue(
@@ -2037,7 +2037,7 @@ destructor TG2SGGeom.Destroy;
 begin
   SafeRelease(VB);
   SafeRelease(IB);
-  m_SceneGraph.Geoms.RemoveItem(Self);
+  m_SceneGraph.Geoms.Remove(Self);
   inherited Destroy;
 end;
 
@@ -2053,9 +2053,8 @@ begin
 end;
 
 function TG2SGGeom.IntersectRay(const r: TG2Ray): Boolean;
-  var i, j: Integer;
+  var i: Integer;
   var u, v, d: Single;
-  var FirstCollide: Boolean;
   var v0, v1, v2: TG2Vec3;
 begin
   if m_Collide then
@@ -2096,9 +2095,8 @@ begin
 end;
 
 function TG2SGGeom.IntersectRay(const r: TG2Ray; var U, V, Dist: Single): Boolean;
-  var i, j: Integer;
+  var i: Integer;
   var cu, cv, d: Single;
-  var FirstCollide: Boolean;
   var v0, v1, v2: TG2Vec3;
 begin
   Result := False;
@@ -2149,7 +2147,6 @@ procedure TG2SGGeom.SetRender(const Value: Boolean);
   var i: Integer;
   var PtrVertices: PG2SGVertexGeomArr;
   var PtrIndices: PG2Index16Array;
-  var m: ID3DXMesh;
 begin
   if Value = m_Render then Exit;
   m_Render := Value;
@@ -2214,9 +2211,9 @@ begin
     m_MeshInst := m_Mesh.InstanceCreate;
     for i := 0 to m_Mesh.MaterialCount - 1 do
     begin
-      m_MeshInst.Materials[i].MapDiffuse := m_SceneGraph.FindTextureDiffuse(m_Mesh.Materials[i].DiffuseMap);
-      m_MeshInst.Materials[i].MapSpecular := m_SceneGraph.FindTextureSpecular(m_Mesh.Materials[i].SpecularMap);
-      m_MeshInst.Materials[i].MapNormals := m_SceneGraph.FindTextureNormals(m_Mesh.Materials[i].NormalMap);
+      m_MeshInst.Materials[i].MapDiffuse := m_SceneGraph.FindTextureDiffuse(WideString(m_Mesh.Materials[i].DiffuseMap));
+      m_MeshInst.Materials[i].MapSpecular := m_SceneGraph.FindTextureSpecular(WideString(m_Mesh.Materials[i].SpecularMap));
+      m_MeshInst.Materials[i].MapNormals := m_SceneGraph.FindTextureNormals(WideString(m_Mesh.Materials[i].NormalMap));
     end;
   end;
 end;
@@ -2224,7 +2221,7 @@ end;
 constructor TG2SGChar.Create(const SceneGraph: TG2SceneGraph);
 begin
   inherited Create(SceneGraph);
-  m_SceneGraph.Chars.AddItem(Self);
+  m_SceneGraph.Chars.Add(Self);
   m_Mesh := nil;
   m_MeshInst := nil;
   m_MinGridX := 0; m_MinGridY := 0; m_MinGridZ := 0;
@@ -2242,13 +2239,11 @@ destructor TG2SGChar.Destroy;
 begin
   if Assigned(m_Mesh) then
   m_MeshInst.Free;
-  m_SceneGraph.Chars.RemoveItem(Self);
+  m_SceneGraph.Chars.Remove(Self);
   inherited Destroy;
 end;
 
 procedure TG2SGChar.Update;
-  var NewMinX, NewMinY, NewMinZ: Integer;
-  var NewMaxX, NewMaxY, NewMaxZ: Integer;
 begin
   if Grounded then
   Vel := Vel * 0.9;
@@ -2269,14 +2264,14 @@ end;
 constructor TG2SGLight.Create(const SceneGraph: TG2SceneGraph);
 begin
   inherited Create(SceneGraph);
-  m_SceneGraph.Lights.AddItem(Self);
+  m_SceneGraph.Lights.Add(Self);
   QueryListID := G2QL_LIGHTS;
   LightType := ltNone;
 end;
 
 destructor TG2SGLight.Destroy;
 begin
-  m_SceneGraph.Lights.RemoveItem(Self);
+  m_SceneGraph.Lights.Remove(Self);
   inherited Destroy;
 end;
 //TG2SGLight END

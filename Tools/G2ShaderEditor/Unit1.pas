@@ -25,8 +25,13 @@ uses
   Menus,
   DXTypes,
   Direct3D9,
-  D3DX9, Tabs, DockTabSet, ButtonGroup, SynEditMiscClasses, SynEditSearch,
-  SynEditRegexSearch, sSkinManager;
+  D3DX9,
+  Tabs,
+  DockTabSet,
+  ButtonGroup,
+  SynEditMiscClasses,
+  SynEditSearch,
+  SynEditRegexSearch;
 
 type
   TStrArr = array of AnsiString;
@@ -36,6 +41,7 @@ type
     var TabID: Integer;
     var TabStrID: Integer;
     var CaretPos: TPoint;
+    var Saved: Boolean;
     var TabName: String;
     var FileName: String;
     var Code: String;
@@ -84,6 +90,7 @@ type
     sd1: TSaveDialog;
     od1: TOpenDialog;
     Close1: TMenuItem;
+    Options1: TMenuItem;
     procedure Exit1Click(Sender: TObject);
     procedure New1Click(Sender: TObject);
     procedure Compile1Click(Sender: TObject);
@@ -105,6 +112,8 @@ type
     procedure Load1Click(Sender: TObject);
     procedure smKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure Close1Click(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure Options1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -120,7 +129,7 @@ const DefTabName = 'Unnamed';
 
 implementation
 
-uses Unit2;
+uses Unit2, Unit3;
 
 {$R *.dfm}
 
@@ -174,6 +183,7 @@ end;
 //TProjTab BEGIN
 procedure TProjTab.MakeNew;
 begin
+  Saved := True;
   Code := '';
   Code := Code + '/*--------------------------------*\'#$D#$A;
 	Code := Code + '      Gen2 Shader'#$D#$A;
@@ -220,14 +230,31 @@ procedure TProjTab.Compile;
     Form1.Output.Items.Text := 'Undefined error.';
   end;
   var i: Integer;
+  var Options: DWord;
 begin
   Form1.Output.Items.Text := 'Compiling: ' + TabName;
   Application.ProcessMessages;
   CodeAnsi := AnsiString(Code);
+  Options := 0;
+  case Form3.cbb1.ItemIndex of
+    1: Options := Options or D3DXSHADER_OPTIMIZATION_LEVEL0;
+    2: Options := Options or D3DXSHADER_OPTIMIZATION_LEVEL1;
+    3: Options := Options or D3DXSHADER_OPTIMIZATION_LEVEL2;
+    4: Options := Options or D3DXSHADER_OPTIMIZATION_LEVEL3;
+  end;
+  case Form3.cbb2.ItemIndex of
+    1: Options := Options or D3DXSHADER_PREFER_FLOW_CONTROL;
+    2: Options := Options or D3DXSHADER_AVOID_FLOW_CONTROL;
+  end;
+  if Form3.chk1.Checked then Options := Options or D3DXSHADER_DEBUG;
+  if Form3.chk2.Checked then Options := Options or D3DXSHADER_SKIPOPTIMIZATION;
+  if Form3.chk3.Checked then Options := Options or D3DXSHADER_PARTIALPRECISION;
+  if Form3.chk4.Checked then Options := Options or D3DXSHADER_NO_PRESHADER;
   if Succeeded(
     D3DXCreateEffectCompiler(
       @CodeAnsi[1], Length(CodeAnsi),
-      nil, nil, 0,
+      nil, nil,
+      Options,
       Compiler,
       @Errors
     )
@@ -235,7 +262,7 @@ begin
   begin
     if Succeeded(
       Compiler.CompileEffect(
-        0,
+        Options,
         @EffectBuffer,
         @Errors
       )
@@ -322,6 +349,14 @@ end;
 procedure TProjTab.Kill;
   var i: Integer;
 begin
+  if not Saved then
+  begin
+    i := MessageDlg(
+      TabName + ' has not been saved.'#$D#$A'Any changes made to this tab will be lost!'#$D#$A'Would you like to save it now?',
+      mtInformation, [mbYes, mbNo], 0, mbNo
+    );
+    if i = mrYes then Save();
+  end;
   Form1.TabSet1.Tabs.Delete(TabStrID);
   for i := TabID to High(Project.Tabs) - 1 do
   begin
@@ -354,6 +389,7 @@ begin
       TabName := TabNameFromFile(FileName);
       Form1.TabSet1.Tabs[TabStrID] := TabName;
       fs.Write(AnsiString(Code)[1], Length(Code));
+      Saved := True;
     finally
       fs.Free;
     end;
@@ -502,6 +538,14 @@ begin
   g_Device := nil;
 end;
 
+procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+  var i: Integer;
+begin
+  for i := High(Project.Tabs) downto 0 do
+  Project.KillTab(Project.Tabs[i].TabStrID);
+  CanClose := True;
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
   var D3D9: IDirect3D9;
   var pp: TD3DPresentParameters;
@@ -552,6 +596,11 @@ begin
   Project.AddNewTab(DefTabName);
 end;
 
+procedure TForm1.Options1Click(Sender: TObject);
+begin
+  Form3.ShowModal;
+end;
+
 procedure TForm1.Save1Click(Sender: TObject);
 begin
   if Project.CurTab > -1 then
@@ -567,7 +616,10 @@ end;
 procedure TForm1.smChange(Sender: TObject);
 begin
   if Project.CurTab > -1 then
-  Project.Tabs[Project.CurTab].Code := sm.Text;
+  begin
+    Project.Tabs[Project.CurTab].Code := sm.Text;
+    Project.Tabs[Project.CurTab].Saved := False;
+  end;
 end;
 
 procedure TForm1.smKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);

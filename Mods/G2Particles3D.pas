@@ -704,7 +704,8 @@ end;
 
 procedure TG2Particle3DEmmitterSingle.Update;
   var p: TG2Particle3D;
-  var i, n: Integer;
+  var i: Integer;
+  var n: DWord;
 begin
   m_UpdateTime := m_UpdateTime + GetTickCount - m_CreateTime;
   n := m_UpdateTime div m_Frequency;

@@ -14,6 +14,7 @@ object Form2: TForm2
   FormStyle = fsStayOnTop
   OldCreateOrder = False
   Position = poScreenCenter
+  OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
   object PageControl1: TPageControl
@@ -21,7 +22,7 @@ object Form2: TForm2
     Top = 0
     Width = 816
     Height = 569
-    ActivePage = TabSheet2
+    ActivePage = TabSheet1
     Align = alClient
     MultiLine = True
     TabOrder = 0
@@ -32,7 +33,7 @@ object Form2: TForm2
         Left = 3
         Top = 3
         Width = 802
-        Height = 502
+        Height = 504
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
@@ -53,6 +54,15 @@ object Form2: TForm2
         Caption = 'Save'
         TabOrder = 1
         OnClick = Button1Click
+      end
+      object btn2: TButton
+        Left = 648
+        Top = 512
+        Width = 155
+        Height = 25
+        Caption = 'Close'
+        TabOrder = 2
+        OnClick = btn1Click
       end
     end
     object TabSheet2: TTabSheet
@@ -84,6 +94,15 @@ object Form2: TForm2
         TabOrder = 1
         OnClick = Button2Click
       end
+      object btn1: TButton
+        Left = 648
+        Top = 512
+        Width = 155
+        Height = 25
+        Caption = 'Close'
+        TabOrder = 2
+        OnClick = btn1Click
+      end
     end
     object TabSheet3: TTabSheet
       Caption = 'Assembly'
@@ -92,7 +111,7 @@ object Form2: TForm2
         Left = 3
         Top = 3
         Width = 802
-        Height = 502
+        Height = 504
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
@@ -104,13 +123,22 @@ object Form2: TForm2
         ScrollBars = ssVertical
         TabOrder = 0
       end
+      object btn3: TButton
+        Left = 648
+        Top = 512
+        Width = 155
+        Height = 25
+        Caption = 'Close'
+        TabOrder = 1
+        OnClick = btn1Click
+      end
     end
   end
   object sdbinary: TSaveDialog
     DefaultExt = '.cfx'
     Filter = 'Compiled Effect (*.cfx)|*.cfx|All Files (*.*)|*.*'
     FilterIndex = 0
-    Left = 128
+    Left = 8
     Top = 528
   end
 end

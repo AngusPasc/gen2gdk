@@ -249,8 +249,8 @@ var
           Length(CurShader),
           nil,
           nil,
-          D3DXSHADER_OPTIMIZATION_LEVEL3 or
-          D3DXSHADER_PARTIALPRECISION,
+          D3DXSHADER_AVOID_FLOW_CONTROL or
+          D3DXSHADER_OPTIMIZATION_LEVEL3,
           FXCompiler,
           nil
         )
@@ -258,7 +258,8 @@ var
       begin
         if Succeeded(
           FXCompiler.CompileEffect(
-            0,
+            D3DXSHADER_AVOID_FLOW_CONTROL or
+            D3DXSHADER_OPTIMIZATION_LEVEL3,
             @ShaderBuffer,
             nil
           )

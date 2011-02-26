@@ -7,6 +7,7 @@ interface
 uses
   Windows,
   Types,
+  Math,
   DXTypes,
   Direct3D9,
   D3DX9,
@@ -961,7 +962,7 @@ begin
 end;
 
 procedure TG2Sprite.ComputeSize;
-  var i, t: Integer;
+  var i: Integer;
 begin
   HSW := 0;
   HSH := 0;
@@ -1455,7 +1456,7 @@ begin
 end;
 
 class procedure TG2SpriteCollider.ResolveContacts(const c1, c2: TG2SpriteCollider; const Contacts: TContGroup);
-  var TM, M1, M2, TH, TF, CM: Single;
+  var TH, TF, CM: Single;
   var FTotal1, FDirect1, FFriction1: TG2Vec2;
   var FTotal2, FDirect2, FFriction2: TG2Vec2;
   var F: TG2Vec2;
@@ -1699,7 +1700,7 @@ end;
 //TG2SpriteImage BEGIN
 procedure TG2SpriteImage.Update;
   var n: Integer;
-  var t: DWord;
+  var t: Integer;
   var TimePassed: DWord;
   var FrameCount: Integer;
 begin

@@ -112,8 +112,8 @@ type
 
   PG2PathNode = ^TG2PathNode;
   TG2PathNode = record
-    X: DWord;
-    Y: DWord;
+    X: Integer;
+    Y: Integer;
     Cost: DWord;
     H: DWord;
     F: DWord;
@@ -167,7 +167,7 @@ type
     procedure FreeMap(var Map: PG2PathMap);
     function FindPath(
       const Map: PG2PathMap;
-      const StartX, StartY, FinishX, FinishY: DWord;
+      const StartX, StartY, FinishX, FinishY: Integer;
       const WayPoints: PG2PathWayPoints = nil
     ): PG2Path;
   end;
@@ -230,10 +230,10 @@ end;
 
 function TG2PathFinder.FindPath(
       const Map: PG2PathMap;
-      const StartX, StartY, FinishX, FinishY: DWord;
+      const StartX, StartY, FinishX, FinishY: Integer;
       const WayPoints: PG2PathWayPoints = nil
     ): PG2Path;
-  function GetHeuristic(X, Y: DWord): DWord;
+  function GetHeuristic(X, Y: Integer): Integer;
   var
     DX, DY, sMin, sMax: DWord;
   begin
@@ -257,6 +257,8 @@ function TG2PathFinder.FindPath(
         DY := Abs(Y - FinishY) * Map^.CostV;
         Result := Round(Sqrt((DX * DX) + (DY * DY)));
       end;
+      else
+      Result := 1;
     end;
     if m_HAmp <> 1 then
     Result := Round(Result * m_HAmp);
@@ -269,7 +271,7 @@ var
   MoveCosts: array[0..7] of Word;
   OpenNodes: TList;
   PathFound: Boolean;
-  PathLength: DWord;
+  PathLength: Integer;
   NewCost: DWord;
   NewPos: TPoint;
   AllowNode: Boolean;
@@ -304,6 +306,7 @@ const
   );
 begin
   PathFound := False;
+  CurNode := nil;
   if (Map^.Nodes[StartX, StartY].Cost = 0)
   or (Map^.Nodes[FinishX, FinishY].Cost = 0) then
   begin

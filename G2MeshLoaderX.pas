@@ -926,7 +926,7 @@ var
   SkinLoaded: Boolean;
   XSkin: PXSkin;
   XData: TXDataControl;
-  fn, CurI: DWord;
+  fn, CurI: Integer;
   IndArr: array of DWord;
   Faces: array of array of DWord;
 begin
@@ -996,7 +996,6 @@ begin
   NormalCount := 0;
   SkinVertexCount := 0;
   SkinFrameCount := 0;
-  XSkin := nil;
 
   Data.GetChildren(ChildrenCount);
   for i := 0 to ChildrenCount - 1 do
@@ -1687,7 +1686,7 @@ begin
   SetLength(Def, 4);
   s.Read(Def[1], 4);
   s.Position := Pos;
-  Result := UpperCase(Def) = 'XOF ';
+  Result := UpperCase(String(Def)) = 'XOF ';
 end;
 //TG2MeshLoaderX END
 

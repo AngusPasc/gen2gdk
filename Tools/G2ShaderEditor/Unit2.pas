@@ -18,8 +18,13 @@ type
     Button2: TButton;
     MemoAssembly: TMemo;
     sdbinary: TSaveDialog;
+    btn1: TButton;
+    btn2: TButton;
+    btn3: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure btn1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -35,6 +40,11 @@ implementation
 uses Unit1;
 
 {$R *.dfm}
+
+procedure TForm2.btn1Click(Sender: TObject);
+begin
+  Close;
+end;
 
 procedure TForm2.Button1Click(Sender: TObject);
   var fs: TFileStream;
@@ -56,6 +66,12 @@ begin
   MemoInline.CopyToClipboard;
   MemoInline.SelStart := 0;
   MemoInline.SelLength := 0;
+end;
+
+procedure TForm2.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = VK_ESCAPE then Close;
 end;
 
 end.

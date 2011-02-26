@@ -567,6 +567,7 @@ object Form1: TForm1
   Position = poScreenCenter
   WindowState = wsMaximized
   OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
@@ -1590,6 +1591,10 @@ object Form1: TForm1
       object Compile1: TMenuItem
         Caption = 'Compile (F9)'
         OnClick = Compile1Click
+      end
+      object Options1: TMenuItem
+        Caption = 'Options...'
+        OnClick = Options1Click
       end
     end
   end

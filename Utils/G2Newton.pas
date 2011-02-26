@@ -5,8 +5,11 @@ interface
 uses
   Classes,
   Types,
+  Math,
   Windows,
   D3DX9,
+  DXTypes,
+  Direct3D9,
   G2MeshLoader,
   Gen2,
   G2Math,

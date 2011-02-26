@@ -163,9 +163,9 @@ type
     constructor Create;
     destructor Destroy; override;
     class function GetDifinition: AnsiString; virtual;
-    class function CanLoadFile(const f: String): Boolean; virtual;
+    class function CanLoadFile(const f: WideString): Boolean; virtual;
     class function CanLoadStream(const s: TStream): Boolean; virtual;
-    procedure LoadFile(const f: String); virtual;
+    procedure LoadFile(const f: WideString); virtual;
     procedure LoadStream(const s: TStream); virtual;
     procedure ExportMesh(const Device: IDirect3DDevice9; const MeshData: PG2MeshData); virtual;
   end;
@@ -200,7 +200,7 @@ begin
   Result := 'Undifined.';
 end;
 
-class function TG2MeshLoader.CanLoadFile(const f: String): Boolean;
+class function TG2MeshLoader.CanLoadFile(const f: WideString): Boolean;
 var
   fs: TFileStream;
 begin
@@ -214,7 +214,7 @@ begin
   Result := False;
 end;
 
-procedure TG2MeshLoader.LoadFile(const f: String);
+procedure TG2MeshLoader.LoadFile(const f: WideString);
 var
   fs: TFileStream;
 begin

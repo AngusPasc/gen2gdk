@@ -1438,12 +1438,12 @@ begin
   m_Built := True;
   {$IFDEF G2_WRITE_LOG}
   MemSize := XCount * ZCount * SizeOf(TVertex) * Length(m_Layers);
-  if MemSize < 1024 then s := IntToStr(MemSize) + 'Bytes'
-  else if MemSize < 1048576 then s := IntToStr(MemSize div 1024) + 'Kb'
-  else s := IntToStr(MemSize div 1048576) + 'Mb';
+  if MemSize < 1024 then s := AnsiString(IntToStr(MemSize)) + 'Bytes'
+  else if MemSize < 1048576 then s := AnsiString(IntToStr(MemSize div 1024)) + 'Kb'
+  else s := AnsiString(IntToStr(MemSize div 1048576)) + 'Mb';
   G2WriteLogTimed(
     '(>) Landscape Generated: Vertex Data = ' + s +
-    ' (' + IntToStr(Core.Graphics.Specs.GetVRAMFree div 1048576) + 'Mb VRAM Remaining)',
+    ' (' + AnsiString(IntToStr(Core.Graphics.Specs.GetVRAMFree div 1048576)) + 'Mb VRAM Remaining)',
     'Landscape'
   );
   {$ENDIF}
