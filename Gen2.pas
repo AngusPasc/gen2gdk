@@ -465,10 +465,14 @@ type
     function GetItem(const Index: Integer): Pointer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetCapacity(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetCapacity: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetFirst: Pointer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetLast: Pointer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     property Capacity: Integer read GetCapacity write SetCapacity;
     property Count: Integer read m_ItemCount;
     property Items[const Index: Integer]: Pointer read GetItem write SetItem; default;
+    property First: Pointer read GetFirst;
+    property Last: Pointer read GetLast;
     function Add(const Item: Pointer): Integer;
     function Insert(const Index: Integer; const Item: Pointer): Integer;
     procedure Delete(const Index: Integer);
@@ -494,10 +498,14 @@ type
     procedure InsertItem(const Pos: Integer; const Item: Pointer; const Order: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetCapacity(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetCapacity: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetFirst: Pointer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetLast: Pointer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     property Capacity: Integer read GetCapacity write SetCapacity;
     property Count: Integer read m_ItemCount;
     property Items[const Index: Integer]: Pointer read GetItem write SetItem; default;
+    property First: Pointer read GetFirst;
+    property Last: Pointer read GetLast;
     function Add(const Item: Pointer; const Order: Single): Integer; overload;
     function Add(const Item: Pointer): Integer; overload;
     procedure Delete(const Index: Integer);
@@ -6467,6 +6475,22 @@ begin
   Result := Length(m_Items);
 end;
 
+function TG2QuickList.GetFirst: Pointer;
+begin
+  if m_ItemCount > 0 then
+  Result := m_Items[0]
+  else
+  Result := nil;
+end;
+
+function TG2QuickList.GetLast: Pointer;
+begin
+  if m_ItemCount > 0 then
+  Result := m_Items[m_ItemCount - 1]
+  else
+  Result := nil;
+end;
+
 function TG2QuickList.Add(const Item: Pointer): Integer;
 begin
   if Length(m_Items) <= m_ItemCount then
@@ -6555,6 +6579,22 @@ end;
 function TG2QuickSortList.GetCapacity: Integer;
 begin
   Result := Length(m_Items);
+end;
+
+function TG2QuickSortList.GetFirst: Pointer;
+begin
+  if m_ItemCount > 0 then
+  Result := m_Items[0].Data
+  else
+  Result := nil;
+end;
+
+function TG2QuickSortList.GetLast: Pointer;
+begin
+  if m_ItemCount > 0 then
+  Result := m_Items[m_ItemCount - 1].Data
+  else
+  Result := nil;
 end;
 
 function TG2QuickSortList.Add(const Item: Pointer; const Order: Single): Integer;
@@ -9528,6 +9568,7 @@ var
   RenderFormat: TD3DFormat;
   SurfaceFormats: array of TD3DFormat;
   DisplayMode: TD3DDisplayMode;
+  {$IFDEF G2_PERFHUD}AdapterIdentifier: TD3DAdapterIdentifier9;{$ENDIF}
 const
   BackBufferFormats: array[0..5] of TD3DFormat = (
     D3DFMT_A8R8G8B8,
