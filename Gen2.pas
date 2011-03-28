@@ -101,6 +101,9 @@ type
   TG2UI = class;
   TG2UISkin = class;
   TG2UIFrame = class;
+  TG2UIPanel = class;
+  TG2UIButton = class;
+  TG2UILabel = class;
   TG2RenderStates = class;
   TG2SamplerStates = class;
   TG2TextureStageStates = class;
@@ -240,7 +243,7 @@ type
   PG2Color = ^TG2Color;
   TG2Color = record
   public
-    b, g, r, a: Byte;
+    var b, g, r, a: Byte;
     class operator Equal(const c1, c2: TG2Color): Boolean;
     class operator NotEqual(const c1, c2: TG2Color): Boolean;
     class operator Explicit(const c: TG2Color): DWord;
@@ -285,10 +288,10 @@ type
   PG2Rect = ^TG2Rect;
   TG2Rect = record
   public
-    Left: Single;
-    Top: Single;
-    Right: Single;
-    Bottom: Single;
+    var Left: Single;
+    var Top: Single;
+    var Right: Single;
+    var Bottom: Single;
     function Width: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function Height: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function TopLeft: TG2Vec2;
@@ -309,16 +312,16 @@ type
 //TG2Core BEGIN
   TG2Core = class sealed (TG2Class)
   strict private
-    m_Handle: HWnd;
-    m_OwnWindow: Boolean;
-    m_Initialized: Boolean;
-    m_Timer: TG2Timer;
-    m_Graphics: TG2Graphics;
-    m_Audio: TG2Audio;
-    m_Input: TG2Input;
-    m_Network: TG2Network;
-    m_PackLinker: TG2PackLinker;
-    m_Mods: TG2List;
+    var m_Handle: HWnd;
+    var m_OwnWindow: Boolean;
+    var m_Initialized: Boolean;
+    var m_Timer: TG2Timer;
+    var m_Graphics: TG2Graphics;
+    var m_Audio: TG2Audio;
+    var m_Input: TG2Input;
+    var m_Network: TG2Network;
+    var m_PackLinker: TG2PackLinker;
+    var m_Mods: TG2List;
     procedure SetHandle(const Value: HWnd);
     function CreateWindow: HWnd;
     procedure FreeMods;
@@ -355,9 +358,9 @@ type
 //TG2HighClass BEGIN
   TG2HighClass = class (TG2Class)
   strict private
-    m_Core: TG2Core;
+    var m_Core: TG2Core;
   strict protected
-    m_Initialized: Boolean;
+    var m_Initialized: Boolean;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -371,8 +374,8 @@ type
 //TG2PackCRC BEGIN
   TG2PackCRC = packed record
   public
-    Pos: DWord;
-    Num: Byte;
+    var Pos: DWord;
+    var Num: Byte;
   end;
 //TG2PackCRC END
 
@@ -380,15 +383,15 @@ type
   PG2PackFile = ^TG2PackFile;
   TG2PackFile = record
   public
-    Name: AnsiString;
-    Loaded: Boolean;
-    Encrypted: Boolean;
-    Compressed: Boolean;
-    DataPos: DWord;
-    DataLength: DWord;
-    OriginalSize: DWord;
-    Data: array of Byte;
-    CRC: array[0..7] of TG2PackCRC;
+    var Name: AnsiString;
+    var Loaded: Boolean;
+    var Encrypted: Boolean;
+    var Compressed: Boolean;
+    var DataPos: DWord;
+    var DataLength: DWord;
+    var OriginalSize: DWord;
+    var Data: array of Byte;
+    var CRC: array[0..7] of TG2PackCRC;
   end;
 //TG2PackFile END
 
@@ -396,15 +399,15 @@ type
   PG2PackFolder = ^TG2PackFolder;
   TG2PackFolder = record
   public
-    Name: AnsiString;
-    Files: array of PG2PackFile;
+    var Name: AnsiString;
+    var Files: array of PG2PackFile;
   end;
 //TG2PackFolder END
 
 //TG2PackLinker BEGIN
   TG2PackLinker = class
   strict private
-    m_Packs: TList;
+    var m_Packs: TList;
     function GetPack(const Index: Integer): TG2Pack; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetPackCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
@@ -425,11 +428,11 @@ type
 //TG2Pack BEGIN
   TG2Pack = class
   strict private
-    m_Folders: array of PG2PackFolder;
-    m_DataPos: DWord;
-    m_IsOpen: Boolean;
-    m_fs: TFileStream;
-    m_Key: AnsiString;
+    var m_Folders: array of PG2PackFolder;
+    var m_DataPos: DWord;
+    var m_IsOpen: Boolean;
+    var m_fs: TFileStream;
+    var m_Key: AnsiString;
   public
     constructor Create;
     destructor Destroy; override;
@@ -459,8 +462,8 @@ type
 //TG2QuickList BEGIN
   TG2QuickList = record
   strict private
-    m_Items: array of Pointer;
-    m_ItemCount: Integer;
+    var m_Items: array of Pointer;
+    var m_ItemCount: Integer;
     procedure SetItem(const Index: Integer; const Value: Pointer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetItem(const Index: Integer): Pointer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetCapacity(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -474,6 +477,7 @@ type
     property First: Pointer read GetFirst;
     property Last: Pointer read GetLast;
     function Add(const Item: Pointer): Integer;
+    function Pop: Pointer;
     function Insert(const Index: Integer; const Item: Pointer): Integer;
     procedure Delete(const Index: Integer);
     procedure Remove(const Item: Pointer);
@@ -508,6 +512,7 @@ type
     property Last: Pointer read GetLast;
     function Add(const Item: Pointer; const Order: Single): Integer; overload;
     function Add(const Item: Pointer): Integer; overload;
+    function Pop: Pointer;
     procedure Delete(const Index: Integer);
     procedure Remove(const Item: Pointer);
     procedure Clear;
@@ -525,7 +530,7 @@ type
         Order: Integer;
       end;
     var
-      m_List: TList;
+      var m_List: TList;
     function GetItem(const Index: Integer): Pointer;
     function GetCount: Integer;
     function FindItemIndex(const Order: Integer): Integer;
@@ -542,8 +547,8 @@ type
 //TG2LinkedListItem BEGIN
   TG2LinkedListItem = class
   strict private
-    m_Next: TG2LinkedListItem;
-    m_Prev: TG2LinkedListItem;
+    var m_Next: TG2LinkedListItem;
+    var m_Prev: TG2LinkedListItem;
   public
     constructor Create;
     destructor Destroy; override;
@@ -555,10 +560,10 @@ type
 //TG2LinkedList BEGIN
   TG2LinkedList = class
   strict private
-    m_First: TG2LinkedListItem;
-    m_Last: TG2LinkedListItem;
-    m_Cur: TG2LinkedListItem;
-    m_FuncNext: function: TG2LinkedListItem of object;
+    var m_First: TG2LinkedListItem;
+    var m_Last: TG2LinkedListItem;
+    var m_Cur: TG2LinkedListItem;
+    var m_FuncNext: function: TG2LinkedListItem of object;
     function NextFirst: TG2LinkedListItem;
     function NextNext: TG2LinkedListItem;
   public
@@ -814,12 +819,14 @@ type
 //TG2Engine BEGIN
   TG2Engine = class (TG2HighClass)
   strict protected
-    m_Plugs: TG2List;
-    m_PlugClass: CG2PlugClass;
+    var m_Plugs: TG2List;
+    var m_PlugClass: CG2PlugClass;
+    var m_Powered: Boolean;
   public
     constructor Create; override;
     destructor Destroy; override;
     property PlugClass: CG2PlugClass read m_PlugClass;
+    property Powered: Boolean read m_Powered write m_Powered;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
     function RequestPlug(
@@ -835,27 +842,27 @@ type
 //TG2Timer BEGIN
   TG2Timer = class sealed (TG2Engine)
   strict private
-    m_Mode: TG2TimerMode;
-    m_Enabled: Boolean;
-    m_MaxFPS: Integer;
-    m_TargetUPS: Integer;
-    m_FullSpeed: Boolean;
-    m_QPCAvailable: Boolean;
-    m_FPS: Integer;
-    m_FPSUpdateTime: Int64;
-    m_FrameCount: Integer;
-    m_Frequency: Int64;
-    m_MaxRenderLag: Int64;
-    m_PrevRenderTime: Int64;
-    m_MaxUpdateLag: Int64;
-    m_PrevUpdateTime: Int64;
-    m_PrevIdle: TIdleEvent;
-    m_WndHandle: HWnd;
-    m_TotalFPS: Int64;
-    m_TotalFPSCount: Int64;
-    m_CS: TCriticalSection;
-    m_PerfCheckTime: Int64;
-    m_PerfCheckResult: Single;
+    var m_Mode: TG2TimerMode;
+    var m_Enabled: Boolean;
+    var m_MaxFPS: Integer;
+    var m_TargetUPS: Integer;
+    var m_FullSpeed: Boolean;
+    var m_QPCAvailable: Boolean;
+    var m_FPS: Integer;
+    var m_FPSUpdateTime: Int64;
+    var m_FrameCount: Integer;
+    var m_Frequency: Int64;
+    var m_MaxRenderLag: Int64;
+    var m_PrevRenderTime: Int64;
+    var m_MaxUpdateLag: Int64;
+    var m_PrevUpdateTime: Int64;
+    var m_PrevIdle: TIdleEvent;
+    var m_WndHandle: HWnd;
+    var m_TotalFPS: Int64;
+    var m_TotalFPSCount: Int64;
+    var m_CS: TCriticalSection;
+    var m_PerfCheckTime: Int64;
+    var m_PerfCheckResult: Single;
     procedure Start;
     procedure Stop;
     procedure InitMode;
@@ -894,47 +901,47 @@ type
 //TG2Graphics BEGIN
   TG2Graphics = class sealed (TG2Engine)
   strict private
-    m_PlugTimer: TG2PlugTimer;
-    m_D3D9: IDirect3D9;
-    m_Device: IDirect3DDevice9;
-    m_Caps: TD3DCaps9;
-    m_Params: TG2GraphicsRunTimeParams;
-    m_Specs: TG2GraphicsSpecs;
-    m_RenderStates: TG2RenderStates;
-    m_SamplerStates: TG2SamplerStates;
-    m_TextureStageStates: TG2TextureStageStates;
-    m_Transforms: TG2Transforms;
-    m_Lights: TG2Lights;
-    m_Material: TD3DMaterial9;
-    m_ShaderLib: TG2ShaderLib;
-    m_SharedVB2D: TG2SharedVB2D;
-    m_Shared: TG2Shared;
-    m_SwapChains: TG2List;
-    m_DefaultRenderTarget: TG2SurfaceRT;
-    m_DefaultDepthStencil: TG2SurfaceDS;
-    m_DefaultSwapChain: TG2SwapChain;
-    m_DefaultViewPort: TD3DViewPort9;
-    m_DeviceLost: Boolean;
-    m_InitGamma: Integer;
-    m_RestoreGamma: Boolean;
-    m_CurSurfaceRT: TG2SurfaceRT;
-    m_CurSurfaceDS: TG2SurfaceDS;
-    m_WndPosX: Integer;
-    m_WndPosY: Integer;
-    m_WndWidth: Integer;
-    m_WndHeight: Integer;
-    m_Rec: Boolean;
-    m_RecWidth: DWord;
-    m_RecHeight: DWord;
-    m_RecSurfaceOff: IDirect3DSurface9;
-    m_RecAVIFile: PAVIFile;
-    m_RecBMPInfo: TBitmapInfoHeader;
-    m_RecBMPFile: TBitmapFileHeader;
-    m_RecAVIStream: PAVIStream;
-    m_RecAVIStreamC: PAVIStream;
-    m_RecFramesRecorded: Integer;
-    m_RecTimeStart: DWord;
-    m_RecTimerInterval: DWord;
+    var m_PlugTimer: TG2PlugTimer;
+    var m_D3D9: IDirect3D9;
+    var m_Device: IDirect3DDevice9;
+    var m_Caps: TD3DCaps9;
+    var m_Params: TG2GraphicsRunTimeParams;
+    var m_Specs: TG2GraphicsSpecs;
+    var m_RenderStates: TG2RenderStates;
+    var m_SamplerStates: TG2SamplerStates;
+    var m_TextureStageStates: TG2TextureStageStates;
+    var m_Transforms: TG2Transforms;
+    var m_Lights: TG2Lights;
+    var m_Material: TD3DMaterial9;
+    var m_ShaderLib: TG2ShaderLib;
+    var m_SharedVB2D: TG2SharedVB2D;
+    var m_Shared: TG2Shared;
+    var m_SwapChains: TG2List;
+    var m_DefaultRenderTarget: TG2SurfaceRT;
+    var m_DefaultDepthStencil: TG2SurfaceDS;
+    var m_DefaultSwapChain: TG2SwapChain;
+    var m_DefaultViewPort: TD3DViewPort9;
+    var m_DeviceLost: Boolean;
+    var m_InitGamma: Integer;
+    var m_RestoreGamma: Boolean;
+    var m_CurSurfaceRT: TG2SurfaceRT;
+    var m_CurSurfaceDS: TG2SurfaceDS;
+    var m_WndPosX: Integer;
+    var m_WndPosY: Integer;
+    var m_WndWidth: Integer;
+    var m_WndHeight: Integer;
+    var m_Rec: Boolean;
+    var m_RecWidth: DWord;
+    var m_RecHeight: DWord;
+    var m_RecSurfaceOff: IDirect3DSurface9;
+    var m_RecAVIFile: PAVIFile;
+    var m_RecBMPInfo: TBitmapInfoHeader;
+    var m_RecBMPFile: TBitmapFileHeader;
+    var m_RecAVIStream: PAVIStream;
+    var m_RecAVIStreamC: PAVIStream;
+    var m_RecFramesRecorded: Integer;
+    var m_RecTimeStart: DWord;
+    var m_RecTimerInterval: DWord;
     procedure RecCatchFrame;
     function ScreenGrab: ID3DXBuffer;
     function InitializeDevice: TG2Result;
@@ -947,11 +954,11 @@ type
     procedure SetGamma(const Value: Integer);
     function GetGamma: Integer;
   private
-    m_InitParams: TG2GraphicsInitParams;
-    m_InitParamsActual: TG2GraphicsInitParams;
-    m_PresentParams: TD3DPresentParameters;
-    m_CurDefViewPort: PD3DViewPort9;
-    m_CurSwapChain: TG2SwapChain;
+    var m_InitParams: TG2GraphicsInitParams;
+    var m_InitParamsActual: TG2GraphicsInitParams;
+    var m_PresentParams: TD3DPresentParameters;
+    var m_CurDefViewPort: PD3DViewPort9;
+    var m_CurSwapChain: TG2SwapChain;
     procedure HardReset;
     procedure QuickReset;
     procedure ParamsChange;
@@ -1014,8 +1021,8 @@ type
   TG2GraphicsSpecs = class sealed
   strict private
     type TFormatScore = record
-      Format: TD3DFormat;
-      Score: DWord;
+      var Format: TD3DFormat;
+      var Score: DWord;
     end;
     type TFormatScoreArray = array[0..0] of TFormatScore;
     type PFormatScoreArray = ^TFormatScoreArray;
@@ -1080,9 +1087,9 @@ type
     function GetAntialiasSamples(const Index: Integer): Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetAntialiasCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   private
-    m_Gfx: TG2Graphics;
-    m_List: TG2SortedList;
-    m_DisplayMode: TD3DDisplayMode;
+    var m_Gfx: TG2Graphics;
+    var m_List: TG2SortedList;
+    var m_DisplayMode: TD3DDisplayMode;
   public
     constructor Create(const G2Graphics: TG2Graphics);
     destructor Destroy; override;
@@ -1110,28 +1117,28 @@ type
 //TG2GraphicsInitParams BEGIN
   TG2GraphicsInitParams = class sealed (TG2Class)
   strict private
-    m_Adapter: Word;
-    m_DeviceType: TD3DDevType;
-    m_Width: Word;
-    m_Height: Word;
-    m_FormatBackBuffer: TD3DFormat;
-    m_FormatSurfaceRT: TD3DFormat;
-    m_FormatSurfaceDS: TD3DFormat;
-    m_FormatTexture2D: TD3DFormat;
-    m_FormatTexture2DRT: TD3DFormat;
-    m_FormatTexture2DDS: TD3DFormat;
-    m_FormatTextureCube: TD3DFormat;
-    m_FormatTextureCubeRT: TD3DFormat;
-    m_FormatTextureVolume: TD3DFormat;
-    m_FullScreen: Boolean;
-    m_VSync: Boolean;
-    m_Antialiasing: Boolean;
-    m_AntialiasingSampleCount: Word;
-    m_VertexProcessing: TG2VertexProcessing;
-    m_MultiThreaded: Boolean;
-    m_PureDevice: Boolean;
+    var m_Adapter: Word;
+    var m_DeviceType: TD3DDevType;
+    var m_Width: Word;
+    var m_Height: Word;
+    var m_FormatBackBuffer: TD3DFormat;
+    var m_FormatSurfaceRT: TD3DFormat;
+    var m_FormatSurfaceDS: TD3DFormat;
+    var m_FormatTexture2D: TD3DFormat;
+    var m_FormatTexture2DRT: TD3DFormat;
+    var m_FormatTexture2DDS: TD3DFormat;
+    var m_FormatTextureCube: TD3DFormat;
+    var m_FormatTextureCubeRT: TD3DFormat;
+    var m_FormatTextureVolume: TD3DFormat;
+    var m_FullScreen: Boolean;
+    var m_VSync: Boolean;
+    var m_Antialiasing: Boolean;
+    var m_AntialiasingSampleCount: Word;
+    var m_VertexProcessing: TG2VertexProcessing;
+    var m_MultiThreaded: Boolean;
+    var m_PureDevice: Boolean;
   private
-    m_Gfx: TG2Graphics;
+    var m_Gfx: TG2Graphics;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1164,28 +1171,28 @@ type
 //TG2GraphicsRunTimeParams BEGIN
   TG2GraphicsRunTimeParams = class sealed (TG2Class)
   strict private
-    m_Adapter: Word;
-    m_DeviceType: TD3DDevType;
-    m_Width: Word;
-    m_Height: Word;
-    m_FormatBackBuffer: TD3DFormat;
-    m_FormatSurfaceRT: TD3DFormat;
-    m_FormatSurfaceDS: TD3DFormat;
-    m_FormatTexture2D: TD3DFormat;
-    m_FormatTexture2DRT: TD3DFormat;
-    m_FormatTexture2DDS: TD3DFormat;
-    m_FormatTextureCube: TD3DFormat;
-    m_FormatTextureCubeRT: TD3DFormat;
-    m_FormatTextureVolume: TD3DFormat;
-    m_FullScreen: Boolean;
-    m_VSync: Boolean;
-    m_Antialiasing: Boolean;
-    m_AntialiasingSampleCount: Word;
-    m_VertexProcessing: TG2VertexProcessing;
-    m_MultiThreaded: Boolean;
-    m_PureDevice: Boolean;
+    var m_Adapter: Word;
+    var m_DeviceType: TD3DDevType;
+    var m_Width: Word;
+    var m_Height: Word;
+    var m_FormatBackBuffer: TD3DFormat;
+    var m_FormatSurfaceRT: TD3DFormat;
+    var m_FormatSurfaceDS: TD3DFormat;
+    var m_FormatTexture2D: TD3DFormat;
+    var m_FormatTexture2DRT: TD3DFormat;
+    var m_FormatTexture2DDS: TD3DFormat;
+    var m_FormatTextureCube: TD3DFormat;
+    var m_FormatTextureCubeRT: TD3DFormat;
+    var m_FormatTextureVolume: TD3DFormat;
+    var m_FullScreen: Boolean;
+    var m_VSync: Boolean;
+    var m_Antialiasing: Boolean;
+    var m_AntialiasingSampleCount: Word;
+    var m_VertexProcessing: TG2VertexProcessing;
+    var m_MultiThreaded: Boolean;
+    var m_PureDevice: Boolean;
   private
-    m_Gfx: TG2Graphics;
+    var m_Gfx: TG2Graphics;
     procedure Assign(const Params: TG2GraphicsInitParams);
   public
     constructor Create; override;
@@ -1217,15 +1224,15 @@ type
 //TG2Transforms BEGIN
   TG2Transforms = class sealed (TG2HighClass)
   strict private
-    m_W: array[0..255] of TG2Mat;
-    m_V: TG2Mat;
-    m_P: TG2Mat;
-    m_T: array[0..15] of TG2Mat;
-    m_BufferW: array of TG2Mat;
-    m_BufferV: array of TG2Mat;
-    m_BufferP: array of TG2Mat;
-    m_BufferT: array of TG2Mat;
-    m_Frustum: TG2Frustum;
+    var m_W: array[0..255] of TG2Mat;
+    var m_V: TG2Mat;
+    var m_P: TG2Mat;
+    var m_T: array[0..15] of TG2Mat;
+    var m_BufferW: array of TG2Mat;
+    var m_BufferV: array of TG2Mat;
+    var m_BufferP: array of TG2Mat;
+    var m_BufferT: array of TG2Mat;
+    var m_Frustum: TG2Frustum;
     function GetW(const Index: Byte): TG2Mat; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetW(const Index: Byte; const m: TG2Mat); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetV(const m: TG2Mat); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -1303,24 +1310,21 @@ type
 //TG2Lights BEGIN
   TG2Lights = class sealed (TG2HighClass)
   strict private
-  const
-    LCount = 8;
-  type
-    TG2LightType = (
+    const LCount = 8;
+    type TG2LightType = (
       ltAmbient,
       ltDirectional,
       ltPoint,
       ltSpot
     );
-    PG2Light = ^TG2Light;
-    TG2Light = record
+    type TG2Light = record
     private
-      m_Lights: TG2Lights;
-      m_Index: Byte;
+      var m_Lights: TG2Lights;
+      var m_Index: Byte;
     public
-      Light: TD3DLight9;
-      LightType: TG2LightType;
-      Enabled: Boolean;
+      var Light: TD3DLight9;
+      var LightType: TG2LightType;
+      var Enabled: Boolean;
       procedure SetAmbientLight(
         const Ambient: TG2Color
       );
@@ -1335,13 +1339,13 @@ type
       );
       procedure SetToDevice;
     end;
-  var
-    m_Lights: array[0..LCount - 1] of TG2Light;
+    type PG2Light = ^TG2Light;
+    var m_Lights: array[0..LCount - 1] of TG2Light;
     function GetLight(const Index: Byte): PG2Light;
     function GetLightCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   private
-    m_LightsBuffer: array[0..LCount - 1] of TD3DLight9;
-    m_LightsEnabled: array[0..LCount - 1] of Boolean;
+    var m_LightsBuffer: array[0..LCount - 1] of TD3DLight9;
+    var m_LightsEnabled: array[0..LCount - 1] of Boolean;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
   public
@@ -1359,12 +1363,12 @@ type
 //TG2SwapChain BEGIN
   TG2SwapChain = class sealed (TG2Class)
   strict private
-    m_SwapChain: IDirect3DSwapChain9;
-    m_RenderTarget: TG2SurfaceRT;
-    m_PresentParams: TD3DPresentParameters;
+    var m_SwapChain: IDirect3DSwapChain9;
+    var m_RenderTarget: TG2SurfaceRT;
+    var m_PresentParams: TD3DPresentParameters;
     procedure Release;
   private
-    m_Gfx: TG2Graphics;
+    var m_Gfx: TG2Graphics;
     procedure Initialize(
       const Handle: HWND;
       const Width, Height: Word;
@@ -1384,13 +1388,13 @@ type
 //TG2Audio BEGIN
   TG2Audio = class sealed (TG2Engine)
   strict private
-    m_Volume: Single;
+    var m_Volume: Single;
     procedure SetVolume(Value: Single);
   private
-    m_Loader: IDirectMusicLoader8;
-    m_Performance: IDirectMusicPerformance8;
-    m_MusicMgrs: TList;
-    m_SoundMgrs: TList;
+    var m_Loader: IDirectMusicLoader8;
+    var m_Performance: IDirectMusicPerformance8;
+    var m_MusicMgrs: TList;
+    var m_SoundMgrs: TList;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1403,16 +1407,16 @@ type
 //TG2Input BEGIN
   TG2Input = class sealed (TG2Engine)
   strict private
-    m_DI: IDirectInput8;
-    m_PlugTimer: TG2PlugTimer;
-    m_KeyboardAquired: Boolean;
-    m_MouseAquired: Boolean;
-    m_Keyboard: IDirectInputDevice8;
-    m_Mouse: IDirectInputDevice8;
-    m_KeyState: array[0..255] of Boolean;
-    m_MouseState: TDIMouseState;
-    m_TopHandle: HWnd;
-    m_PrevWndProc: Pointer;
+    var m_DI: IDirectInput8;
+    var m_PlugTimer: TG2PlugTimer;
+    var m_KeyboardAquired: Boolean;
+    var m_MouseAquired: Boolean;
+    var m_Keyboard: IDirectInputDevice8;
+    var m_Mouse: IDirectInputDevice8;
+    var m_KeyState: array[0..255] of Boolean;
+    var m_MouseState: TDIMouseState;
+    var m_TopHandle: HWnd;
+    var m_PrevWndProc: Pointer;
     procedure Update;
     procedure KeyDown(const Key: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure KeyUp(const Key: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -1464,8 +1468,8 @@ type
 //TG2Plug BEGIN
   TG2Plug = class (TG2HighClass)
   strict private
-    m_Engine: TG2Engine;
-    m_ParentMod: TG2Module;
+    var m_Engine: TG2Engine;
+    var m_ParentMod: TG2Module;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1477,9 +1481,9 @@ type
 //TG2PlugTimer BEGIN
   TG2PlugTimer = class sealed (TG2Plug)
   strict private
-    m_OnTimer: TG2ProcObj;
-    m_OnUpdate: TG2ProcObj;
-    m_OnRender: TG2ProcObj;
+    var m_OnTimer: TG2ProcObj;
+    var m_OnUpdate: TG2ProcObj;
+    var m_OnRender: TG2ProcObj;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1492,9 +1496,9 @@ type
 //TG2PlugGraphics BEGIN
   TG2PlugGraphics = class sealed (TG2Plug)
   strict private
-    m_OnDeviceLost: TG2ProcObj;
-    m_OnDeviceReset: TG2ProcObj;
-    m_OnParamsChange: TG2ProcObj;
+    var m_OnDeviceLost: TG2ProcObj;
+    var m_OnDeviceReset: TG2ProcObj;
+    var m_OnParamsChange: TG2ProcObj;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1515,14 +1519,14 @@ type
 //TG2PlugInput BEGIN
   TG2PlugInput = class sealed (TG2Plug)
   strict private
-    m_Input: TG2Input;
-    m_OnKeyDown: TG2InputKeyDown;
-    m_OnKeyUp: TG2InputKeyUp;
-    m_OnKeyPress: TG2InputKeyPress;
-    m_OnMouseDown: TG2InputMouseDown;
-    m_OnMouseUp: TG2InputMouseUp;
-    m_OnMouseMove: TG2InputMouseMove;
-    m_OnWheelMove: TG2InputWheelMove;
+    var m_Input: TG2Input;
+    var m_OnKeyDown: TG2InputKeyDown;
+    var m_OnKeyUp: TG2InputKeyUp;
+    var m_OnKeyPress: TG2InputKeyPress;
+    var m_OnMouseDown: TG2InputMouseDown;
+    var m_OnMouseUp: TG2InputMouseUp;
+    var m_OnMouseMove: TG2InputMouseMove;
+    var m_OnWheelMove: TG2InputWheelMove;
     function GetKeyDown(const Index: Byte): Boolean; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetMouseDown(const Index: Byte): Boolean;
     function GetMousePos: TPoint; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -1560,7 +1564,7 @@ type
 //TG2ResMgr BEGIN
   TG2ResMgr = class (TG2Module)
   strict protected
-    m_Resources: TG2QuickList;
+    var m_Resources: TG2QuickList;
     function GetCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   protected
     function FindResourceIndex(const NameCache: PWordArray; const Len: Integer): Integer;
@@ -1581,11 +1585,11 @@ type
 //TG2Res BEGIN
   TG2Res = class (TG2HighClass)
   strict private
-    m_Name: WideString;
+    var m_Name: WideString;
     procedure SetName(const Value: WideString);
   private
-    NameCache: array of Word;
-    Mgrs: TG2QuickList;
+    var NameCache: array of Word;
+    var Mgrs: TG2QuickList;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1610,17 +1614,17 @@ type
 //TG2Music BEGIN
   TG2Music = class sealed (TG2Res)
   strict private
-    m_G2Audio: TG2Audio;
-    m_Graph: IGraphBuilder;
-    m_Control: IMediaControl;
-    m_Event: IMediaEventEx;
-    m_Position: IMediaPosition;
-    m_Seeking: IMediaSeeking;
-    m_Filter: IMediaFilter;
-    m_Audio: IBasicAudio;
-    m_Open: Boolean;
-    m_IsPlaying: Boolean;
-    m_PlayTime: DWord;
+    var m_G2Audio: TG2Audio;
+    var m_Graph: IGraphBuilder;
+    var m_Control: IMediaControl;
+    var m_Event: IMediaEventEx;
+    var m_Position: IMediaPosition;
+    var m_Seeking: IMediaSeeking;
+    var m_Filter: IMediaFilter;
+    var m_Audio: IBasicAudio;
+    var m_Open: Boolean;
+    var m_IsPlaying: Boolean;
+    var m_PlayTime: DWord;
     procedure ClearGraph;
     procedure SetPosition(const Value: Int64);
     function GetPosition: Int64;
@@ -1669,14 +1673,14 @@ type
 //TG2Sound BEGIN
   TG2Sound = class sealed (TG2Res)
   strict private
-    m_Buffer3D: IDirectSound3DBuffer8;
-    m_Buffer: IDirectSoundBuffer;
-    m_Listener: IDirectSound3DListener8;
-    m_AudioPath: IDirectMusicAudioPath;
-    m_Volume: Single;
-    m_Frequency: DWORD;
-    m_Enable3D: Boolean;
-    m_PlayTime: DWord;
+    var m_Buffer3D: IDirectSound3DBuffer8;
+    var m_Buffer: IDirectSoundBuffer;
+    var m_Listener: IDirectSound3DListener8;
+    var m_AudioPath: IDirectMusicAudioPath;
+    var m_Volume: Single;
+    var m_Frequency: DWORD;
+    var m_Enable3D: Boolean;
+    var m_PlayTime: DWord;
     procedure SetVolume(Value: Single);
     procedure SetSoundPosition(Value: TG2Vec3);
     function GetSoundPosition: TG2Vec3;
@@ -1704,10 +1708,10 @@ type
     function GetPlayRate: Single;
     procedure SetEnable3D(const Value: Boolean); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   private
-    m_G2Audio: TG2Audio;
-    m_Loaded: Boolean;
-    m_Segment: IDirectMusicSegment8;
-    m_Instances: TList;
+    var m_G2Audio: TG2Audio;
+    var m_Loaded: Boolean;
+    var m_Segment: IDirectMusicSegment8;
+    var m_Instances: TList;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1739,13 +1743,13 @@ type
 //TG2SoundInst BEGIN
   TG2SoundInst = class sealed (TG2Class)
   strict private
-    m_Buffer3D: IDirectSound3DBuffer8;
-    m_Buffer: IDirectSoundBuffer;
-    m_Listener: IDirectSound3DListener8;
-    m_AudioPath: IDirectMusicAudioPath;
-    m_Loaded: Boolean;
-    m_Volume: Single;
-    m_Frequency: DWORD;
+    var m_Buffer3D: IDirectSound3DBuffer8;
+    var m_Buffer: IDirectSoundBuffer;
+    var m_Listener: IDirectSound3DListener8;
+    var m_AudioPath: IDirectMusicAudioPath;
+    var m_Loaded: Boolean;
+    var m_Volume: Single;
+    var m_Frequency: DWORD;
     procedure SetVolume(Value: Single);
     procedure SetSoundPosition(Value: TG2Vec3);
     function GetSoundPosition: TG2Vec3;
@@ -1772,7 +1776,7 @@ type
     procedure SetPlayRate(Value: Single);
     function GetPlayRate: Single;
   private
-    m_G2Sound: TG2Sound;
+    var m_G2Sound: TG2Sound;
     procedure Initialize;
   public
     constructor Create; override;
@@ -1799,7 +1803,7 @@ type
 //TG2TextureMgr BEGIN
   TG2TextureMgr = class sealed (TG2ResMgr)
   strict private
-    m_PlugGraphics: TG2PlugGraphics;
+    var m_PlugGraphics: TG2PlugGraphics;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
     function GetTexture(const Index: Integer): TG2TextureBase; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -1906,16 +1910,16 @@ type
 //TG2TextureSurface BEGIN
   TG2TextureSurface = class (TObject)
   strict private
-    m_Texture: TG2TextureBase;
-    m_Level: Integer;
-    m_Face: TD3DCubemapFaces;
-    m_Locked: Boolean;
-    m_Desc: TD3DSurfaceDesc;
-    m_Lock: TD3DLockedRect;
-    m_Width: Integer;
-    m_Height: Integer;
-    m_ProcSetPixel: procedure(const X, Y: Integer; const Value: TG2Color) of Object;
-    m_ProcGetPixel: function(const X, Y: Integer): TG2Color of Object;
+    var m_Texture: TG2TextureBase;
+    var m_Level: Integer;
+    var m_Face: TD3DCubemapFaces;
+    var m_Locked: Boolean;
+    var m_Desc: TD3DSurfaceDesc;
+    var m_Lock: TD3DLockedRect;
+    var m_Width: Integer;
+    var m_Height: Integer;
+    var m_ProcSetPixel: procedure(const X, Y: Integer; const Value: TG2Color) of Object;
+    var m_ProcGetPixel: function(const X, Y: Integer): TG2Color of Object;
     function GetPixelA16B16G16R16(const X, Y: Integer): TG2Color;
     procedure SetPixelA16B16G16R16(const X, Y: Integer; const Value: TG2Color);
     function GetPixelA2B10G10R10(const X, Y: Integer): TG2Color;
@@ -1969,9 +1973,9 @@ type
 //TG2TextureBase BEGIN
   TG2TextureBase = class (TG2Res)
   strict protected
-    m_Gfx: TG2Graphics;
-    m_Levels: Integer;
-    m_Format: TD3DFormat;
+    var m_Gfx: TG2Graphics;
+    var m_Levels: Integer;
+    var m_Format: TD3DFormat;
     function GetTexture: IDirect3DBaseTexture9; virtual; abstract;
     procedure SetTexture(const Value: IDirect3DBaseTexture9); virtual; abstract;
     function MaxMipLevels(const Width, Height, Depth: Integer): Integer;
@@ -1995,13 +1999,13 @@ type
   strict private
     function GetDrawRect: PG2Rect;
   strict protected
-    m_Texture: IDirect3DTexture9;
-    m_Width: Integer;
-    m_Height: Integer;
-    m_RealWidth: Integer;
-    m_RealHeight: Integer;
-    m_DrawRect: TG2Rect;
-    m_Desc: TD3DSurfaceDesc;
+    var m_Texture: IDirect3DTexture9;
+    var m_Width: Integer;
+    var m_Height: Integer;
+    var m_RealWidth: Integer;
+    var m_RealHeight: Integer;
+    var m_DrawRect: TG2Rect;
+    var m_Desc: TD3DSurfaceDesc;
     procedure SetDrawRect;
     function GetTexture: IDirect3DBaseTexture9; override;
     procedure SetTexture(const Value: IDirect3DBaseTexture9); override;
@@ -2025,7 +2029,7 @@ type
 //TG2Texture2D BEGIN
   TG2Texture2D = class (TG2Texture2DBase)
   strict private
-    m_Surfaces: array of TG2TextureSurface;
+    var m_Surfaces: array of TG2TextureSurface;
     procedure InitLevels;
     procedure UnInitLevels;
     function GetSurface(const SurfaceLevel: Integer): TG2TextureSurface; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -2100,7 +2104,7 @@ type
 //TG2Texture2DRT BEGIN
   TG2Texture2DRT = class (TG2Texture2DBase)
   strict private
-    m_SurfaceRT: TG2SurfaceRT;
+    var m_SurfaceRT: TG2SurfaceRT;
   protected
     procedure OnDeviceLost; override;
     procedure OnDeviceReset; override;
@@ -2121,7 +2125,7 @@ type
 //TG2Texture2DDS BEGIN
   TG2Texture2DDS = class (TG2Texture2DBase)
   strict private
-    m_DepthStencil: TG2SurfaceDS;
+    var m_DepthStencil: TG2SurfaceDS;
   protected
     procedure OnDeviceLost; override;
     procedure OnDeviceReset; override;
@@ -2144,12 +2148,12 @@ type
   strict private
     type TG2VMRAllocatorPresenter = class (TInterfacedObject, IVMRSurfaceAllocator9, IVMRImagePresenter9)
     private
-      m_Texture: TG2Texture2DVideo;
-      m_Surfaces: array of IDirect3DSurface9;
-      m_SurfaceAllocatorNotify: IVMRSurfaceAllocatorNotify9;
-      m_CriticalSection: TCriticalSection;
-      m_AllocInfo: TVMR9AllocationInfo;
-      m_SurfaceCount: DWord;
+      var m_Texture: TG2Texture2DVideo;
+      var m_Surfaces: array of IDirect3DSurface9;
+      var m_SurfaceAllocatorNotify: IVMRSurfaceAllocatorNotify9;
+      var m_CriticalSection: TCriticalSection;
+      var m_AllocInfo: TVMR9AllocationInfo;
+      var m_SurfaceCount: DWord;
     protected
       function CreateSurfaces: HRESULT;
       function CreateTexture: HRESULT;
@@ -2230,10 +2234,10 @@ type
 //TG2TextureCubeBase BEGIN
   TG2TextureCubeBase = class (TG2TextureBase)
   strict protected
-    m_Texture: IDirect3DCubeTexture9;
-    m_Width: Integer;
-    m_Height: Integer;
-    m_Depth: Integer;
+    var m_Texture: IDirect3DCubeTexture9;
+    var m_Width: Integer;
+    var m_Height: Integer;
+    var m_Depth: Integer;
     function GetTexture: IDirect3DBaseTexture9; override;
     procedure SetTexture(const Value: IDirect3DBaseTexture9); override;
   public
@@ -2250,7 +2254,7 @@ type
 //TG2TextureCube BEGIN
   TG2TextureCube = class (TG2TextureCubeBase)
   strict protected
-    m_Surfaces: array[0..5] of array of TG2TextureSurface;
+    var m_Surfaces: array[0..5] of array of TG2TextureSurface;
     procedure InitLevels;
     procedure UnInitLevels;
     procedure SetTexture(const Value: IDirect3DBaseTexture9); override;
@@ -2278,7 +2282,7 @@ type
 //TG2TextureCubeRT BEGIN
   TG2TextureCubeRT = class (TG2TextureCubeBase)
   strict private
-    m_SurfacesRT: array[0..5] of TG2SurfaceRT;
+    var m_SurfacesRT: array[0..5] of TG2SurfaceRT;
     procedure InitSurfaces;
     procedure UnInitSurfaces;
     function GetSurface(const Face: TD3DCubemapFaces): TG2SurfaceRT; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -2302,10 +2306,10 @@ type
 //TG2TextureVolume BEGIN
   TG2TextureVolume = class (TG2TextureBase)
   strict private
-    m_Texture: IDirect3DVolumeTexture9;
-    m_Width: Integer;
-    m_Height: Integer;
-    m_Depth: Integer;
+    var m_Texture: IDirect3DVolumeTexture9;
+    var m_Width: Integer;
+    var m_Height: Integer;
+    var m_Depth: Integer;
   strict protected
     function GetTexture: IDirect3DBaseTexture9; override;
     procedure SetTexture(const Value: IDirect3DBaseTexture9); override;
@@ -2324,7 +2328,7 @@ type
 //TG2SurfaceMgr BEGIN
   TG2SurfaceMgr = class (TG2ResMgr)
   strict private
-    m_PlugGraphics: TG2PlugGraphics;
+    var m_PlugGraphics: TG2PlugGraphics;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
   public
@@ -2351,12 +2355,12 @@ type
 //TG2Surface BEGIN
   TG2Surface = class (TG2Res)
   strict protected
-    m_Surface: IDirect3DSurface9;
-    m_ViewPort: TD3DViewPort9;
-    m_Format: TD3DFormat;
-    m_Width: DWord;
-    m_Height: DWord;
-    m_Enabled: Boolean;
+    var m_Surface: IDirect3DSurface9;
+    var m_ViewPort: TD3DViewPort9;
+    var m_Format: TD3DFormat;
+    var m_Width: DWord;
+    var m_Height: DWord;
+    var m_Enabled: Boolean;
     procedure SetSurface(const Value: IDirect3DSurface9);
     procedure SetUpViewPort;
     function GetViewPort: PD3DViewport9;
@@ -2572,23 +2576,21 @@ type
 //TG2Font BEGIN
   TG2Font = class (TG2Res)
   strict private
-  type
-    TCharProps = record
+    type TCharProps = record
       Width: Integer;
       Height: Integer;
       OffsetX: Integer;
       OffsetY: Integer;
     end;
-  var
-    m_Gfx: TG2Graphics;
-    m_Texture: TG2Texture2D;
-    m_Props: array[Byte] of TCharProps;
-    m_CharTU: Single;
-    m_CharTV: Single;
-    m_CharWidth: Integer;
-    m_CharHeight: Integer;
-    m_FontFace: AnsiString;
-    m_Size: Integer;
+    var m_Gfx: TG2Graphics;
+    var m_Texture: TG2Texture2D;
+    var m_Props: array[Byte] of TCharProps;
+    var m_CharTU: Single;
+    var m_CharTV: Single;
+    var m_CharWidth: Integer;
+    var m_CharHeight: Integer;
+    var m_FontFace: AnsiString;
+    var m_Size: Integer;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -2690,88 +2692,88 @@ type
     end;
     var Geoms: array of record
     public
-      NodeID: Integer;
-      Skinned: Boolean;
-      BBox: TG2Box;
-      Technique: TD3DXHandle;
-      MaxWeights: Word;
-      BoneCount: Integer;
-      VertexStride: Word;
-      Bones: array of record
+      var NodeID: Integer;
+      var Skinned: Boolean;
+      var BBox: TG2Box;
+      var Technique: TD3DXHandle;
+      var MaxWeights: Word;
+      var BoneCount: Integer;
+      var VertexStride: Word;
+      var Bones: array of record
       public
         NodeID: Integer;
         Bind: TG2Mat;
         BBox: TG2Box;
         VCount: Integer;
       end;
-      MaterialCount: Integer;
-      Materials: array of Integer;
-      Mesh: ID3DXMesh;
-      Visible: Boolean;
+      var MaterialCount: Integer;
+      var Materials: array of Integer;
+      var Mesh: ID3DXMesh;
+      var Visible: Boolean;
     end;
     var Anims: array of record
     public
-      Name: AnsiString;
-      FrameRate: Integer;
-      FrameCount: Integer;
-      NodeCount: Integer;
-      Nodes: array of record
+      var Name: AnsiString;
+      var FrameRate: Integer;
+      var FrameCount: Integer;
+      var NodeCount: Integer;
+      var Nodes: array of record
       public
-        NodeID: Integer;
-        Frames: array of record
+        var NodeID: Integer;
+        var Frames: array of record
         public
-          Scale: TG2Vec3;
-          Rotation: TG2Quat;
-          Translation: TG2Vec3;
+          var Scale: TG2Vec3;
+          var Rotation: TG2Quat;
+          var Translation: TG2Vec3;
         end;
       end;
     end;
     var Materials: array of record
     public
-      Name: AnsiString;
-      TwoSided: Boolean;
-      AmbientColor: TG2Color;
-      DiffuseColor: TG2Color;
-      SpecularColor: TG2Color;
-      SpecularColorAmount: Single;
-      SpecularPower: Single;
-      EmmissiveColor: TG2Color;
-      EmmissiveColorAmount: Single;
-      AmbientMapEnable: Boolean;
-      AmbientMap: AnsiString;
-      AmbientMapAmount: Single;
-      DiffuseMapEnable: Boolean;
-      DiffuseMap: AnsiString;
-      DiffuseMapAmount: Single;
-      SpecularMapEnable: Boolean;
-      SpecularMap: AnsiString;
-      SpecularMapAmount: Single;
-      OpacityMapEnable: Boolean;
-      OpacityMap: AnsiString;
-      OpacityMapAmount: Single;
-      LightMapEnable: Boolean;
-      LightMap: AnsiString;
-      LightMapAmount: Single;
-      NormalMapEnable: Boolean;
-      NormalMap: AnsiString;
-      NormalMapAmount: Single;
+      var Name: AnsiString;
+      var TwoSided: Boolean;
+      var AmbientColor: TG2Color;
+      var DiffuseColor: TG2Color;
+      var SpecularColor: TG2Color;
+      var SpecularColorAmount: Single;
+      var SpecularPower: Single;
+      var EmmissiveColor: TG2Color;
+      var EmmissiveColorAmount: Single;
+      var AmbientMapEnable: Boolean;
+      var AmbientMap: AnsiString;
+      var AmbientMapAmount: Single;
+      var DiffuseMapEnable: Boolean;
+      var DiffuseMap: AnsiString;
+      var DiffuseMapAmount: Single;
+      var SpecularMapEnable: Boolean;
+      var SpecularMap: AnsiString;
+      var SpecularMapAmount: Single;
+      var OpacityMapEnable: Boolean;
+      var OpacityMap: AnsiString;
+      var OpacityMapAmount: Single;
+      var LightMapEnable: Boolean;
+      var LightMap: AnsiString;
+      var LightMapAmount: Single;
+      var NormalMapEnable: Boolean;
+      var NormalMap: AnsiString;
+      var NormalMapAmount: Single;
     end;
     var Ragdolls: array of record
     public
-      NodeID: Integer;
-      Head: TG2RagdollObject;
-      Neck: TG2RagdollObject;
-      Pelvis: TG2RagdollObject;
-      BodyNodeCount: Integer;
-      BodyNodes: array of TG2RagdollObject;
-      ArmRNodeCount: Integer;
-      ArmRNodes: array of TG2RagdollObject;
-      ArmLNodeCount: Integer;
-      ArmLNodes: array of TG2RagdollObject;
-      LegRNodeCount: Integer;
-      LegRNodes: array of TG2RagdollObject;
-      LegLNodeCount: Integer;
-      LegLNodes: array of TG2RagdollObject;
+      var NodeID: Integer;
+      var Head: TG2RagdollObject;
+      var Neck: TG2RagdollObject;
+      var Pelvis: TG2RagdollObject;
+      var BodyNodeCount: Integer;
+      var BodyNodes: array of TG2RagdollObject;
+      var ArmRNodeCount: Integer;
+      var ArmRNodes: array of TG2RagdollObject;
+      var ArmLNodeCount: Integer;
+      var ArmLNodes: array of TG2RagdollObject;
+      var LegRNodeCount: Integer;
+      var LegRNodes: array of TG2RagdollObject;
+      var LegLNodeCount: Integer;
+      var LegLNodes: array of TG2RagdollObject;
     end;
     property Effect: TG2Effect read m_Effect;
     function LoadData(const MeshData: TG2MeshData): TG2Result;
@@ -2807,17 +2809,17 @@ type
   public
     var NodeTransforms: array of record
     public
-      TransformDef: TG2Mat;
-      TransformCur: TG2Mat;
-      TransformRen: TG2Mat;
+      var TransformDef: TG2Mat;
+      var TransformCur: TG2Mat;
+      var TransformRen: TG2Mat;
     end;
     var Materials: array of record
     public
-      Name: AnsiString;
-      TwoSided: Boolean;
-      MapDiffuse: TG2Texture2DBase;
-      MapSpecular: TG2Texture2DBase;
-      MapNormals: TG2Texture2DBase;
+      var Name: AnsiString;
+      var TwoSided: Boolean;
+      var MapDiffuse: TG2Texture2DBase;
+      var MapSpecular: TG2Texture2DBase;
+      var MapNormals: TG2Texture2DBase;
     end;
     constructor Create;
     destructor Destroy; override;
@@ -2842,12 +2844,12 @@ type
 //TG2Shared BEGIN
   TG2Shared = class (TG2Module)
   strict private
-    m_VBMgr: TG2VBMgr;
-    m_IBMgr: TG2IBMgr;
-    m_FontMgr: TG2FontMgr;
-    m_LastVBID: DWord;
-    m_LastIBID: DWord;
-    m_LastFontID: DWord;
+    var m_VBMgr: TG2VBMgr;
+    var m_IBMgr: TG2IBMgr;
+    var m_FontMgr: TG2FontMgr;
+    var m_LastVBID: DWord;
+    var m_LastIBID: DWord;
+    var m_LastFontID: DWord;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -2876,7 +2878,7 @@ type
 //TG2VBMgr BEGIN
   TG2VBMgr = class (TG2ResMgr)
   strict private
-    m_PlugGraphics: TG2PlugGraphics;
+    var m_PlugGraphics: TG2PlugGraphics;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
     function GetVB(const Index: Integer): TG2VB; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -2901,14 +2903,14 @@ type
 //TG2VB BEGIN
   TG2VB = class (TG2Res)
   strict private
-    m_Graphics: TG2Graphics;
-    m_VB: IDirect3DVertexBuffer9;
-    m_Stride: DWord;
-    m_Count: DWord;
-    m_Usage: DWord;
-    m_FVF: DWord;
-    m_Pool: TD3DPool;
-    m_Suspended: Boolean;
+    var m_Graphics: TG2Graphics;
+    var m_VB: IDirect3DVertexBuffer9;
+    var m_Stride: DWord;
+    var m_Count: DWord;
+    var m_Usage: DWord;
+    var m_FVF: DWord;
+    var m_Pool: TD3DPool;
+    var m_Suspended: Boolean;
     function InitializeVB: Boolean;
   private
     procedure OnDeviceLost;
@@ -2941,7 +2943,7 @@ type
 //TG2IBMgr BEGIN
   TG2IBMgr = class (TG2ResMgr)
   strict private
-    m_PlugGraphics: TG2PlugGraphics;
+    var m_PlugGraphics: TG2PlugGraphics;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
     function GetIB(const Index: Integer): TG2IB; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -2965,13 +2967,13 @@ type
 //TG2IB BEGIN
   TG2IB = class (TG2Res)
   strict private
-    m_Graphics: TG2Graphics;
-    m_IB: IDirect3DIndexBuffer9;
-    m_Count: DWord;
-    m_Usage: DWord;
-    m_Format: TD3DFormat;
-    m_Pool: TD3DPool;
-    m_Suspended: Boolean;
+    var m_Graphics: TG2Graphics;
+    var m_IB: IDirect3DIndexBuffer9;
+    var m_Count: DWord;
+    var m_Usage: DWord;
+    var m_Format: TD3DFormat;
+    var m_Pool: TD3DPool;
+    var m_Suspended: Boolean;
     function InitializeIB: Boolean;
   private
     procedure OnDeviceLost;
@@ -3026,6 +3028,7 @@ type
     var m_PlugInput: TG2PlugInput;
     var m_PlugGraphics: TG2PlugGraphics;
     var m_Skin: TG2UISkin;
+    var m_ClipRects: TG2QuickList;
     procedure InitBuffers;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
@@ -3048,10 +3051,13 @@ type
     var VB: TG2VB;
     var IB: TG2IB;
     var Skins: TG2QuickList;
+    var MouseDownPos: TPoint;
     class function ParentToClientRect(const RectParent, RectClient: TRect): TRect;
     class function ClipRect(const Rect1, Rect2: TRect): TRect;
     procedure UpdateRects;
     function FrameAtPoint(const Pt: TPoint): TG2UIFrame;
+    procedure PushClipRect(const R: TRect);
+    procedure PopClipRect;
   public
     property Root: TG2UIFrame read m_Root;
     property Skin: TG2UISkin read m_Skin write m_Skin;
@@ -3103,8 +3109,7 @@ type
   strict private
     var m_Parent: TG2UIFrame;
     var m_SubFrames: TG2QuickList;
-    var m_RectSelf: TRect;
-    var m_RectClient: TRect;
+    var m_Initialized: Boolean;
     procedure SetParent(const Value: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetSubFrameCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetSubFrame(const Index: Integer): TG2UIFrame; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -3123,7 +3128,10 @@ type
     function GetHeight: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetHeight(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   strict protected
+    var m_RectSelf: TRect;
+    var m_RectClient: TRect;
     var GUI: TG2UI;
+    var CanFocus: Boolean;
     procedure ClientRectAdjust; virtual;
     procedure ScreenRectAdjust;
     procedure Initialize; virtual;
@@ -3141,6 +3149,7 @@ type
     procedure OnMouseMove(const Shift: TPoint); virtual;
     procedure OnWheelMove(const Shift: Integer); virtual;
     function IsMouseOver: Boolean;
+    function IsMouseDown: Boolean;
   private
     var RectScreen: TRect;
     var RectClip: TRect;
@@ -3178,9 +3187,46 @@ type
 //TG2UIButton BEGIN
   TG2UIButton = class (TG2UIFrame)
   strict protected
+    var m_Label: TG2UILabel;
+    procedure AdjustLabel;
+    procedure Initialize; override;
+    procedure Finalize; override;
+    procedure ClientRectAdjust; override;
     procedure OnRender; override;
   end;
 //TG2UIButton END
+
+//TG2UILabel BEGIN
+  TG2UILabel = class (TG2UIFrame)
+  strict protected
+    var m_Text: AnsiString;
+    var m_Font: TG2Font;
+    var m_OnChange: TG2ProcObj;
+    procedure SetText(const Value: AnsiString); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetFont(const Value: TG2Font); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure Initialize; override;
+    procedure OnRender; override;
+  public
+    property Text: AnsiString read m_Text write SetText;
+    property Font: TG2Font read m_Font write SetFont;
+    property OnChange: TG2ProcObj read m_OnChange write m_OnChange;
+  end;
+//TG2UILabel END
+
+//TG2UIEdit BEGIN
+  TG2UIEdit = class (TG2UIFrame)
+  strict protected
+    var m_Text: AnsiString;
+    var m_Font: TG2Font;
+    procedure SetText(const Value: AnsiString); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetFont(const Value: TG2Font); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure Initialize; override;
+    procedure OnRender; override;
+  public
+    property Text: AnsiString read m_Text write SetText;
+    property Font: TG2Font read m_Font write SetFont;
+  end;
+//TG2UIEdit END
 
 (*
 //TG2GUI BEGIN
@@ -3706,7 +3752,7 @@ type
 //TG2RenderStates BEGIN
   TG2RenderStates = class (TG2Class)
   strict private
-    m_States: array[0..255] of DWord;
+    var m_States: array[0..255] of DWord;
     function GetBoolean(const StateType: TD3DRenderStateType): Boolean; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetBoolean(const StateType: TD3DRenderStateType; const Value: Boolean); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetDWord(const StateType: TD3DRenderStateType): DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -3920,7 +3966,7 @@ type
     function GetBlendOpAlpha: DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetBlendOpAlpha(const Value: DWord); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   private
-    m_Gfx: TG2Graphics;
+    var m_Gfx: TG2Graphics;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -4035,7 +4081,7 @@ type
 //TG2SamplerStates BEGIN
   TG2SamplerStates = class (TG2Class)
   strict private
-    m_States: array[0..15, 1..13] of DWord;
+    var m_States: array[0..15, 1..13] of DWord;
     function GetDWord(const Sampler: Byte; const StateType: TD3DSamplerStateType): DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetDWord(const Sampler: Byte; const StateType: TD3DSamplerStateType; const Value: DWord); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetSingle(const Sampler: Byte; const StateType: TD3DSamplerStateType): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -4067,7 +4113,7 @@ type
     function GetDMapOffset(const Index: Byte): DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetDMapOffset(const Index: Byte; const Value: DWord); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   private
-    m_Gfx: TG2Graphics;
+    var m_Gfx: TG2Graphics;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -4092,7 +4138,7 @@ type
 //TG2TextureStageStates BEGIN
   TG2TextureStageStates = class (TG2Class)
   strict private
-    m_States: array[0..15, 1..32] of DWord;
+    var m_States: array[0..15, 1..32] of DWord;
     function GetDWord(const Index: Byte; const StageType: TD3DTextureStageStateType): DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetDWord(const Index: Byte; const StageType: TD3DTextureStageStateType; const Value: DWord); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetSingle(const Index: Byte; const StageType: TD3DTextureStageStateType): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -4134,7 +4180,7 @@ type
     function GetConstant(const Index: Byte): DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetConstant(const Index: Byte; const Value: DWord); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   private
-    m_Gfx: TG2Graphics;
+    var m_Gfx: TG2Graphics;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -4164,18 +4210,18 @@ type
 //TG2SharedVB2D BEGIN
   TG2SharedVertex2D = packed record
   public
-    x, y, z, rhw: Single;
-    Color: TG2Color;
-    tu, tv: Single;
+    var x, y, z, rhw: Single;
+    var Color: TG2Color;
+    var tu, tv: Single;
   end;
   PG2SharedVertex2DArray = ^TG2SharedVertex2DArray;
   TG2SharedVertex2DArray = array[0..0] of TG2SharedVertex2D;
 
   TG2SharedVB2D = class (TG2Class)
   strict private
-    m_Gfx: TG2Graphics;
-    m_VB: IDirect3DVertexBuffer9;
-    m_Size: Integer;
+    var m_Gfx: TG2Graphics;
+    var m_VB: IDirect3DVertexBuffer9;
+    var m_Size: Integer;
     function InitializeBuffer(const Size: Integer): TG2Result;
   private
     procedure OnDeviceLost;
@@ -4194,7 +4240,7 @@ type
 //TG2Render BEGIN
   TG2Render = class (TG2Module)
   strict private
-    m_Gfx: TG2Graphics;
+    var m_Gfx: TG2Graphics;
     function GetCanRender: Boolean; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     constructor Create; override;
@@ -4245,67 +4291,64 @@ type
 //TG2Render2D BEGIN
   TG2Render2D = class (TG2Module)
   strict private
-  type
-    TVertex = packed record
+    type TVertex = packed record
     public
       x, y, z, rhw: Single;
       Color: TG2Color;
       tu, tv: Single;
     end;
-    PVertexArray = ^TVertexArray;
-    TVertexArray = array[0..3] of TVertex;
-    TVertex2 = packed record
+    type TVertexArray = array[0..3] of TVertex;
+    type PVertexArray = ^TVertexArray;
+    type TVertex2 = packed record
     public
-      x, y, z, rhw: Single;
-      Color: TG2Color;
-      tu1, tv1: Single;
-      tu2, tv2: Single;
+      var x, y, z, rhw: Single;
+      var Color: TG2Color;
+      var tu1, tv1: Single;
+      var tu2, tv2: Single;
     end;
-    PVertex2Array = ^TVertex2Array;
-    TVertex2Array = array[0..3] of TVertex2;
-    TDrawQuadFunc = function (
+    type TVertex2Array = array[0..3] of TVertex2;
+    type PVertex2Array = ^TVertex2Array;
+    type TDrawQuadFunc = function (
       const v1, v2, v3, v4: TG2Vec2;
       const c1, c2, c3, c4: TG2Color;
       const Texture: TG2Texture2DBase;
       const tc1, tc2, tc3, tc4: TG2Vec2
     ): TG2Result of object;
-    TDrawQuadRawFunc = function (
+    type TDrawQuadRawFunc = function (
       const v1, v2, v3, v4: TG2Vec2;
       const c1, c2, c3, c4: TG2Color;
       const tc1, tc2, tc3, tc4: TG2Vec2
     ): TG2Result of object;
-  var
-    m_Gfx: TG2Graphics;
-    m_PlugGraphics: TG2PlugGraphics;
-    m_VB: IDirect3DVertexBuffer9;
-    m_VBSize: Integer;
-    m_VB2: IDirect3DVertexBuffer9;
-    m_VB2Size: Integer;
-    m_IB: IDirect3DIndexBuffer9;
-    m_IBSize: Integer;
-    m_IBBatch: TG2IB;
-    m_DrawQuadFunc: TDrawQuadFunc;
-    m_DrawQuadRawFunc: TDrawQuadRawFunc;
-    m_MaxQuads: Integer;
-    m_CurQuad: Integer;
-    m_BatchDrawCalls: DWord;
-    m_CurTexture: TG2Texture2DBase;
-    m_Batching: Boolean;
-    m_Vertices: array of TVertex;
-    m_Drawing: Boolean;
-    m_PrimType: TG2PrimType;
-    m_PosArr: array of TG2Vec2;
-    m_ColArr: array of TG2Color;
-    m_TexArr: array of TG2Vec2;
-    m_IndArr: array of Word;
-    m_CurPos: Int64;
-    m_CurCol: Int64;
-    m_CurTex: Int64;
-    m_CurInd: Int64;
-    m_BaseVertexIndex: DWord;
-  const
-    FVF = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX1;
-    FVF2 = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX2;
+    var m_Gfx: TG2Graphics;
+    var m_PlugGraphics: TG2PlugGraphics;
+    var m_VB: IDirect3DVertexBuffer9;
+    var m_VBSize: Integer;
+    var m_VB2: IDirect3DVertexBuffer9;
+    var m_VB2Size: Integer;
+    var m_IB: IDirect3DIndexBuffer9;
+    var m_IBSize: Integer;
+    var m_IBBatch: TG2IB;
+    var m_DrawQuadFunc: TDrawQuadFunc;
+    var m_DrawQuadRawFunc: TDrawQuadRawFunc;
+    var m_MaxQuads: Integer;
+    var m_CurQuad: Integer;
+    var m_BatchDrawCalls: DWord;
+    var m_CurTexture: TG2Texture2DBase;
+    var m_Batching: Boolean;
+    var m_Vertices: array of TVertex;
+    var m_Drawing: Boolean;
+    var m_PrimType: TG2PrimType;
+    var m_PosArr: array of TG2Vec2;
+    var m_ColArr: array of TG2Color;
+    var m_TexArr: array of TG2Vec2;
+    var m_IndArr: array of Word;
+    var m_CurPos: Int64;
+    var m_CurCol: Int64;
+    var m_CurTex: Int64;
+    var m_CurInd: Int64;
+    var m_BaseVertexIndex: DWord;
+    const FVF = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX1;
+    const FVF2 = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX2;
     function VerifyBuffer(const Size: Integer): TG2Result;
     function VerifyBuffer2(const Size: Integer): TG2Result;
     function VerifyIndices(const Size: Integer): TG2Result;
@@ -4423,58 +4466,55 @@ type
 //TG2Render3D BEGIN
   TG2Render3D = class (TG2Module)
   strict private
-  type
-    TVertex = packed record
+    type TVertex = packed record
     public
-      x, y, z: Single;
-      nx, ny, nz: Single;
-      Color: TG2Color;
-      tu, tv: Single;
+      var x, y, z: Single;
+      var nx, ny, nz: Single;
+      var Color: TG2Color;
+      var tu, tv: Single;
     end;
-    TVertex2 = packed record
+    type TVertex2 = packed record
     public
-      x, y, z: Single;
-      nx, ny, nz: Single;
-      Color: TG2Color;
-      tu0, tv0: Single;
-      tu1, tv1: Single;
+      var x, y, z: Single;
+      var nx, ny, nz: Single;
+      var Color: TG2Color;
+      var tu0, tv0: Single;
+      var tu1, tv1: Single;
     end;
-    PVertexArray = ^TVertexArray;
-    TVertexArray = array[Word] of TVertex;
-    PVertex2Array = ^TVertex2Array;
-    TVertex2Array = array[Word] of TVertex2;
-    TIndex = type Word;
-    PIndexArray = ^TIndexArray;
-    TIndexArray = array[Word] of TIndex;
-  const
-    FVF = D3DFVF_XYZ or D3DFVF_DIFFUSE or D3DFVF_NORMAL or D3DFVF_TEX1;
-    FVF2 = D3DFVF_XYZ or D3DFVF_DIFFUSE or D3DFVF_NORMAL or D3DFVF_TEX2;
-  var
-    m_PlugGraphics: TG2PlugGraphics;
-    m_VB: IDirect3DVertexBuffer9;
-    m_VB2: IDirect3DVertexBuffer9;
-    m_IB: IDirect3DIndexBuffer9;
-    m_VBSize: Integer;
-    m_VB2Size: Integer;
-    m_IBSize: Integer;
-    m_CurV: Word;
-    m_CurI: DWord;
-    m_Vertices: PVertexArray;
-    m_Vertices2: PVertex2Array;
-    m_Indices: PIndexArray;
-    m_Drawing: Boolean;
-    m_PrimType: TG2PrimType;
-    m_PosArr: array of TG2Vec3;
-    m_ColArr: array of TG2Color;
-    m_TexArr: array of TG2Vec2;
-    m_NrmArr: array of TG2Vec3;
-    m_IndArr: array of Word;
-    m_CurPos: Int64;
-    m_CurCol: Int64;
-    m_CurTex: Int64;
-    m_CurNrm: Int64;
-    m_CurInd: Int64;
-    m_BaseVertexIndex: DWord;
+    type TVertexArray = array[Word] of TVertex;
+    type PVertexArray = ^TVertexArray;
+    type TVertex2Array = array[Word] of TVertex2;
+    type PVertex2Array = ^TVertex2Array;
+    type TIndex = type Word;
+    type TIndexArray = array[Word] of TIndex;
+    type PIndexArray = ^TIndexArray;
+    const FVF = D3DFVF_XYZ or D3DFVF_DIFFUSE or D3DFVF_NORMAL or D3DFVF_TEX1;
+    const FVF2 = D3DFVF_XYZ or D3DFVF_DIFFUSE or D3DFVF_NORMAL or D3DFVF_TEX2;
+    var m_PlugGraphics: TG2PlugGraphics;
+    var m_VB: IDirect3DVertexBuffer9;
+    var m_VB2: IDirect3DVertexBuffer9;
+    var m_IB: IDirect3DIndexBuffer9;
+    var m_VBSize: Integer;
+    var m_VB2Size: Integer;
+    var m_IBSize: Integer;
+    var m_CurV: Word;
+    var m_CurI: DWord;
+    var m_Vertices: PVertexArray;
+    var m_Vertices2: PVertex2Array;
+    var m_Indices: PIndexArray;
+    var m_Drawing: Boolean;
+    var m_PrimType: TG2PrimType;
+    var m_PosArr: array of TG2Vec3;
+    var m_ColArr: array of TG2Color;
+    var m_TexArr: array of TG2Vec2;
+    var m_NrmArr: array of TG2Vec3;
+    var m_IndArr: array of Word;
+    var m_CurPos: Int64;
+    var m_CurCol: Int64;
+    var m_CurTex: Int64;
+    var m_CurNrm: Int64;
+    var m_CurInd: Int64;
+    var m_BaseVertexIndex: DWord;
     function VerifyVB(const Size: Integer): TG2Result;
     function VerifyVB2(const Size: Integer): TG2Result;
     function VerifyIB(const Size: Integer): TG2Result;
@@ -4599,36 +4639,34 @@ type
 //TG2Camera BEGIN
   TG2Camera = class (TG2Module)
   strict private
-  type
-    TG2CameraDragMode = (
+    type TG2CameraDragMode = (
       cdDragDir,
       cdDragPos,
       cdStrafe
     );
-  var
-    m_Src: TG2Vec3;
-    m_Dst: TG2Vec3;
-    m_Up: TG2Vec3;
-    m_FOV: Single;
-    m_Aspect: Single;
-    m_Near: Single;
-    m_Far: Single;
-    m_AngH: Single;
-    m_AngV: Single;
-    m_MinAngV: Single;
-    m_MaxAngV: Single;
-    m_Speed: Single;
-    m_Sensitivity: Single;
-    m_StrafeSpeed: Single;
-    m_UpdatePos: Boolean;
-    m_UpdateDir: Boolean;
-    m_BtnLeft: Byte;
-    m_BtnRight: Byte;
-    m_BtnForward: Byte;
-    m_BtnBackward: Byte;
-    m_Mode: TG2CameraMode;
-    m_DragMode: TG2CameraDragMode;
-    m_PlugInput: TG2PlugInput;
+    var m_Src: TG2Vec3;
+    var m_Dst: TG2Vec3;
+    var m_Up: TG2Vec3;
+    var m_FOV: Single;
+    var m_Aspect: Single;
+    var m_Near: Single;
+    var m_Far: Single;
+    var m_AngH: Single;
+    var m_AngV: Single;
+    var m_MinAngV: Single;
+    var m_MaxAngV: Single;
+    var m_Speed: Single;
+    var m_Sensitivity: Single;
+    var m_StrafeSpeed: Single;
+    var m_UpdatePos: Boolean;
+    var m_UpdateDir: Boolean;
+    var m_BtnLeft: Byte;
+    var m_BtnRight: Byte;
+    var m_BtnForward: Byte;
+    var m_BtnBackward: Byte;
+    var m_Mode: TG2CameraMode;
+    var m_DragMode: TG2CameraDragMode;
+    var m_PlugInput: TG2PlugInput;
     function GetView: TG2Mat;
     function GetProj: TG2Mat;
     procedure AnglesFromVectors; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -4677,22 +4715,19 @@ type
 //TG2Primitives2D BEGIN
   TG2Primitives2D = class (TG2Module)
   strict private
-  type
-    TG2Vertex = packed record
+    type TG2Vertex = packed record
     public
-      x, y, z, rhw: Single;
-      Color: TG2Color
+      var x, y, z, rhw: Single;
+      var Color: TG2Color
     end;
-    PG2VertexArray = ^TG2VertexArray;
-    TG2VertexArray = array[Word] of TG2Vertex;
-  const
-    FVF = D3DFVF_XYZRHW or D3DFVF_DIFFUSE;
-  var
-    m_PlugGraphics: TG2PlugGraphics;
-    m_VB: IDirect3DVertexBuffer9;
-    m_IB: IDirect3DIndexBuffer9;
-    m_VBSize: Integer;
-    m_IBSize: Integer;
+    type TG2VertexArray = array[Word] of TG2Vertex;
+    type PG2VertexArray = ^TG2VertexArray;
+    const FVF = D3DFVF_XYZRHW or D3DFVF_DIFFUSE;
+    var m_PlugGraphics: TG2PlugGraphics;
+    var m_VB: IDirect3DVertexBuffer9;
+    var m_IB: IDirect3DIndexBuffer9;
+    var m_VBSize: Integer;
+    var m_IBSize: Integer;
     function VerifyVB(const Size: Integer): TG2Result; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function VerifyIB(const Size: Integer): TG2Result; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure OnDeviceLost;
@@ -4810,30 +4845,27 @@ type
 //TG2Primitives3D BEGIN
   TG2Primitives3D = class (TG2Module)
   strict private
-  type
-    TG2Vertex = packed record
+    type TG2Vertex = packed record
     public
-      x, y, z: Single;
-      nx, ny, nz: Single;
-      Color: TG2Color
+      var x, y, z: Single;
+      var nx, ny, nz: Single;
+      var Color: TG2Color
     end;
-    PG2VertexArray = ^TG2VertexArray;
-    TG2VertexArray = array[Word] of TG2Vertex;
-    TG2Index = type Word;
-    PG2IndexArray = ^TG2IndexArray;
-    TG2IndexArray = array[Word] of TG2Index;
-  const
-    FVF = D3DFVF_XYZ or D3DFVF_DIFFUSE or D3DFVF_NORMAL;
-  var
-    m_PlugGraphics: TG2PlugGraphics;
-    m_VB: IDirect3DVertexBuffer9;
-    m_IB: IDirect3DIndexBuffer9;
-    m_VBSize: Integer;
-    m_IBSize: Integer;
-    m_CurV: Word;
-    m_CurI: DWord;
-    m_Vertices: PG2VertexArray;
-    m_Indices: PG2IndexArray;
+    type TG2VertexArray = array[Word] of TG2Vertex;
+    type PG2VertexArray = ^TG2VertexArray;
+    type TG2Index = type Word;
+    type TG2IndexArray = array[Word] of TG2Index;
+    type PG2IndexArray = ^TG2IndexArray;
+    const FVF = D3DFVF_XYZ or D3DFVF_DIFFUSE or D3DFVF_NORMAL;
+    var m_PlugGraphics: TG2PlugGraphics;
+    var m_VB: IDirect3DVertexBuffer9;
+    var m_IB: IDirect3DIndexBuffer9;
+    var m_VBSize: Integer;
+    var m_IBSize: Integer;
+    var m_CurV: Word;
+    var m_CurI: DWord;
+    var m_Vertices: PG2VertexArray;
+    var m_Indices: PG2IndexArray;
     function VerifyVB(const Size: Integer): TG2Result;
     function VerifyIB(const Size: Integer): TG2Result;
     function AddVertex(
@@ -4919,7 +4951,7 @@ type
 //TG2ShaderMgr BEGIN
   TG2ShaderMgr = class (TG2ResMgr)
   strict private
-    m_PlugGraphics: TG2PlugGraphics;
+    var m_PlugGraphics: TG2PlugGraphics;
     procedure OnLostDevice;
     procedure OnResetDevice;
   public
@@ -4942,8 +4974,8 @@ type
 //TG2Shader BEGIN
   TG2Shader = class (TG2Res)
   strict protected
-    m_CompiledShader: PG2CompiledShader;
-    m_ShaderFunction: PDWord;
+    var m_CompiledShader: PG2CompiledShader;
+    var m_ShaderFunction: PDWord;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -4962,7 +4994,7 @@ type
 //TG2VertexShader BEGIN
   TG2VertexShader = class (TG2Shader)
   strict private
-    m_Shader: IDirect3DVertexShader9;
+    var m_Shader: IDirect3DVertexShader9;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -4986,7 +5018,7 @@ type
 //TG2PixelShader BEGIN
   TG2PixelShader = class (TG2Shader)
   strict private
-    m_Shader: IDirect3DPixelShader9;
+    var m_Shader: IDirect3DPixelShader9;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -5010,7 +5042,7 @@ type
 //TG2EffectMgr BEGIN
   TG2EffectMgr = class (TG2ResMgr)
   strict private
-    m_PlugGraphics: TG2PlugGraphics;
+    var m_PlugGraphics: TG2PlugGraphics;
     procedure OnLostDevice;
     procedure OnResetDevice;
   public
@@ -5027,7 +5059,7 @@ type
 //TG2Effect BEGIN
   TG2Effect = class (TG2Res)
   strict private
-    m_Effect: ID3DXEffect;
+    var m_Effect: ID3DXEffect;
     function GetCurTechnique: TD3DXHandle;  {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetCurTechnique(const Value: TD3DXHandle);  {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
@@ -5109,9 +5141,9 @@ type
 //TG2ShaderLib BEGIN
   TG2ShaderLib = class (TG2ResMgr)
   strict private
-    m_VertexShaders: TG2ShaderMgr;
-    m_PixelShaders: TG2ShaderMgr;
-    m_Effects: TG2EffectMgr;
+    var m_VertexShaders: TG2ShaderMgr;
+    var m_PixelShaders: TG2ShaderMgr;
+    var m_Effects: TG2EffectMgr;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -5128,8 +5160,8 @@ type
 //TG2ShaderBin BEGIN
   TG2ShaderBin = class (TG2Res)
   strict private
-    m_Buffer: array of Byte;
-    m_Func: PDWord;
+    var m_Buffer: array of Byte;
+    var m_Func: PDWord;
     function GetBuffer: Pointer; inline;
     function GetSize: Integer; inline;
   public
@@ -5147,35 +5179,35 @@ type
   PG2Scene2DNode = ^TG2Scene2DNode;
   TG2Scene2DNode = record
   public
-    DivType: TG2Scene2DDivType;
-    Parent: PG2Scene2DNode;
-    Children: array of PG2Scene2DNode;
-    MinV, MaxV: TG2Vec2;
-    LOD: Word;
-    Items: TList;
-    Occlusion: TG2Scene2DOcclusionCheck;
+    var DivType: TG2Scene2DDivType;
+    var Parent: PG2Scene2DNode;
+    var Children: array of PG2Scene2DNode;
+    var MinV, MaxV: TG2Vec2;
+    var LOD: Word;
+    var Items: TList;
+    var Occlusion: TG2Scene2DOcclusionCheck;
   end;
 
   PG2Scene2DItem = ^TG2Scene2DItem;
   TG2Scene2DItem = record
   public
-    Data: Pointer;
-    MinV, MaxV: TG2Vec2;
-    FetchID: DWord;
-    Nodes: array of PG2Scene2DNode;
-    NodeCount: Word;
+    var Data: Pointer;
+    var MinV, MaxV: TG2Vec2;
+    var FetchID: DWord;
+    var Nodes: array of PG2Scene2DNode;
+    var NodeCount: Word;
   end;
 
   TG2Scene2D = class (TG2Module)
   strict private
-    m_RootNode: PG2Scene2DNode;
-    m_LOD: Word;
-    m_MinV, m_MaxV: TG2Vec2;
-    m_Built: Boolean;
-    m_UpdateFlag: DWord;
-    m_CurFetchID: DWord;
-    m_FetchNodes: TList;
-    m_FetchItems: TList;
+    var m_RootNode: PG2Scene2DNode;
+    var m_LOD: Word;
+    var m_MinV, m_MaxV: TG2Vec2;
+    var m_Built: Boolean;
+    var m_UpdateFlag: DWord;
+    var m_CurFetchID: DWord;
+    var m_FetchNodes: TList;
+    var m_FetchItems: TList;
     function NodeInScope(const n: PG2Scene2DNode; const MinV, MaxV: TG2Vec2): Boolean; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure FetchNodes(const MinV, MaxV: TG2Vec2);
     procedure ResetFetchID;
@@ -5203,46 +5235,46 @@ type
   PG2Scene3DNode = ^TG2Scene3DNode;
   TG2Scene3DNode = record
   public
-    DivX, DivY, DivZ, DivN: Boolean;
-    Parent: PG2Scene3DNode;
-    Children: array of array of array of PG2Scene3DNode;
-    NodeMinX, NodeMaxX: Byte;
-    NodeMinY, NodeMaxY: Byte;
-    NodeMinZ, NodeMaxZ: Byte;
-    MinV, MaxV: TG2Vec3;
-    LOD: Word;
-    FrustumCheck: TG2FrustumCheck;
-    Items: TList;
+    var DivX, DivY, DivZ, DivN: Boolean;
+    var Parent: PG2Scene3DNode;
+    var Children: array of array of array of PG2Scene3DNode;
+    var NodeMinX, NodeMaxX: Byte;
+    var NodeMinY, NodeMaxY: Byte;
+    var NodeMinZ, NodeMaxZ: Byte;
+    var MinV, MaxV: TG2Vec3;
+    var LOD: Word;
+    var FrustumCheck: TG2FrustumCheck;
+    var Items: TList;
   end;
 
   PG2Scene3DItem = ^TG2Scene3DItem;
   TG2Scene3DItem = record
   public
-    Data: Pointer;
-    MinV, MaxV: TG2Vec3;
-    C: TG2Vec3;
-    R: Single;
-    LocType: Integer;
-    FetchID: DWord;
-    Nodes: array of PG2Scene3DNode;
-    NodeCount: Word;
+    var Data: Pointer;
+    var MinV, MaxV: TG2Vec3;
+    var C: TG2Vec3;
+    var R: Single;
+    var LocType: Integer;
+    var FetchID: DWord;
+    var Nodes: array of PG2Scene3DNode;
+    var NodeCount: Word;
   end;
 
   TG2Scene3D = class (TG2Module)
   strict private
-    m_RootNode: PG2Scene3DNode;
-    m_LOD: Word;
-    m_MaxLODX: Integer;
-    m_MaxLODY: Integer;
-    m_MaxLODZ: Integer;
-    m_MinV, m_MaxV: TG2Vec3;
-    m_Built: Boolean;
-    m_FetchNodes: TList;
-    m_FetchItems: TList;
-    m_RefList: TList;
-    m_CurFetchID: DWord;
-    m_ProcAddItem: array[0..1] of procedure (const Item: PG2Scene3DItem) of object;
-    m_FuncFrustumItem: array[0..1] of function (const Item: PG2Scene3DItem; const Frustum: TG2Frustum): Boolean of object;
+    var m_RootNode: PG2Scene3DNode;
+    var m_LOD: Word;
+    var m_MaxLODX: Integer;
+    var m_MaxLODY: Integer;
+    var m_MaxLODZ: Integer;
+    var m_MinV, m_MaxV: TG2Vec3;
+    var m_Built: Boolean;
+    var m_FetchNodes: TList;
+    var m_FetchItems: TList;
+    var m_RefList: TList;
+    var m_CurFetchID: DWord;
+    var m_ProcAddItem: array[0..1] of procedure (const Item: PG2Scene3DItem) of object;
+    var m_FuncFrustumItem: array[0..1] of function (const Item: PG2Scene3DItem; const Frustum: TG2Frustum): Boolean of object;
     procedure ItemAddBox(const Item: PG2Scene3DItem);
     procedure ItemAddSphere(const Item: PG2Scene3DItem);
     function ItemFrustumBox(const Item: PG2Scene3DItem; const Frustum: TG2Frustum): Boolean;
@@ -5425,9 +5457,9 @@ type
 //TG2Thread BEGIN
   TG2Thread = class (TThread)
   strict private
-    m_Proc: TG2ProcObj;
-    m_OnFinishProc: TG2ProcObj;
-    m_CS: TCriticalSection;
+    var m_Proc: TG2ProcObj;
+    var m_OnFinishProc: TG2ProcObj;
+    var m_CS: TCriticalSection;
   strict protected
     procedure Execute; override;
     procedure OnFinish(Sender: TObject);
@@ -5530,35 +5562,34 @@ type
 
 //TG2SysInfo BEGIN
   TG2SysCPU = record
-    Name: AnsiString;
-    Identifier: AnsiString;
-    Vendor: AnsiString;
-    MHz: Integer;
+    var Name: AnsiString;
+    var Identifier: AnsiString;
+    var Vendor: AnsiString;
+    var MHz: Integer;
   end;
 
   TG2SysInfo = record
-    CPUCount: Integer;
-    CPUs: array of TG2SysCPU;
-    DisplayDevice: AnsiString;
-    Memory: TMemoryStatus;
-    VideoMemoryTotal: DWord;
-    VideoMemoryFree: DWord;
-    DXVersion: String;
-    OSVersion: String;
+    var CPUCount: Integer;
+    var CPUs: array of TG2SysCPU;
+    var DisplayDevice: AnsiString;
+    var Memory: TMemoryStatus;
+    var VideoMemoryTotal: DWord;
+    var VideoMemoryFree: DWord;
+    var DXVersion: String;
+    var OSVersion: String;
   end;
 //TG2SysInfo END
 
-const
-  G2Version: Word = $0101;
+const G2Version: Word = $0101;
 
-  D3DFMT_TRMS = TD3DFormat($434F5441);
-  D3DFMT_TRSS = TD3DFormat($41415353);
+const D3DFMT_TRMS = TD3DFormat($434F5441);
+const D3DFMT_TRSS = TD3DFormat($41415353);
 
-  TG2ResSuccess: set of TG2Result = [grOk, grConditionalOk];
+const TG2ResSuccess: set of TG2Result = [grOk, grConditionalOk];
 
-  TG2SharedVertex2DFVF = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX1;
+const TG2SharedVertex2DFVF = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX1;
 
-  TG2CubeFaces: array[0..5] of TD3DCubemapFaces = (
+const TG2CubeFaces: array[0..5] of TD3DCubemapFaces = (
     D3DCUBEMAP_FACE_POSITIVE_X,
     D3DCUBEMAP_FACE_NEGATIVE_X,
     D3DCUBEMAP_FACE_POSITIVE_Y,
@@ -5567,11 +5598,10 @@ const
     D3DCUBEMAP_FACE_NEGATIVE_Z
   );
 
-var
-  AppTime: DWord;
-  AppPath: WideString;
-  AppCompiler: AnsiString;
-  G2VMRID: DWord = 0;
+var AppTime: DWord;
+var AppPath: WideString;
+var AppCompiler: AnsiString;
+var G2VMRID: DWord = 0;
 
 //Utility Functions BEGIN
 function G2ResOk(const Res: TG2Result): Boolean; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -5614,6 +5644,7 @@ function D3DVertexElement(
 function G2DefWndProc(Wnd: HWnd; Msg: UInt; wParam: WPARAM; lParam: LPARAM): LResult; stdcall;
 function G2InputWndProc(Wnd: HWnd; Msg: UInt; wParam: WPARAM; lParam: LPARAM): LResult; stdcall;
 function G2WSAErrorToStr(const Error: Integer): AnsiString;
+procedure G2BreakPoint; overload;
 //Utility Functions END
 
 //Unit Functions BEGIN
@@ -6500,6 +6531,17 @@ begin
   Inc(m_ItemCount);
 end;
 
+function TG2QuickList.Pop: Pointer;
+begin
+  if m_ItemCount > 0 then
+  begin
+    Result := m_Items[m_ItemCount - 1];
+    Delete(m_ItemCount - 1);
+  end
+  else
+  Result := nil;
+end;
+
 function TG2QuickList.Insert(const Index: Integer; const Item: Pointer): Integer;
   var i: Integer;
 begin
@@ -6620,6 +6662,17 @@ begin
   m_Items[m_ItemCount].Order := 0;
   Result := m_ItemCount;
   Inc(m_ItemCount);
+end;
+
+function TG2QuickSortList.Pop: Pointer;
+begin
+  if m_ItemCount > 0 then
+  begin
+    Result := m_Items[m_ItemCount - 1].Data;
+    Delete(m_ItemCount - 1);
+  end
+  else
+  Result := nil;
 end;
 
 procedure TG2QuickSortList.Delete(const Index: Integer);
@@ -7867,6 +7920,7 @@ begin
   inherited Create;
   m_Plugs := TG2List.Create;
   m_PlugClass := TG2Plug;
+  m_Powered := True;
 end;
 
 destructor TG2Engine.Destroy;
@@ -7878,11 +7932,21 @@ end;
 
 function TG2Engine.Initialize(const G2Core: TG2Core): TG2Result;
 begin
+  if not m_Powered then
+  begin
+    Result := grInvalidCall;
+    Exit;
+  end;
   Result := inherited Initialize(G2Core);
 end;
 
 function TG2Engine.Finalize: TG2Result;
 begin
+  if not m_Powered then
+  begin
+    Result := grInvalidCall;
+    Exit;
+  end;
   Result := inherited Finalize;
 end;
 
@@ -16243,10 +16307,10 @@ begin
   MaxHeight := Min(m_Gfx.Caps.MaxTextureHeight, 2048);
   bmp.Canvas.Font.Name := String(m_FontFace);
   bmp.Canvas.Font.Size := m_Size;
-  bmp.Canvas.Font.Charset := RUSSIAN_CHARSET;
   GetObject(bmp.Canvas.Font.Handle, SizeOf(TLogFont), @LogFont);
   LogFont.lfQuality := ANTIALIASED_QUALITY;
   bmp.Canvas.Font.Handle := CreateFontIndirect(LogFont);
+  bmp.Canvas.Font.Charset := RUSSIAN_CHARSET;
   CharWidth := 1;
   CharHeight := 1;
   for i := 0 to 255 do
@@ -16281,7 +16345,7 @@ begin
     cy := (CharHeight - m_Props[XChar].Height) div 2;
     m_Props[XChar].OffsetX := -cx;
     m_Props[XChar].OffsetY := -cy;
-    bmp.Canvas.TextOut(i * CharWidth + cx, j * CharHeight + cy, Chr(XChar));
+    bmp.Canvas.TextOut(i * CharWidth + cx, j * CharHeight + cy, AnsiChar(XChar));
   end;
   for j := 0 to h - 1 do
   begin
@@ -18308,7 +18372,8 @@ function TG2VB.Verify(
       const NewPool: TD3DPool
     ): Boolean;
 begin
-  if (m_Stride <> NewStride)
+  if (m_VB = nil)
+  or (m_Stride <> NewStride)
   or (m_Count < NewCount)
   or (m_Usage <> NewUsage)
   or (m_FVF <> NewFVF)
@@ -18500,7 +18565,8 @@ function TG2IB.Verify(
       const NewPool: TD3DPool
     ): Boolean;
 begin
-  if (m_Count < NewCount)
+  if (m_IB = nil)
+  or (m_Count < NewCount)
   or (m_Usage <> NewUsage)
   or (m_Format <> NewFormat)
   or (m_Pool <> NewPool) then
@@ -18673,6 +18739,7 @@ end;
 
 procedure TG2UI.OnMouseDown(const Button: Byte);
 begin
+  MouseDownPos := PlugInput.MousePos;
 
 end;
 
@@ -18748,6 +18815,30 @@ begin
   TargetFrame := nil;
   CheckFrame(m_Root);
   Result := TargetFrame;
+end;
+
+procedure TG2UI.PushClipRect(const R: TRect);
+  var ClipRectPtr: PRect;
+begin
+  New(ClipRectPtr);
+  ClipRectPtr^ := R;
+  m_ClipRects.Add(ClipRectPtr);
+  Core.Graphics.Device.SetScissorRect(ClipRectPtr);
+end;
+
+procedure TG2UI.PopClipRect;
+  var ClipRectPtr: PRect;
+begin
+  if m_ClipRects.Count > 0 then
+  begin
+    ClipRectPtr := m_ClipRects.Pop;
+    Dispose(ClipRectPtr);
+    if m_ClipRects.Count > 0 then
+    begin
+      ClipRectPtr := m_ClipRects.Last;
+      Core.Graphics.Device.SetScissorRect(ClipRectPtr);
+    end;
+  end;
 end;
 
 constructor TG2UI.Create;
@@ -19107,8 +19198,11 @@ begin
   m_Parent := Value;
   if m_Parent <> nil then
   m_Parent.SubFrameAdd(Self);
-  ClientRectAdjust;
-  ScreenRectAdjust;
+  if m_Initialized then
+  begin
+    ClientRectAdjust;
+    ScreenRectAdjust;
+  end;
 end;
 
 function TG2UIFrame.GetSubFrameCount: Integer;
@@ -19233,6 +19327,7 @@ end;
 
 procedure TG2UIFrame.ScreenRectAdjust;
   var r: TRect;
+  var i: Integer;
 begin
   if Parent = nil then
   begin
@@ -19245,6 +19340,8 @@ begin
     RectScreen := GUI.ParentToClientRect(r, RectLocal);
     RectClip := GUI.ClipRect(r, Parent.RectClip);
   end;
+  for i := 0 to m_SubFrames.Count - 1 do
+  TG2UIFrame(m_SubFrames[i]).ScreenRectAdjust;
 end;
 
 procedure TG2UIFrame.Initialize;
@@ -19325,6 +19422,21 @@ begin
   );
 end;
 
+function TG2UIFrame.IsMouseDown: Boolean;
+  var R: TRect;
+begin
+  if GUI.PlugInput.MouseDown[0] then
+  begin
+    R := GUI.ClipRect(RectClip, RectScreen);
+    Result := (
+      PtInRect(R, GUI.PlugInput.MousePos)
+      and PtInRect(R, GUI.MouseDownPos)
+    );
+  end
+  else
+  Result := False;
+end;
+
 procedure TG2UIFrame.SubFrameAdd(const Frame: TG2UIFrame);
 begin
   m_SubFrames.Add(Frame);
@@ -19335,35 +19447,20 @@ begin
   m_SubFrames.Remove(Frame);
 end;
 
-//function TG2UIFrame.GetRectGlobal: TRect;
-//  var cr: TRect;
-//begin
-//  if m_Parent = nil then
-//  Result := m_RectSelf
-//  else
-//  begin
-//    Result := m_Parent.RectGlobal;
-//    cr := m_Parent.RectClient;
-//    Result := Rect(
-//      Result.Left + cr.Left + m_RectSelf.Left,
-//      Result.Top + cr.Top + m_RectSelf.Top,
-//      Result.Left + cr.Left + m_RectSelf.Right,
-//      Result.Top + cr.Top + m_RectSelf.Bottom
-//    );
-//  end;
-//end;
-
 constructor TG2UIFrame.Create(const OwnerGUI: TG2UI);
 begin
   inherited Create;
+  m_Initialized := False;
   GUI := OwnerGUI;
   m_SubFrames.Capacity := 16;
   m_SubFrames.Clear;
   Parent := GUI.Root;
   m_RectSelf := Rect(0, 0, 63, 63);
+  CanFocus := False;
+  Initialize;
+  m_Initialized := True;
   ClientRectAdjust;
   ScreenRectAdjust;
-  Initialize;
 end;
 
 destructor TG2UIFrame.Destroy;
@@ -19386,12 +19483,12 @@ end;
 
 procedure TG2UIFrame.Render;
   var i: Integer;
-  var RectPrev: TRect;
 begin
-  GUI.Core.Graphics.Device.SetScissorRect(@RectClip);
+  //GUI.PushClipRect(RectClip);
   OnRender;
   for i := 0 to m_SubFrames.Count - 1 do
   TG2UIFrame(m_SubFrames[i]).Render;
+  //GUI.PopClipRect;
 end;
 //TG2UIFrame END
 
@@ -19403,14 +19500,99 @@ end;
 //TG2UIPanel END
 
 //TG2UIButton BEGIN
-procedure TG2UIButton.OnRender;
+procedure TG2UIButton.AdjustLabel;
 begin
-  if IsMouseOver then
+  m_Label.X := (m_RectClient.Right - m_RectClient.Left + 1 - m_Label.Width) div 2;
+  m_Label.Y := (m_RectClient.Bottom - m_RectClient.Top + 1 - m_Label.Height) div 2;
+end;
+
+procedure TG2UIButton.Initialize;
+begin
+  m_Label := TG2UILabel.Create(GUI);
+  m_Label.Parent := Self;
+  m_Label.OnChange := AdjustLabel;
+  m_Label.Text := 'Button';
+end;
+
+procedure TG2UIButton.Finalize;
+begin
+  m_Label.Free;
+end;
+
+procedure TG2UIButton.ClientRectAdjust;
+begin
+  m_RectClient.Left := 4;
+  m_RectClient.Top := 4;
+  m_RectClient.Right := Width - 1 - 4;
+  m_RectClient.Bottom := Height - 1 - 4;
+  AdjustLabel;
+end;
+
+procedure TG2UIButton.OnRender;
+  var RDraw, RClip: TRect;
+begin
+  if IsMouseDown then
+  GUI.Skin.DrawTemplate('ButtonDown', RectGlobal)
+  else if IsMouseOver then
   GUI.Skin.DrawTemplate('ButtonHover', RectGlobal)
   else
-  GUI.Skin.DrawTemplate('ButtonStandard', RectGlobal);
+  GUI.Skin.DrawTemplate('Button', RectGlobal);
 end;
 //TG2UIButton END
+
+//TG2UILabel BEGIN
+procedure TG2UILabel.SetText(const Value: AnsiString);
+begin
+  m_Text := Value;
+  Width := m_Font.GetTextWidth(m_Text);
+  Height := m_Font.GetTextHeight(m_Text);
+  if Assigned(m_OnChange) then m_OnChange;
+end;
+
+procedure TG2UILabel.SetFont(const Value: TG2Font);
+begin
+  m_Font := Value;
+  SetText(m_Text);
+end;
+
+procedure TG2UILabel.Initialize;
+begin
+  m_Font := GUI.Core.Graphics.Shared.RequestFont('Arial', 12);
+  Text := 'Lable';
+  m_OnChange := nil;
+end;
+
+procedure TG2UILabel.OnRender;
+begin
+  m_Font.Print(
+    RectGlobal.Left, RectGlobal.Top,
+    $ff000000, m_Text
+  );
+end;
+//TG2UILabel END
+
+//TG2UIEdit BEGIN
+procedure TG2UIEdit.SetText(const Value: AnsiString);
+begin
+  m_Text := Value;
+end;
+
+procedure TG2UIEdit.SetFont(const Value: TG2Font);
+begin
+  m_Font := Value;
+end;
+
+procedure TG2UIEdit.Initialize;
+begin
+  m_Font := GUI.Core.Graphics.Shared.RequestFont('Arial', 12);
+  m_Text := '';
+end;
+
+procedure TG2UIEdit.OnRender;
+begin
+  GUI.Skin.DrawTemplate('Edit', RectGlobal);
+end;
+//TG2UIEdit END
 
 (*
 //TG2GUI BEGIN
@@ -31273,16 +31455,26 @@ var
   Input: TG2Input;
 begin
   Input := TG2Input(GetWindowLong(Wnd, GWL_USERDATA));
-  case Msg of
-    WM_CHAR:
-    begin
-      Input.KeyPress(AnsiChar(wParam));
-    end;
-  end;
   if IsWindowUnicode(Wnd) then
-  Result := CallWindowProcW(Input.PrevWndProc, Wnd, Msg, wParam, lParam)
+  begin
+    case Msg of
+      WM_CHAR:
+      begin
+        Input.KeyPress(WideStringToString(WideChar(wParam))[1]);
+      end;
+    end;
+    Result := CallWindowProcW(Input.PrevWndProc, Wnd, Msg, wParam, lParam);
+  end
   else
-  Result := CallWindowProcA(Input.PrevWndProc, Wnd, Msg, wParam, lParam);
+  begin
+    case Msg of
+      WM_CHAR:
+      begin
+        Input.KeyPress(AnsiChar(wParam));
+      end;
+    end;
+    Result := CallWindowProcA(Input.PrevWndProc, Wnd, Msg, wParam, lParam);
+  end;
 end;
 
 function G2WSAErrorToStr(const Error: Integer): AnsiString;
@@ -31333,6 +31525,11 @@ begin
     11004: Result := 'Valid name, no data record of requested type';
     else Result := 'Unknown error';
   end;
+end;
+
+procedure G2BreakPoint;
+asm
+  int 3;
 end;
 //Utility Functions END
 

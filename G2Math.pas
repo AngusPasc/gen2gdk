@@ -54,10 +54,10 @@ type
     function GetMat(const ix, iy: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetMat(const ix, iy: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    e00, e01, e02, e03: Single;
-    e10, e11, e12, e13: Single;
-    e20, e21, e22, e23: Single;
-    e30, e31, e32, e33: Single;
+    var e00, e01, e02, e03: Single;
+    var e10, e11, e12, e13: Single;
+    var e20, e21, e22, e23: Single;
+    var e30, e31, e32, e33: Single;
     property Arr[const Index: Integer]: Single read GetArr write SetArr;
     property Mat[const ix, iy: Integer]: Single read GetMat write SetMat; default;
     class operator Explicit(const m: TG2Mat): TG2MatRef;
@@ -128,8 +128,8 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    e00, e01: Single;
-    e10, e11: Single;
+    var e00, e01: Single;
+    var e10, e11: Single;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Explicit(const m: TG2Mat2): TG2Mat2Ref;
     class operator Explicit(const m: TG2Mat2Ref): TG2Mat2;
@@ -158,7 +158,7 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    x, y: Single;
+    var x, y: Single;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Negative(const v: TG2Vec2): TG2Vec2;
     class operator Explicit(const v: TG2Vec2): TG2Vec2Ref;
@@ -200,7 +200,7 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    x, y, z: Single;
+    var x, y, z: Single;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Negative(const v: TG2Vec3): TG2Vec3; 
     class operator Explicit(const v: TG2Vec3): TG2Vec3Ref; 
@@ -242,7 +242,7 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    x, y, z, w: Single;
+    var x, y, z, w: Single;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Negative(const v: TG2Vec4): TG2Vec4;
     class operator Explicit(const v: TG2Vec4): TG2Vec4Ref; 
@@ -289,7 +289,7 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    x, y, z, w: Single;
+    var x, y, z, w: Single;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Explicit(const q: TG2Quat): TG2QuatRef;
     class operator Explicit(const q: TG2QuatRef): TG2Quat;
@@ -323,7 +323,7 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    MinV, MaxV: TG2Vec3;
+    var MinV, MaxV: TG2Vec3;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Equal(const b1, b2: TG2AABox): Boolean;
     class operator NotEqual(const b1, b2: TG2AABox): Boolean;
@@ -341,7 +341,7 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    C, vx, vy, vz: TG2Vec3;
+    var C, vx, vy, vz: TG2Vec3;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Equal(const b1, b2: TG2Box): Boolean;
     class operator NotEqual(const b1, b2: TG2Box): Boolean;
@@ -358,8 +358,8 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    C: TG2Vec3;
-    R: Single;
+    var C: TG2Vec3;
+    var R: Single;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Equal(const s1, s2: TG2Sphere): Boolean;
     class operator NotEqual(const s1, s2: TG2Sphere): Boolean;
@@ -378,8 +378,8 @@ type
     function GetC: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetC(const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    N: TG2Vec3;
-    D: Single;
+    var N: TG2Vec3;
+    var D: Single;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     property A: Single read GetA write SetA;
     property B: Single read GetB write SetB;
@@ -410,8 +410,8 @@ type
     function GetArr(const Index: Integer): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetArr(const Index: Integer; const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
-    Origin: TG2Vec3;
-    Dir: TG2Vec3;
+    var Origin: TG2Vec3;
+    var Dir: TG2Vec3;
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Equal(const p1, p2: TG2Ray): Boolean;
     class operator NotEqual(const p1, p2: TG2Ray): Boolean;
@@ -1136,12 +1136,24 @@ begin
 end;
 
 function TG2Mat.Determinant: Single;
+  var e_22_33_32_23: Single;
+  var e_12_33_32_13: Single;
+  var e_12_23_22_13: Single;
+  var e_02_33_32_03: Single;
+  var e_02_23_22_03: Single;
+  var e_02_13_12_03: Single;
 begin
+  e_22_33_32_23 := e22 * e33 - e32 * e23;
+  e_12_33_32_13 := e12 * e33 - e32 * e13;
+  e_12_23_22_13 := e12 * e23 - e22 * e13;
+  e_02_33_32_03 := e02 * e33 - e32 * e03;
+  e_02_23_22_03 := e02 * e23 - e22 * e03;
+  e_02_13_12_03 := e02 * e13 - e12 * e03;
   Result := (
-    e00 * (e11 * (e22 * e33 - e32 * e23) - e21 * (e12 * e33 - e32 * e13) + e31 * (e12 * e23 - e22 * e13)) -
-    e10 * (e01 * (e22 * e33 - e32 * e23) - e21 * (e02 * e33 - e32 * e03) + e31 * (e02 * e23 - e22 * e03)) +
-    e20 * (e01 * (e12 * e33 - e32 * e13) - e11 * (e02 * e33 - e32 * e03) + e31 * (e02 * e13 - e12 * e03)) -
-    e30 * (e01 * (e12 * e23 - e22 * e13) - e11 * (e02 * e23 - e22 * e03) + e21 * (e02 * e13 - e12 * e03))
+    e00 * (e11 * e_22_33_32_23 - e21 * e_12_33_32_13 + e31 * e_12_23_22_13) -
+    e10 * (e01 * e_22_33_32_23 - e21 * e_02_33_32_03 + e31 * e_02_23_22_03) +
+    e20 * (e01 * e_12_33_32_13 - e11 * e_02_33_32_03 + e31 * e_02_13_12_03) -
+    e30 * (e01 * e_12_23_22_13 - e11 * e_02_23_22_03 + e21 * e_02_13_12_03)
   );
 end;
 
@@ -1690,8 +1702,13 @@ begin
 end;
 
 function TG2Vec3.Angle(const v: TG2Vec3): Single;
+  var VLen: Single;
 begin
-  Result := ArcCos((Self * v) / (Len * v.Len));
+  VLen := Len * v.Len;
+  if VLen > 0 then
+  Result := ArcCos(Dot(v) / VLen)
+  else
+  Result := 0;
 end;
 
 function TG2Vec3.InTriangle(const v0, v1, v2: TG2Vec3): Boolean;
@@ -3984,22 +4001,22 @@ var
 begin
   with mr do
   begin
-    e00 := InM1^.e00 * InM2^.e00 + InM1^.e10 * InM2^.e01 + InM1^.e20 * InM2^.e02 + InM1^.e30 * InM2^.e03;
-    e10 := InM1^.e00 * InM2^.e10 + InM1^.e10 * InM2^.e11 + InM1^.e20 * InM2^.e12 + InM1^.e30 * InM2^.e13;
-    e20 := InM1^.e00 * InM2^.e20 + InM1^.e10 * InM2^.e21 + InM1^.e20 * InM2^.e22 + InM1^.e30 * InM2^.e23;
-    e30 := InM1^.e00 * InM2^.e30 + InM1^.e10 * InM2^.e31 + InM1^.e20 * InM2^.e32 + InM1^.e30 * InM2^.e33;
-    e01 := InM1^.e01 * InM2^.e00 + InM1^.e11 * InM2^.e01 + InM1^.e21 * InM2^.e02 + InM1^.e31 * InM2^.e03;
-    e11 := InM1^.e01 * InM2^.e10 + InM1^.e11 * InM2^.e11 + InM1^.e21 * InM2^.e12 + InM1^.e31 * InM2^.e13;
-    e21 := InM1^.e01 * InM2^.e20 + InM1^.e11 * InM2^.e21 + InM1^.e21 * InM2^.e22 + InM1^.e31 * InM2^.e23;
-    e31 := InM1^.e01 * InM2^.e30 + InM1^.e11 * InM2^.e31 + InM1^.e21 * InM2^.e32 + InM1^.e31 * InM2^.e33;
-    e02 := InM1^.e02 * InM2^.e00 + InM1^.e12 * InM2^.e01 + InM1^.e22 * InM2^.e02 + InM1^.e32 * InM2^.e03;
-    e12 := InM1^.e02 * InM2^.e10 + InM1^.e12 * InM2^.e11 + InM1^.e22 * InM2^.e12 + InM1^.e32 * InM2^.e13;
-    e22 := InM1^.e02 * InM2^.e20 + InM1^.e12 * InM2^.e21 + InM1^.e22 * InM2^.e22 + InM1^.e32 * InM2^.e23;
-    e32 := InM1^.e02 * InM2^.e30 + InM1^.e12 * InM2^.e31 + InM1^.e22 * InM2^.e32 + InM1^.e32 * InM2^.e33;
-    e03 := InM1^.e03 * InM2^.e00 + InM1^.e13 * InM2^.e01 + InM1^.e23 * InM2^.e02 + InM1^.e33 * InM2^.e03;
-    e13 := InM1^.e03 * InM2^.e10 + InM1^.e13 * InM2^.e11 + InM1^.e23 * InM2^.e12 + InM1^.e33 * InM2^.e13;
-    e23 := InM1^.e03 * InM2^.e20 + InM1^.e13 * InM2^.e21 + InM1^.e23 * InM2^.e22 + InM1^.e33 * InM2^.e23;
-    e33 := InM1^.e03 * InM2^.e30 + InM1^.e13 * InM2^.e31 + InM1^.e23 * InM2^.e32 + InM1^.e33 * InM2^.e33;
+    e00 := InM1^.e00 * InM2^.e00 + InM1^.e01 * InM2^.e10 + InM1^.e02 * InM2^.e20 + InM1^.e03 * InM2^.e30;
+    e10 := InM1^.e10 * InM2^.e00 + InM1^.e11 * InM2^.e10 + InM1^.e12 * InM2^.e20 + InM1^.e13 * InM2^.e30;
+    e20 := InM1^.e20 * InM2^.e00 + InM1^.e21 * InM2^.e10 + InM1^.e22 * InM2^.e20 + InM1^.e23 * InM2^.e30;
+    e30 := InM1^.e30 * InM2^.e00 + InM1^.e31 * InM2^.e10 + InM1^.e32 * InM2^.e20 + InM1^.e33 * InM2^.e30;
+    e01 := InM1^.e00 * InM2^.e01 + InM1^.e01 * InM2^.e11 + InM1^.e02 * InM2^.e21 + InM1^.e03 * InM2^.e31;
+    e11 := InM1^.e10 * InM2^.e01 + InM1^.e11 * InM2^.e11 + InM1^.e12 * InM2^.e21 + InM1^.e13 * InM2^.e31;
+    e21 := InM1^.e20 * InM2^.e01 + InM1^.e21 * InM2^.e11 + InM1^.e22 * InM2^.e21 + InM1^.e23 * InM2^.e31;
+    e31 := InM1^.e30 * InM2^.e01 + InM1^.e31 * InM2^.e11 + InM1^.e32 * InM2^.e21 + InM1^.e33 * InM2^.e31;
+    e02 := InM1^.e00 * InM2^.e02 + InM1^.e01 * InM2^.e12 + InM1^.e02 * InM2^.e22 + InM1^.e03 * InM2^.e32;
+    e12 := InM1^.e10 * InM2^.e02 + InM1^.e11 * InM2^.e12 + InM1^.e12 * InM2^.e22 + InM1^.e13 * InM2^.e32;
+    e22 := InM1^.e20 * InM2^.e02 + InM1^.e21 * InM2^.e12 + InM1^.e22 * InM2^.e22 + InM1^.e23 * InM2^.e32;
+    e32 := InM1^.e30 * InM2^.e02 + InM1^.e31 * InM2^.e12 + InM1^.e32 * InM2^.e22 + InM1^.e33 * InM2^.e32;
+    e03 := InM1^.e00 * InM2^.e03 + InM1^.e01 * InM2^.e13 + InM1^.e02 * InM2^.e23 + InM1^.e03 * InM2^.e33;
+    e13 := InM1^.e10 * InM2^.e03 + InM1^.e11 * InM2^.e13 + InM1^.e12 * InM2^.e23 + InM1^.e13 * InM2^.e33;
+    e23 := InM1^.e20 * InM2^.e03 + InM1^.e21 * InM2^.e13 + InM1^.e22 * InM2^.e23 + InM1^.e23 * InM2^.e33;
+    e33 := InM1^.e30 * InM2^.e03 + InM1^.e31 * InM2^.e13 + InM1^.e32 * InM2^.e23 + InM1^.e33 * InM2^.e33;
   end;
   OutM^ := mr;
 end;

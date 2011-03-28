@@ -1605,7 +1605,7 @@ begin
   m_CurFrame := nil;
   Enum.GetChildren(ChildCount);
 
-  m_TicksPerSecond := 30; //4800;
+  m_TicksPerSecond := 4800;
   for i := 0 to ChildCount - 1 do
   begin
     Enum.GetChild(i, Data);
