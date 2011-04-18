@@ -258,8 +258,22 @@ begin
 end;
 
 procedure G2MeshDataCopy(const Src, Dst: PG2MeshData);
-var
-  i, j, k: Integer;
+  procedure CopyRagdollObject(const SrcObj: TG2RagdollObject; var DstObj: TG2RagdollObject);
+    var i: Integer;
+  begin
+    DstObj.NodeID := SrcObj.NodeID;
+    DstObj.MinV := SrcObj.MinV;
+    DstObj.MaxV := SrcObj.MaxV;
+    DstObj.Transform := SrcObj.Transform;
+    DstObj.DependantCount := SrcObj.DependantCount;
+    SetLength(DstObj.Dependants, DstObj.DependantCount);
+    for i := 0 to DstObj.DependantCount - 1 do
+    begin
+      DstObj.Dependants[i].NodeID := SrcObj.Dependants[i].NodeID;
+      DstObj.Dependants[i].Offset := SrcObj.Dependants[i].Offset;
+    end;
+  end;
+  var i, j, k: Integer;
 begin
   Dst^.NodeCount := Src^.NodeCount;
   SetLength(Dst^.Nodes, Dst^.NodeCount);
@@ -382,6 +396,35 @@ begin
       Dst^.Materials[i].Channels[j].NormalMap := Src^.Materials[i].Channels[j].NormalMap;
       Dst^.Materials[i].Channels[j].NormalMapAmount := Src^.Materials[i].Channels[j].NormalMapAmount;
     end;
+  end;
+  Dst^.RagDollCount := Src^.RagDollCount;
+  SetLength(Dst^.RagDolls, Dst^.RagDollCount);
+  for i := 0 to Dst^.RagDollCount - 1 do
+  begin
+    Dst^.RagDolls[i].NodeID := Src^.RagDolls[i].NodeID;
+    CopyRagdollObject(Src^.RagDolls[i].Head, Dst^.RagDolls[i].Head);
+    CopyRagdollObject(Src^.RagDolls[i].Neck, Dst^.RagDolls[i].Neck);
+    CopyRagdollObject(Src^.RagDolls[i].Pelvis, Dst^.RagDolls[i].Pelvis);
+    Dst^.RagDolls[i].BodyNodeCount := Src^.RagDolls[i].BodyNodeCount;
+    SetLength(Dst^.RagDolls[i].BodyNodes, Dst^.RagDolls[i].BodyNodeCount);
+    for j := 0 to Dst^.RagDolls[i].BodyNodeCount - 1 do
+    CopyRagdollObject(Src^.RagDolls[i].BodyNodes[j], Dst^.RagDolls[i].BodyNodes[j]);
+    Dst^.RagDolls[i].ArmRNodeCount := Src^.RagDolls[i].ArmRNodeCount;
+    SetLength(Dst^.RagDolls[i].ArmRNodes, Dst^.RagDolls[i].ArmRNodeCount);
+    for j := 0 to Dst^.RagDolls[i].ArmRNodeCount - 1 do
+    CopyRagdollObject(Src^.RagDolls[i].ArmRNodes[j], Dst^.RagDolls[i].ArmRNodes[j]);
+    Dst^.RagDolls[i].ArmLNodeCount := Src^.RagDolls[i].ArmLNodeCount;
+    SetLength(Dst^.RagDolls[i].ArmLNodes, Dst^.RagDolls[i].ArmLNodeCount);
+    for j := 0 to Dst^.RagDolls[i].ArmLNodeCount - 1 do
+    CopyRagdollObject(Src^.RagDolls[i].ArmLNodes[j], Dst^.RagDolls[i].ArmLNodes[j]);
+    Dst^.RagDolls[i].LegRNodeCount := Src^.RagDolls[i].LegRNodeCount;
+    SetLength(Dst^.RagDolls[i].LegRNodes, Dst^.RagDolls[i].LegRNodeCount);
+    for j := 0 to Dst^.RagDolls[i].LegRNodeCount - 1 do
+    CopyRagdollObject(Src^.RagDolls[i].LegRNodes[j], Dst^.RagDolls[i].LegRNodes[j]);
+    Dst^.RagDolls[i].LegLNodeCount := Src^.RagDolls[i].LegLNodeCount;
+    SetLength(Dst^.RagDolls[i].LegLNodes, Dst^.RagDolls[i].LegLNodeCount);
+    for j := 0 to Dst^.RagDolls[i].LegLNodeCount - 1 do
+    CopyRagdollObject(Src^.RagDolls[i].LegLNodes[j], Dst^.RagDolls[i].LegLNodes[j]);
   end;
 end;
 

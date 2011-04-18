@@ -1165,6 +1165,7 @@ begin
   Form1.ClientHeight := 600;
   Form1.Constraints.MinHeight := 600;
   Form1.Constraints.MinWidth := 800;
+  Form1.WindowState := wsMaximized;
   App := TMyApp.Create;
   App.Handle := Form1.Handle;
   App.Gfx.InitParams.Width := Form1.ClientWidth;

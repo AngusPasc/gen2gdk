@@ -3021,6 +3021,8 @@ type
   end;
 //TG2Script END
 
+  TG2UIAlign = (alNone, alClient, alCenter, alLeft, alTopLeft, alTop, alTopRight, alRight, alBottomRight, alBottom, alBottomLeft);
+
 //TG2UI BEGIN
   TG2UI = class sealed (TG2Module)
   strict private
@@ -3029,6 +3031,8 @@ type
     var m_PlugGraphics: TG2PlugGraphics;
     var m_Skin: TG2UISkin;
     var m_ClipRects: TG2QuickList;
+    var m_Render2D: TG2Render2D;
+    var m_Prim2D: TG2Primitives2D;
     procedure InitBuffers;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
@@ -3062,6 +3066,8 @@ type
     property Root: TG2UIFrame read m_Root;
     property Skin: TG2UISkin read m_Skin write m_Skin;
     property PlugInput: TG2PlugInput read m_PlugInput;
+    property Render2D: TG2Render2D read m_Render2D;
+    property Prim2D: TG2Primitives2D read m_Prim2D;
     constructor Create; override;
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
@@ -3127,15 +3133,26 @@ type
     procedure SetWidth(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetHeight: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetHeight(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetClientWidth: Integer;
+    function GetClientHeight: Integer;
   strict protected
     var m_RectSelf: TRect;
     var m_RectClient: TRect;
     var GUI: TG2UI;
-    var CanFocus: Boolean;
     procedure ClientRectAdjust; virtual;
     procedure ScreenRectAdjust;
     procedure Initialize; virtual;
     procedure Finalize; virtual;
+    function IsMouseOver: Boolean;
+    function IsMouseDown: Boolean;
+  private
+    var RectScreen: TRect;
+    var RectClip: TRect;
+    procedure SubFrameAdd(const Frame: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SubFrameRemove(const Frame: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+  protected
+    var CanFocus: Boolean;
+    var CanInput: Boolean;
     procedure OnUpdate; virtual;
     procedure OnRender; virtual;
     procedure OnDeviceLost; virtual;
@@ -3144,17 +3161,10 @@ type
     procedure OnKeyOnwn(const Key: Byte); virtual;
     procedure OnKeyUp(const Key: Byte); virtual;
     procedure OnKeyPress(const Key: AnsiChar); virtual;
-    procedure OnMouseOnwn(const Button: Byte); virtual;
+    procedure OnMouseDown(const Button: Byte); virtual;
     procedure OnMouseUp(const Button: Byte); virtual;
     procedure OnMouseMove(const Shift: TPoint); virtual;
     procedure OnWheelMove(const Shift: Integer); virtual;
-    function IsMouseOver: Boolean;
-    function IsMouseDown: Boolean;
-  private
-    var RectScreen: TRect;
-    var RectClip: TRect;
-    procedure SubFrameAdd(const Frame: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure SubFrameRemove(const Frame: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     property Parent: TG2UIFrame read m_Parent write SetParent;
     property SubFrameCount: Integer read GetSubFrameCount;
@@ -3167,6 +3177,8 @@ type
     property Y: Integer read GetTop write SetY;
     property Width: Integer read GetWidth write SetWidth;
     property Height: Integer read GetHeight write SetHeight;
+    property ClientWidth: Integer read GetClientWidth;
+    property ClientHeight: Integer read GetClientHeight;
     property RectLocal: TRect read m_RectSelf;
     property RectGlobal: TRect read RectScreen;
     property RectClient: TRect read m_RectClient;
@@ -3174,33 +3186,84 @@ type
     destructor Destroy; override;
     procedure Update;
     procedure Render;
+    function RectToGlobal(const R: TRect): TRect;
   end;
 //TG2UIFrame END
 
 //TG2UIPanel BEGIN
   TG2UIPanel = class (TG2UIFrame)
+  strict private
+    var m_Template: AnsiString;
   strict protected
+    procedure Initialize; override;
     procedure OnRender; override;
+  public
+    property Template: AnsiString read m_Template write m_Template;
   end;
 //TG2UIPanel END
+
+//TG2UIImage BEGIN
+  TG2UIImage = class (TG2UIFrame)
+  strict private
+    var m_Texture: TG2Texture2D;
+  strict protected
+    procedure Initialize; override;
+    procedure OnRender; override;
+  public
+    property Texture: TG2Texture2D read m_Texture write m_Texture;
+  end;
+//TG2UIImage END
 
 //TG2UIButton BEGIN
   TG2UIButton = class (TG2UIFrame)
   strict protected
     var m_Label: TG2UILabel;
+    var m_Image: TG2UIImage;
+    var m_ImageAlign: TG2UIAlign;
     procedure AdjustLabel;
+    procedure AdjustImage;
     procedure Initialize; override;
     procedure Finalize; override;
     procedure ClientRectAdjust; override;
     procedure OnRender; override;
+    function GetImage: TG2Texture2D;
+    procedure SetImage(const Value: TG2Texture2D);
+    function GetImageWidth: Integer;
+    procedure SetImageWidth(const Value: Integer);
+    function GetImageHeight: Integer;
+    procedure SetImageHeight(const Value: Integer);
+    function GetCaption: AnsiString;
+    procedure SetCaption(const Value: AnsiString);
+  public
+    property Image: TG2Texture2D read GetImage write SetImage;
+    property ImageAlign: TG2UIAlign read m_ImageAlign write m_ImageAlign;
+    property ImageWidth: Integer read GetImageWidth write SetImageWidth;
+    property ImageHeight: Integer read GetImageHeight write SetImageHeight;
+    property Caption: AnsiString read GetCaption write SetCaption;
   end;
 //TG2UIButton END
+
+//TG2UIButtonSwitch BEGIN
+  TG2UIButtonSwitch = class (TG2UIButton)
+  strict protected
+    var m_SwitchGroup: Integer;
+    var m_Switch: Boolean;
+    procedure Initialize; override;
+    procedure OnMouseDown(const Button: Byte); override;
+    procedure SetSwitch(const Value: Boolean);
+    procedure OnRender; override;
+  public
+    property SwitchGroup: Integer read m_SwitchGroup write m_SwitchGroup;
+    property Switch: Boolean read m_Switch write SetSwitch;
+  end;
+//TG2UIButtonSwitch END
 
 //TG2UILabel BEGIN
   TG2UILabel = class (TG2UIFrame)
   strict protected
     var m_Text: AnsiString;
     var m_Font: TG2Font;
+    var m_FontColor: TG2Color;
     var m_OnChange: TG2ProcObj;
     procedure SetText(const Value: AnsiString); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetFont(const Value: TG2Font); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -3209,6 +3272,7 @@ type
   public
     property Text: AnsiString read m_Text write SetText;
     property Font: TG2Font read m_Font write SetFont;
+    property FontColor: TG2Color read m_FontColor write m_FontColor;
     property OnChange: TG2ProcObj read m_OnChange write m_OnChange;
   end;
 //TG2UILabel END
@@ -4400,6 +4464,10 @@ type
     ): TG2Result; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function DrawRect(
       const X, Y: Single;
+      const Texture: TG2Texture2DBase
+    ): TG2Result; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function DrawRect(
+      const R: TRect;
       const Texture: TG2Texture2DBase
     ): TG2Result; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function DrawRect(
@@ -18738,9 +18806,12 @@ begin
 end;
 
 procedure TG2UI.OnMouseDown(const Button: Byte);
+  var Frame: TG2UIFrame;
 begin
   MouseDownPos := PlugInput.MousePos;
-
+  Frame := FrameAtPoint(MouseDownPos);
+  if Frame <> nil then
+  Frame.OnMouseDown(Button);
 end;
 
 procedure TG2UI.OnMouseUp(const Button: Byte);
@@ -18796,20 +18867,18 @@ end;
 
 function TG2UI.FrameAtPoint(const Pt: TPoint): TG2UIFrame;
   var TargetFrame: TG2UIFrame;
-  function CheckFrame(const Frame: TG2UIFrame): Boolean;
+  procedure CheckFrame(const Frame: TG2UIFrame);
     var i: Integer;
+    var R: TRect;
   begin
-    if PtInRect(Frame.RectClip, Pt) then
+    R := ClipRect(Frame.RectScreen, Frame.RectClip);
+    if PtInRect(R, Pt) then
     begin
-      for i := Frame.SubFrameCount - 1 downto 0 do
-      if CheckFrame(Frame.SubFrames[i]) then
-      begin
-        Result := True;
-        Exit;
-      end;
       TargetFrame := Frame;
+      for i := 0 to Frame.SubFrameCount - 1 do
+      if Frame.SubFrames[i].CanInput then
+      CheckFrame(Frame.SubFrames[i]);
     end;
-    Result := False;
   end;
 begin
   TargetFrame := nil;
@@ -18858,6 +18927,10 @@ begin
   if G2ResFail(Result) then Exit;
   Result := grOk;
   InitBuffers;
+  m_Render2D := TG2Render2D.Create;
+  m_Render2D.Initialize(Core);
+  m_Prim2D := TG2Primitives2D.Create;
+  m_Prim2D.Initialize(Core);
   Core.RequestPlug(TG2PlugInput, @m_PlugInput);
   Core.RequestPlug(TG2PlugGraphics, @m_PlugGraphics);
   m_Root := TG2UIFrame.Create(Self);
@@ -18891,6 +18964,10 @@ begin
   m_Root := nil;
   for i := 0 to Skins.Count - 1 do
   TG2UISkin(Skins[i]).Free;
+  m_Prim2D.Finalize;
+  m_Prim2D.Free;
+  m_Render2D.Finalize;
+  m_Render2D.Free;
   IB.Free;
   VB.Free;
 end;
@@ -19317,6 +19394,16 @@ begin
   ScreenRectAdjust;
 end;
 
+function TG2UIFrame.GetClientWidth: Integer;
+begin
+  Result := m_RectClient.Right - m_RectClient.Left + 1;
+end;
+
+function TG2UIFrame.GetClientHeight: Integer;
+begin
+  Result := m_RectClient.Bottom - m_RectClient.Top + 1;
+end;
+
 procedure TG2UIFrame.ClientRectAdjust;
 begin
   m_RectClient.Left := 0;
@@ -19333,11 +19420,15 @@ begin
   begin
     RectScreen := RectLocal;
     RectClip := RectLocal;
+    RectClip.Right := RectClip.Right + 1;
+    RectClip.Bottom := RectClip.Bottom + 1;
   end
   else
   begin
     r := GUI.ParentToClientRect(Parent.RectScreen, Parent.RectClient);
     RectScreen := GUI.ParentToClientRect(r, RectLocal);
+    r.Right := r.Right + 1;
+    r.Bottom := r.Bottom + 1;
     RectClip := GUI.ClipRect(r, Parent.RectClip);
   end;
   for i := 0 to m_SubFrames.Count - 1 do
@@ -19394,7 +19485,7 @@ begin
 
 end;
 
-procedure TG2UIFrame.OnMouseOnwn(const Button: Byte);
+procedure TG2UIFrame.OnMouseDown(const Button: Byte);
 begin
 
 end;
@@ -19457,6 +19548,7 @@ begin
   Parent := GUI.Root;
   m_RectSelf := Rect(0, 0, 63, 63);
   CanFocus := False;
+  CanInput := True;
   Initialize;
   m_Initialized := True;
   ClientRectAdjust;
@@ -19484,20 +19576,47 @@ end;
 procedure TG2UIFrame.Render;
   var i: Integer;
 begin
-  //GUI.PushClipRect(RectClip);
+  GUI.PushClipRect(RectClip);
   OnRender;
   for i := 0 to m_SubFrames.Count - 1 do
   TG2UIFrame(m_SubFrames[i]).Render;
-  //GUI.PopClipRect;
+  GUI.PopClipRect;
+end;
+
+function TG2UIFrame.RectToGlobal(const R: TRect): TRect;
+begin
+  Result := GUI.ParentToClientRect(RectScreen, R);
 end;
 //TG2UIFrame END
 
 //TG2UIPanel BEGIN
+procedure TG2UIPanel.Initialize;
+begin
+  m_Template := 'Panel';
+end;
+
 procedure TG2UIPanel.OnRender;
 begin
-  GUI.Skin.DrawTemplate('Panel', RectGlobal);
+  GUI.Skin.DrawTemplate(m_Template, RectGlobal);
 end;
 //TG2UIPanel END
+
+//TG2UIImage BEGIN
+procedure TG2UIImage.Initialize;
+begin
+  m_Texture := nil;
+end;
+
+procedure TG2UIImage.OnRender;
+begin
+  if m_Texture <> nil then
+  GUI.Render2D.DrawRect(
+    RectGlobal.Left, RectGlobal.Top,
+    RectGlobal.Right - RectGlobal.Left + 1, RectGlobal.Bottom - RectGlobal.Top + 1,
+    $ffffffff, m_Texture
+  );
+end;
+//TG2UIImage END
 
 //TG2UIButton BEGIN
 procedure TG2UIButton.AdjustLabel;
@@ -19506,17 +19625,31 @@ begin
   m_Label.Y := (m_RectClient.Bottom - m_RectClient.Top + 1 - m_Label.Height) div 2;
 end;
 
+procedure TG2UIButton.AdjustImage;
+begin
+  if m_Image.Texture <> nil then
+  begin
+    m_Image.X := (ClientWidth - m_Image.Width) div 2;
+    m_Image.Y := (ClientHeight - m_Image.Height) div 2;
+  end;
+end;
+
 procedure TG2UIButton.Initialize;
 begin
+  m_Image := TG2UIImage.Create(GUI);
+  m_Image.Parent := Self;
+  m_Image.CanInput := False;
   m_Label := TG2UILabel.Create(GUI);
   m_Label.Parent := Self;
   m_Label.OnChange := AdjustLabel;
   m_Label.Text := 'Button';
+  m_Label.CanInput := False;
 end;
 
 procedure TG2UIButton.Finalize;
 begin
   m_Label.Free;
+  m_Image.Free;
 end;
 
 procedure TG2UIButton.ClientRectAdjust;
@@ -19526,6 +19659,7 @@ begin
   m_RectClient.Right := Width - 1 - 4;
   m_RectClient.Bottom := Height - 1 - 4;
   AdjustLabel;
+  AdjustImage;
 end;
 
 procedure TG2UIButton.OnRender;
@@ -19534,11 +19668,93 @@ begin
   if IsMouseDown then
   GUI.Skin.DrawTemplate('ButtonDown', RectGlobal)
   else if IsMouseOver then
-  GUI.Skin.DrawTemplate('ButtonHover', RectGlobal)
+  GUI.Skin.DrawTemplate('ButtonOver', RectGlobal)
   else
   GUI.Skin.DrawTemplate('Button', RectGlobal);
 end;
+
+function TG2UIButton.GetImage: TG2Texture2D;
+begin
+  Result := m_Image.Texture;
+end;
+
+procedure TG2UIButton.SetImage(const Value: TG2Texture2D);
+begin
+  m_Image.Texture := Value;
+  AdjustImage;
+end;
+
+function TG2UIButton.GetImageWidth: Integer;
+begin
+  Result := m_Image.Width;
+end;
+
+procedure TG2UIButton.SetImageWidth(const Value: Integer);
+begin
+  m_Image.Width := Value;
+  AdjustImage;
+end;
+
+function TG2UIButton.GetImageHeight: Integer;
+begin
+  Result := m_Image.Height;
+end;
+
+procedure TG2UIButton.SetImageHeight(const Value: Integer);
+begin
+  m_Image.Height := Value;
+  AdjustImage;
+end;
+
+function TG2UIButton.GetCaption: AnsiString;
+begin
+  Result := m_Label.Text;
+end;
+
+procedure TG2UIButton.SetCaption(const Value: AnsiString);
+begin
+  m_Label.Text := Value;
+end;
 //TG2UIButton END
+
+//TG2UIButtonSwitch BEGIN
+procedure TG2UIButtonSwitch.Initialize;
+begin
+  inherited Initialize;
+  m_SwitchGroup := 0;
+  m_Switch := False;
+end;
+
+procedure TG2UIButtonSwitch.OnMouseDown(const Button: Byte);
+begin
+  Switch := True;
+end;
+
+procedure TG2UIButtonSwitch.SetSwitch(const Value: Boolean);
+  var i: Integer;
+begin
+  m_Switch := Value;
+  if m_Switch
+  and (m_SwitchGroup > 0)
+  and (Parent <> nil) then
+  for i := 0 to Parent.SubFrameCount - 1 do
+  begin
+    if (Parent.SubFrames[i] is TG2UIButtonSwitch)
+    and (TG2UIButtonSwitch(Parent.SubFrames[i]).SwitchGroup = m_SwitchGroup) then
+    TG2UIButtonSwitch(Parent.SubFrames[i]).Switch := False;
+  end;
+end;
+
+procedure TG2UIButtonSwitch.OnRender;
+begin
+  if Switch then
+  GUI.Skin.DrawTemplate('ButtonDown', RectGlobal)
+  else if IsMouseOver then
+  GUI.Skin.DrawTemplate('ButtonOver', RectGlobal)
+  else
+  GUI.Skin.DrawTemplate('Button', RectGlobal);
+end;
+//TG2UIButtonSwitch END
 
 //TG2UILabel BEGIN
 procedure TG2UILabel.SetText(const Value: AnsiString);
@@ -19558,7 +19774,8 @@ end;
 procedure TG2UILabel.Initialize;
 begin
   m_Font := GUI.Core.Graphics.Shared.RequestFont('Arial', 12);
-  Text := 'Lable';
+  m_FontColor := $ff000000;
+  Text := 'Label';
   m_OnChange := nil;
 end;
 
@@ -19566,7 +19783,7 @@ procedure TG2UILabel.OnRender;
 begin
   m_Font.Print(
     RectGlobal.Left, RectGlobal.Top,
-    $ff000000, m_Text
+    m_FontColor, m_Text
   );
 end;
 //TG2UILabel END
@@ -24503,6 +24720,28 @@ begin
   y1 := y - 0.5;
   x2 := x + Texture.Width - 1 + 0.5;
   y2 := y + Texture.Height - 1 + 0.5;
+  Result := DrawQuad(
+    G2Vec2(x1, y1), G2Vec2(x2, y1),
+    G2Vec2(x1, y2), G2Vec2(x2, y2),
+    $ffffffff, $ffffffff, $ffffffff, $ffffffff,
+    Texture,
+    G2Vec2(Texture.DrawRect^.Left, Texture.DrawRect^.Top),
+    G2Vec2(Texture.DrawRect^.Right, Texture.DrawRect^.Top),
+    G2Vec2(Texture.DrawRect^.Left, Texture.DrawRect^.Bottom),
+    G2Vec2(Texture.DrawRect^.Right, Texture.DrawRect^.Bottom)
+  );
+end;
+
+function TG2Render2D.DrawRect(
+      const R: TRect;
+      const Texture: TG2Texture2DBase
+    ): TG2Result;
+  var x1, y1, x2, y2: Single;
+begin
+  x1 := R.Left - 0.5;
+  y1 := R.Top - 0.5;
+  x2 := R.Right + 0.5;
+  y2 := R.Bottom + 0.5;
   Result := DrawQuad(
     G2Vec2(x1, y1), G2Vec2(x2, y1),
     G2Vec2(x1, y2), G2Vec2(x2, y2),

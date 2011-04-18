@@ -7,10 +7,10 @@ unit G2MeshLoaderG2M;
 
 {-------------------------------------------------------------------------------
 G2Mesh Format:
-  Header: String4 = "G2M "
+  Header: AnsiString4 = "G2M "
 
   Blocks:
-    Block Name: String4
+    Block Name: AnsiString4
     Block Size: Int4
 
   Block "NMAP":
@@ -20,7 +20,7 @@ G2Mesh Format:
   Block "NDAT":
     Nodes[NodeCount]:
       OwnerID: Int4
-      NodeName: StringNT
+      NodeName: AnsiStringNT
       NodeTransform: Mat4x3
 
   Block "GMAP":
@@ -54,7 +54,7 @@ G2Mesh Format:
 
   Block "ADAT":
     Animations[AnimCount]:
-      Name: StringNT
+      Name: AnsiStringNT
       FrameCount: Int4
       FPS: Int4
       AnimNodeCount: Int4
@@ -88,7 +88,7 @@ G2Mesh Format:
     Materials[MaterialCount]:
       ChannelCount: Int4
       Channels[ChannelCount]:
-        MatName: StringNT
+        MatName: AnsiStringNT
         TwoSided: Bool
         AmbientColor: Byte[3]
         DiffuseColor: Byte[3]
@@ -98,23 +98,123 @@ G2Mesh Format:
         EmmissiveColor: Byte[3]
         EmmissiveColorAmount: Float4
         AmbientMapEnable: Bool
-        AmbientMap: StringNT
+        AmbientMap: AnsiStringNT
         AmbientMapAmount: Float4
         DiffuseMapEnable: Bool
-        DiffuseMap: StringNT
+        DiffuseMap: AnsiStringNT
         DiffuseMapAmount: Float4
         SpecularMapEnable: Bool
-        SpecularMap: StringNT
+        SpecularMap: AnsiStringNT
         SpecularMapAmount: Float4
         OpacityMapEnable: Bool
-        OpacityMap: StringNT
+        OpacityMap: AnsiStringNT
         OpacityMapAmount: Float4
         IlluminationMapEnable: Bool
-        IlluminationMap: StringNT
+        IlluminationMap: AnsiStringNT
         IlluminationMapAmount: Float4
         BumpMapEnable: Bool
-        BumpMap: StringNT
+        BumpMap: AnsiStringNT
         BumpMapAmount: Float4
+-------------------------------------------------------------------------------}
+
+{-------------------------------------------------------------------------------
+G2Mesh Optimized Format:
+  Header: AnsiString4 = "G2MO"
+  NodeCount: Int4
+  GeomCount: Int4
+  SkinCount: Int4
+  AnimCount: Int4
+  MaterialCount: Int4
+  RagDollCount: Int4
+  Nodes[NodeCount]:
+    OwnerID: Int4
+    Name: AnsiString
+    Transform: Mat4x3
+  Geoms[GeomCount]:
+    NodeID: Int4
+    SkinID: Int4
+    VCount: Int4
+    FCount: Int4
+    TCount: Int4
+    Vertices[VCount]:
+      Position: Vec3
+      Tangent: Vec3
+      Binormal: Vec3
+      Normal: Vec3
+      TexCoords[TCount]: Vec2
+      Color: UInt4
+    Faces[FCount]:
+      Indices[3]: UInt2
+      Material: Int4
+    Materials[MCount]: Int4
+  Skins[SkinCount]:
+    GeomID: Int4
+    MaxWeights: Int4
+    BoneCount: Int4
+    Bones[BoneCount]:
+      NodeID: Int4
+      Bind: Mat4x3
+    Vertices[Geoms[GeomID].VCount]:
+      WeightCount: Int4
+      Weights[WeightCount]:
+        BoneID: Int4
+        Weight: Int4
+  Anims[AnimCount]:
+    Name: AnsiString
+    FrameRate: Int4
+    FrameCount: Int4
+    NodeCount: Int4
+    Nodes[NodeCount]:
+      NodeID: Int4
+      Frames[FrameCount]:
+        Scaling: Vec3
+        Rotation: Quat
+        Translation: Vec3
+  Matrtials[MaterialCount]:
+    ChannelCount: Int4
+    Channels[ChannelCount]:
+      Name: AnsiString
+      TwoSided: Bool
+      AmbientColor: UInt4
+      DiffuseColor: UInt4
+      SpecularColor: UInt4
+      SpecularColorAmount: Float4
+      SpecularPower: Float4
+      EmmissiveColor: UInt4
+      EmmissiveColorAmount: Float4
+      AmbientMapEnable: Bool
+      AmbientMap: AnsiString
+      AmbientMapAmount: Float4
+      DiffuseMapEnable: Bool
+      DiffuseMap: AnsiString
+      DiffuseMapAmount: Float4
+      SpecularMapEnable: Bool
+      SpecularMap: AnsiString
+      SpecularMapAmount: Float4
+      OpacityMapEnable: Bool
+      OpacityMap: AnsiString
+      OpacityMapAmount: Float4
+      IlluminationMapEnable: Bool
+      IlluminationMap: AnsiString
+      IlluminationMapAmount: Float4
+      BumpMapEnable: Bool
+      BumpMap: AnsiString
+      BumpMapAmount: Float4
+  RagDolls[RagDollCount]:
+    NodeID: Int4
+    Head: RagDollObject
+    Neck: RagDollObject
+    Pelvis: RagDollObject
+    BodyNodeCount: Int4
+    BodyNodes[BodyNodeCount]: RagDollObject
+    ArmRNodeCount: Int4
+    ArmRNodes[ArmRNodeCount]: RagDollObject
+    ArmLNodeCount: Int4
+    ArmLNodes[ArmLNodeCount]: RagDollObject
+    LegRNodeCount: Int4
+    LegRNodes[LegRNodeCount]: RagDollObject
+    LegLNodeCount: Int4
+    LegLNodes[LegLNodeCount]: RagDollObject
 -------------------------------------------------------------------------------}
 
 interface
@@ -318,6 +418,24 @@ type
     procedure ExportMesh(const Device: IDirect3DDevice9; const MeshData: PG2MeshData); override;
   end;
 //TG2MeshLoaderG2M END
+
+//TG2MeshLoaderG2MO BEGIN
+  TG2MeshLoaderG2MO = class (TG2MeshLoader)
+  strict private
+    var m_Stream: TStream;
+    var m_MeshData: TG2MeshData;
+    function ReadAnsiString: AnsiString;
+    function ReadMat4x3: TG2Mat;
+    function ReadRagdollObject: TG2RagdollObject;
+    function GetMeshData: PG2MeshData;
+  public
+    property MeshData: PG2MeshData read GetMeshData;
+    class function GetDifinition: AnsiString; override;
+    class function CanLoadStream(const s: TStream): Boolean; override;
+    procedure LoadStream(const s: TStream); override;
+    procedure ExportMesh(const Device: IDirect3DDevice9; const MeshData: PG2MeshData); override;
+  end;
+//TG2MeshLoaderG2MO END
 
 implementation
 
@@ -1213,7 +1331,233 @@ begin
 end;
 //TG2MeshLoaderG2M END
 
+//TG2MeshLoaderG2MO BEGIN
+function TG2MeshLoaderG2MO.ReadAnsiString: AnsiString;
+  var l: Integer;
+begin
+  m_Stream.ReadBuffer(l, 4);
+  SetLength(Result, l);
+  m_Stream.ReadBuffer(Result[1], l);
+end;
+
+function TG2MeshLoaderG2MO.ReadMat4x3: TG2Mat;
+begin
+  m_Stream.ReadBuffer(Result.e00, SizeOf(TG2Vec3));
+  m_Stream.ReadBuffer(Result.e10, SizeOf(TG2Vec3));
+  m_Stream.ReadBuffer(Result.e20, SizeOf(TG2Vec3));
+  m_Stream.ReadBuffer(Result.e30, SizeOf(TG2Vec3));
+  Result.e03 := 0;
+  Result.e13 := 0;
+  Result.e23 := 0;
+  Result.e33 := 1;
+end;
+
+function TG2MeshLoaderG2MO.ReadRagdollObject: TG2RagdollObject;
+  var i: Integer;
+begin
+  m_Stream.ReadBuffer(Result.NodeID, 4);
+  m_Stream.ReadBuffer(Result.MinV, SizeOf(TG2Vec3));
+  m_Stream.ReadBuffer(Result.MaxV, SizeOf(TG2Vec3));
+  Result.Transform := ReadMat4x3;
+  m_Stream.ReadBuffer(Result.DependantCount, 4);
+  SetLength(Result.Dependants, Result.DependantCount);
+  for i := 0 to Result.DependantCount - 1 do
+  begin
+    m_Stream.ReadBuffer(Result.Dependants[i].NodeID, 4);
+    Result.Dependants[i].Offset := ReadMat4x3;
+  end;
+end;
+
+function TG2MeshLoaderG2MO.GetMeshData: PG2MeshData;
+begin
+  Result := @m_MeshData;
+end;
+
+class function TG2MeshLoaderG2MO.GetDifinition: AnsiString;
+begin
+  Result := 'Gen2 Optimized Mesh Loader';
+end;
+
+class function TG2MeshLoaderG2MO.CanLoadStream(const s: TStream): Boolean;
+var
+  Def: AnsiString;
+  Pos: Int64;
+begin
+  Pos := s.Position;
+  SetLength(Def, 4);
+  s.Read(Def[1], 4);
+  s.Position := Pos;
+  Result := Def = 'G2MO';
+end;
+
+procedure TG2MeshLoaderG2MO.LoadStream(const s: TStream);
+  var Def: array[0..3] of AnsiChar;
+  var i, j, t: Integer;
+begin
+  m_Stream := s;
+  s.ReadBuffer(Def, 4);
+  if Def <> 'G2MO' then Exit;
+  s.ReadBuffer(m_MeshData.NodeCount, 4);
+  SetLength(m_MeshData.Nodes, m_MeshData.NodeCount);
+  s.ReadBuffer(m_MeshData.GeomCount, 4);
+  SetLength(m_MeshData.Geoms, m_MeshData.GeomCount);
+  s.ReadBuffer(m_MeshData.SkinCount, 4);
+  SetLength(m_MeshData.Skins, m_MeshData.SkinCount);
+  s.ReadBuffer(m_MeshData.AnimCount, 4);
+  SetLength(m_MeshData.Anims, m_MeshData.AnimCount);
+  s.ReadBuffer(m_MeshData.MaterialCount, 4);
+  SetLength(m_MeshData.Materials, m_MeshData.MaterialCount);
+  s.ReadBuffer(m_MeshData.RagDollCount, 4);
+  SetLength(m_MeshData.RagDolls, m_MeshData.RagDollCount);
+  for i := 0 to m_MeshData.NodeCount - 1 do
+  begin
+    s.ReadBuffer(m_MeshData.Nodes[i].OwnerID, 4);
+    m_MeshData.Nodes[i].Name := ReadAnsiString;
+    m_MeshData.Nodes[i].Transform := ReadMat4x3;
+  end;
+  for i := 0 to m_MeshData.GeomCount - 1 do
+  begin
+    s.ReadBuffer(m_MeshData.Geoms[i].NodeID, 4);
+    s.ReadBuffer(m_MeshData.Geoms[i].SkinID, 4);
+    s.ReadBuffer(m_MeshData.Geoms[i].VCount, 4);
+    s.ReadBuffer(m_MeshData.Geoms[i].FCount, 4);
+    s.ReadBuffer(m_MeshData.Geoms[i].TCount, 4);
+    s.ReadBuffer(m_MeshData.Geoms[i].MCount, 4);
+    SetLength(m_MeshData.Geoms[i].Vertices, m_MeshData.Geoms[i].VCount);
+    for j := 0 to m_MeshData.Geoms[i].VCount - 1 do
+    begin
+      s.ReadBuffer(m_MeshData.Geoms[i].Vertices[j].Position, SizeOf(TG2Vec3));
+      s.ReadBuffer(m_MeshData.Geoms[i].Vertices[j].Tangent, SizeOf(TG2Vec3));
+      s.ReadBuffer(m_MeshData.Geoms[i].Vertices[j].Binormal, SizeOf(TG2Vec3));
+      s.ReadBuffer(m_MeshData.Geoms[i].Vertices[j].Normal, SizeOf(TG2Vec3));
+      SetLength(m_MeshData.Geoms[i].Vertices[j].TexCoords, m_MeshData.Geoms[i].TCount);
+      for t := 0 to m_MeshData.Geoms[i].TCount - 1 do
+      s.ReadBuffer(m_MeshData.Geoms[i].Vertices[j].TexCoords[t], SizeOf(TG2Vec2));
+      s.ReadBuffer(m_MeshData.Geoms[i].Vertices[j].Color, 4);
+    end;
+    SetLength(m_MeshData.Geoms[i].Faces, m_MeshData.Geoms[i].FCount);
+    for j := 0 to m_MeshData.Geoms[i].FCount - 1 do
+    begin
+      s.ReadBuffer(m_MeshData.Geoms[i].Faces[j].Indices[0], 6);
+      s.ReadBuffer(m_MeshData.Geoms[i].Faces[j].MaterialID, 4);
+    end;
+    SetLength(m_MeshData.Geoms[i].Materials, m_MeshData.Geoms[i].MCount);
+    s.ReadBuffer(m_MeshData.Geoms[i].Materials[0], 4 * m_MeshData.Geoms[i].MCount);
+  end;
+  for i := 0 to m_MeshData.SkinCount - 1 do
+  begin
+    s.ReadBuffer(m_MeshData.Skins[i].GeomID, 4);
+    s.ReadBuffer(m_MeshData.Skins[i].MaxWeights, 4);
+    s.ReadBuffer(m_MeshData.Skins[i].BoneCount, 4);
+    SetLength(m_MeshData.Skins[i].Bones, m_MeshData.Skins[i].BoneCount);
+    for j := 0 to m_MeshData.Skins[i].BoneCount - 1 do
+    begin
+      s.ReadBuffer(m_MeshData.Skins[i].Bones[j].NodeID, 4);
+      m_MeshData.Skins[i].Bones[j].Bind := ReadMat4x3;
+    end;
+    SetLength(m_MeshData.Skins[i].Vertices, m_MeshData.Geoms[m_MeshData.Skins[i].GeomID].VCount);
+    for j := 0 to m_MeshData.Geoms[m_MeshData.Skins[i].GeomID].VCount - 1 do
+    begin
+      s.ReadBuffer(m_MeshData.Skins[i].Vertices[j].WeightCount, 4);
+      SetLength(m_MeshData.Skins[i].Vertices[j].Weights, m_MeshData.Skins[i].Vertices[j].WeightCount);
+      for t := 0 to m_MeshData.Skins[i].Vertices[j].WeightCount - 1 do
+      begin
+        s.ReadBuffer(m_MeshData.Skins[i].Vertices[j].Weights[t].BoneID, 4);
+        s.ReadBuffer(m_MeshData.Skins[i].Vertices[j].Weights[t].Weight, 4);
+      end;
+    end;
+  end;
+  for i := 0 to m_MeshData.AnimCount - 1 do
+  begin
+    m_MeshData.Anims[i].Name := ReadAnsiString;
+    s.ReadBuffer(m_MeshData.Anims[i].FrameRate, 4);
+    s.ReadBuffer(m_MeshData.Anims[i].FrameCount, 4);
+    s.ReadBuffer(m_MeshData.Anims[i].NodeCount, 4);
+    SetLength(m_MeshData.Anims[i].Nodes, m_MeshData.Anims[i].NodeCount);
+    for j := 0 to m_MeshData.Anims[i].NodeCount - 1 do
+    begin
+      s.ReadBuffer(m_MeshData.Anims[i].Nodes[j].NodeID, 4);
+      SetLength(m_MeshData.Anims[i].Nodes[j].Frames, m_MeshData.Anims[i].FrameCount);
+      for t := 0 to m_MeshData.Anims[i].FrameCount - 1 do
+      begin
+        s.ReadBuffer(m_MeshData.Anims[i].Nodes[j].Frames[t].Scaling, SizeOf(TG2Vec3));
+        s.ReadBuffer(m_MeshData.Anims[i].Nodes[j].Frames[t].Rotation, SizeOf(TG2Quat));
+        s.ReadBuffer(m_MeshData.Anims[i].Nodes[j].Frames[t].Translation, SizeOf(TG2Vec3));
+      end;
+    end;
+  end;
+  for i := 0 to m_MeshData.MaterialCount - 1 do
+  begin
+    s.ReadBuffer(m_MeshData.Materials[i].ChannelCount, 4);
+    SetLength(m_MeshData.Materials[i].Channels, m_MeshData.Materials[i].ChannelCount);
+    for j := 0 to m_MeshData.Materials[i].ChannelCount - 1 do
+    begin
+      m_MeshData.Materials[i].Channels[j].Name := ReadAnsiString;
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].TwoSided, 1);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].AmbientColor, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].DiffuseColor, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].SpecularColor, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].SpecularColorAmount, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].SpecularPower, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].EmmissiveColor, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].EmmissiveColorAmount, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].AmbientMapEnable, 1);
+      m_MeshData.Materials[i].Channels[j].AmbientMap := ReadAnsiString;
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].AmbientMapAmount, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].DiffuseMapEnable, 1);
+      m_MeshData.Materials[i].Channels[j].DiffuseMap := ReadAnsiString;
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].DiffuseMapAmount, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].SpecularMapEnable, 1);
+      m_MeshData.Materials[i].Channels[j].SpecularMap := ReadAnsiString;
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].SpecularMapAmount, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].OpacityMapEnable, 1);
+      m_MeshData.Materials[i].Channels[j].OpacityMap := ReadAnsiString;
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].OpacityMapAmount, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].LightMapEnable, 1);
+      m_MeshData.Materials[i].Channels[j].LightMap := ReadAnsiString;
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].LightMapAmount, 4);
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].NormalMapEnable, 1);
+      m_MeshData.Materials[i].Channels[j].NormalMap := ReadAnsiString;
+      s.ReadBuffer(m_MeshData.Materials[i].Channels[j].NormalMapAmount, 4);
+    end;
+  end;
+  for i := 0 to m_MeshData.RagDollCount - 1 do
+  begin
+    s.ReadBuffer(m_MeshData.RagDolls[i].NodeID, 4);
+    m_MeshData.RagDolls[i].Head := ReadRagDollObject;
+    m_MeshData.RagDolls[i].Neck := ReadRagDollObject;
+    m_MeshData.RagDolls[i].Pelvis := ReadRagDollObject;
+    s.ReadBuffer(m_MeshData.RagDolls[i].BodyNodeCount, 4);
+    SetLength(m_MeshData.RagDolls[i].BodyNodes, m_MeshData.RagDolls[i].BodyNodeCount);
+    for j := 0 to m_MeshData.RagDolls[i].BodyNodeCount - 1 do
+    m_MeshData.RagDolls[i].BodyNodes[j] := ReadRagdollObject;
+    s.ReadBuffer(m_MeshData.RagDolls[i].ArmRNodeCount, 4);
+    SetLength(m_MeshData.RagDolls[i].ArmRNodes, m_MeshData.RagDolls[i].ArmRNodeCount);
+    for j := 0 to m_MeshData.RagDolls[i].ArmRNodeCount - 1 do
+    m_MeshData.RagDolls[i].ArmRNodes[j] := ReadRagdollObject;
+    s.ReadBuffer(m_MeshData.RagDolls[i].ArmLNodeCount, 4);
+    SetLength(m_MeshData.RagDolls[i].ArmLNodes, m_MeshData.RagDolls[i].ArmLNodeCount);
+    for j := 0 to m_MeshData.RagDolls[i].ArmLNodeCount - 1 do
+    m_MeshData.RagDolls[i].ArmLNodes[j] := ReadRagdollObject;
+    s.ReadBuffer(m_MeshData.RagDolls[i].LegRNodeCount, 4);
+    SetLength(m_MeshData.RagDolls[i].LegRNodes, m_MeshData.RagDolls[i].LegRNodeCount);
+    for j := 0 to m_MeshData.RagDolls[i].LegRNodeCount - 1 do
+    m_MeshData.RagDolls[i].LegRNodes[j] := ReadRagdollObject;
+    s.ReadBuffer(m_MeshData.RagDolls[i].LegLNodeCount, 4);
+    SetLength(m_MeshData.RagDolls[i].LegLNodes, m_MeshData.RagDolls[i].LegLNodeCount);
+    for j := 0 to m_MeshData.RagDolls[i].LegLNodeCount - 1 do
+    m_MeshData.RagDolls[i].LegLNodes[j] := ReadRagdollObject;
+  end;
+end;
+
+procedure TG2MeshLoaderG2MO.ExportMesh(const Device: IDirect3DDevice9; const MeshData: PG2MeshData);
+begin
+  G2MeshDataCopy(@m_MeshData, MeshData);
+end;
+//TG2MeshLoaderG2MO END
+
 initialization
   G2RegMeshLoader(TG2MeshLoaderG2M);
+  G2RegMeshLoader(TG2MeshLoaderG2MO);
 
 end.
