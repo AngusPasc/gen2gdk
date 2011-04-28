@@ -156,7 +156,7 @@ type
     var OcclusionQuery: IDirect3DQuery9;
     var OcclusionTest: Boolean;
     var OcclusionVisible: Boolean;
-    var OcclusioonTestTime: DWord;
+    var OcclusionTestTime: DWord;
     procedure Init;
     procedure UnInit;
   end;
@@ -568,7 +568,7 @@ begin
   );
   OcclusionTest := False;
   OcclusionVisible := True;
-  OcclusioonTestTime := GetTickCount - 1000;
+  OcclusionTestTime := GetTickCount - 1000;
 end;
 
 procedure TG2SGQueryLink.UnInit;
@@ -1225,21 +1225,21 @@ begin
         begin
           DataSize := Link^.OcclusionQuery.GetDataSize;
           while Link^.OcclusionQuery.GetData(@VisiblePixels, DataSize, D3DGETDATA_FLUSH) = S_FALSE do ;
-          Link^.OcclusionVisible := (VisiblePixels > 0);
+          Link^.OcclusionVisible := (VisiblePixels > 10);
+          Link^.OcclusionTest := False;
         end;
         if Link^.OcclusionVisible then
         begin
-          Link^.OcclusionTest := False;
           if Query^.DistanceSortEnable then
           Query^.QueryLists[Frame.QueryListID].Add(Frame, Frustum.Planes[4].DistanceToPoint((Frame.AABox.MaxV + Frame.AABox.MinV) * 0.5))
           else
           Query^.QueryLists[Frame.QueryListID].Add(Frame);
-          if GetTickCount - Link^.OcclusioonTestTime > 1000 then
+          if GetTickCount - Link^.OcclusionTestTime >= 1000 then
           Link^.OcclusionVisible := False;
         end;
         if not Link^.OcclusionVisible then
         begin
-          Link^.OcclusioonTestTime := GetTickCount;
+          Link^.OcclusionTestTime := GetTickCount;
           if Frame.AABox.PointInside(ViewPos) then
           Link^.OcclusionVisible := True
           else
@@ -1258,7 +1258,6 @@ begin
             Link^.OcclusionQuery.Issue(D3DISSUE_END);
           end;
         end;
-
       end;
     end;
     Core.Graphics.RenderStates.CullMode := PrevCullMode;
@@ -1424,8 +1423,7 @@ function TG2SceneGraph.CollideChar(const c: TG2SGChar): Boolean;
   var PrevGrounded: Boolean;
 begin
   Result := False;
-  s.SetValue(c.Transform.GetTranslation, c.Radius);
-  s.C := s.C - c.Step;
+  s.SetValue(c.Transform.GetTranslation - c.Step, c.Radius);
   AABoxTop.MinV := s.C - s.R;
   AABoxTop.MaxV := s.C + s.R;
   AABoxChar := AABoxTop + (s.C + (c.Step * 1.5));

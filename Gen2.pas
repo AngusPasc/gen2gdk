@@ -1380,6 +1380,7 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+    procedure Present;
     property SwapChain: IDirect3DSwapChain9 read m_SwapChain;
     property RenderTarget: TG2SurfaceRT read m_RenderTarget;
   end;
@@ -8966,7 +8967,7 @@ end;
 
 procedure TG2Graphics.SetRenderTargetDefault;
 begin
-  if Assigned(m_CurSwapChain) then
+  if m_CurSwapChain <> nil then
   SetRenderTargetSwapChain(m_DefaultSwapChain)
   else
   SetRenderTargetSurface(m_DefaultRenderTarget);
@@ -10869,6 +10870,11 @@ begin
   m_Gfx.Device.CreateAdditionalSwapChain(m_PresentParams, m_SwapChain);
   m_SwapChain.GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, BackBufferRT);
   m_RenderTarget.Surface := BackBufferRT;
+end;
+
+procedure TG2SwapChain.Present;
+begin
+  m_SwapChain.Present(nil, nil, 0, nil, D3DPRESENT_DONOTWAIT);
 end;
 //TG2SwapChain END
 
@@ -24101,7 +24107,7 @@ begin
   if m_Gfx.m_CurSwapChain = nil then
   hr := m_Gfx.Device.Present(nil, nil, 0, nil)
   else
-  hr := m_Gfx.m_CurSwapChain.SwapChain.Present(nil, nil, 0, nil, D3DPRESENT_DONOTWAIT); //D3DPRESENT_DONOTWAIT
+  hr := m_Gfx.m_CurSwapChain.SwapChain.Present(nil, nil, 0, nil, D3DPRESENT_DONOTWAIT);
   if Succeeded(hr) then
   Result := grOk
   else
