@@ -2207,6 +2207,7 @@ type
       FilterName: WideString
     ): IBaseFilter;
     procedure ClearGraph;
+    procedure CompleteGraph;
     procedure SetPosition(const Value: Int64);
     function GetPosition: Int64;
     function GetDuration: Int64;
@@ -2814,6 +2815,10 @@ type
       var TransformCur: TG2Mat;
       var TransformRen: TG2Mat;
     end;
+    var GeomProperties: array of record
+    public
+      var Visible: Boolean;
+    end;
     var Materials: array of record
     public
       var Name: AnsiString;
@@ -2838,7 +2843,14 @@ type
     procedure ComputeTransforms(const BoneGroup: TG2MeshBoneGroup); overload;
     procedure ComputeSkinTransforms;
     procedure Render;
-    function Pick(const Ray: TG2Ray; const OutD: PSingle = nil; const OutFaceID: PWord = nil; const OutU: PSingle = nil; const OutV: PSingle = nil): Boolean;
+    function Pick(
+      const Ray: TG2Ray;
+      const OutD: PSingle = nil;
+      const OutGeomID: PInteger = nil;
+      const OutFaceID: PWord = nil;
+      const OutU: PSingle = nil;
+      const OutV: PSingle = nil
+    ): Boolean;
   end;
 //TG2MeshInst END
 
@@ -3032,6 +3044,7 @@ type
     var m_PlugGraphics: TG2PlugGraphics;
     var m_Skin: TG2UISkin;
     var m_ClipRects: TG2QuickList;
+    var m_Overlay: TG2UIFrame;
     var m_Render2D: TG2Render2D;
     var m_Prim2D: TG2Primitives2D;
     procedure InitBuffers;
@@ -3057,24 +3070,25 @@ type
     var IB: TG2IB;
     var Skins: TG2QuickList;
     var MouseDownPos: TPoint;
+    var RenderOverlays: Boolean;
     class function ParentToClientRect(const RectParent, RectClient: TRect): TRect;
     class function ClipRect(const Rect1, Rect2: TRect): TRect;
-    procedure UpdateRects;
-    function FrameAtPoint(const Pt: TPoint): TG2UIFrame;
-    procedure PushClipRect(const R: TRect);
-    procedure PopClipRect;
   public
     property Root: TG2UIFrame read m_Root;
     property Skin: TG2UISkin read m_Skin write m_Skin;
     property PlugInput: TG2PlugInput read m_PlugInput;
     property Render2D: TG2Render2D read m_Render2D;
     property Prim2D: TG2Primitives2D read m_Prim2D;
+    property Overlay: TG2UIFrame read m_Overlay write m_Overlay;
     constructor Create; override;
     destructor Destroy; override;
     function Initialize(const G2Core: TG2Core): TG2Result; override;
     function Finalize: TG2Result; override;
     procedure Update;
     procedure Render;
+    function FrameAtPoint(const Pt: TPoint): TG2UIFrame;
+    procedure PushClipRect(const R: TRect);
+    procedure PopClipRect;
   end;
 //TG2UI END
 
@@ -3115,8 +3129,10 @@ type
   TG2UIFrame = class
   strict private
     var m_Parent: TG2UIFrame;
-    var m_SubFrames: TG2QuickList;
+    var m_SubFrames: TG2QuickSortList;
     var m_Initialized: Boolean;
+    var m_Visible: Boolean;
+    var m_Order: Integer;
     procedure SetParent(const Value: TG2UIFrame); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetSubFrameCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetSubFrame(const Index: Integer): TG2UIFrame; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -3136,6 +3152,7 @@ type
     procedure SetHeight(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetClientWidth: Integer;
     function GetClientHeight: Integer;
+    procedure SetOrder(const Value: Integer);
   strict protected
     var m_RectSelf: TRect;
     var m_RectClient: TRect;
@@ -3183,6 +3200,8 @@ type
     property RectLocal: TRect read m_RectSelf;
     property RectGlobal: TRect read RectScreen;
     property RectClient: TRect read m_RectClient;
+    property Visible: Boolean read m_Visible write m_Visible;
+    property Order: Integer read m_Order write SetOrder;
     constructor Create(const OwnerGUI: TG2UI);
     destructor Destroy; override;
     procedure Update;
@@ -3217,6 +3236,8 @@ type
 
 //TG2UIButton BEGIN
   TG2UIButton = class (TG2UIFrame)
+  strict private
+    var m_ProcOnClick: TG2ProcObj;
   strict protected
     var m_Label: TG2UILabel;
     var m_Image: TG2UIImage;
@@ -3227,6 +3248,7 @@ type
     procedure Finalize; override;
     procedure ClientRectAdjust; override;
     procedure OnRender; override;
+    procedure OnMouseUp(const Button: Byte); override;
     function GetImage: TG2Texture2D;
     procedure SetImage(const Value: TG2Texture2D);
     function GetImageWidth: Integer;
@@ -3241,6 +3263,7 @@ type
     property ImageWidth: Integer read GetImageWidth write SetImageWidth;
     property ImageHeight: Integer read GetImageHeight write SetImageHeight;
     property Caption: AnsiString read GetCaption write SetCaption;
+    property OnClick: TG2ProcObj read m_ProcOnClick write m_ProcOnClick;
   end;
 //TG2UIButton END
 
@@ -3249,6 +3272,7 @@ type
   strict protected
     var m_SwitchGroup: Integer;
     var m_Switch: Boolean;
+    var m_ProcOnSwitch: TG2ProcObj;
     procedure Initialize; override;
     procedure OnMouseDown(const Button: Byte); override;
     procedure SetSwitch(const Value: Boolean);
@@ -3256,6 +3280,7 @@ type
   public
     property SwitchGroup: Integer read m_SwitchGroup write m_SwitchGroup;
     property Switch: Boolean read m_Switch write SetSwitch;
+    property OnSwitch: TG2ProcObj read m_ProcOnSwitch write m_ProcOnSwitch;
   end;
 //TG2UIButtonSwitch END
 
@@ -4373,6 +4398,16 @@ type
     end;
     type TVertex2Array = array[0..3] of TVertex2;
     type PVertex2Array = ^TVertex2Array;
+    type TVertex3 = packed record
+    public
+      var x, y, z, rhw: Single;
+      var Color: TG2Color;
+      var tu1, tv1: Single;
+      var tu2, tv2: Single;
+      var tu3, tv3: Single;
+    end;
+    type TVertex3Array = array[0..3] of TVertex3;
+    type PVertex3Array = ^TVertex3Array;
     type TDrawQuadFunc = function (
       const v1, v2, v3, v4: TG2Vec2;
       const c1, c2, c3, c4: TG2Color;
@@ -4390,6 +4425,8 @@ type
     var m_VBSize: Integer;
     var m_VB2: IDirect3DVertexBuffer9;
     var m_VB2Size: Integer;
+    var m_VB3: IDirect3DVertexBuffer9;
+    var m_VB3Size: Integer;
     var m_IB: IDirect3DIndexBuffer9;
     var m_IBSize: Integer;
     var m_IBBatch: TG2IB;
@@ -4414,8 +4451,10 @@ type
     var m_BaseVertexIndex: DWord;
     const FVF = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX1;
     const FVF2 = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX2;
+    const FVF3 = D3DFVF_XYZRHW or D3DFVF_DIFFUSE or D3DFVF_TEX3;
     function VerifyBuffer(const Size: Integer): TG2Result;
     function VerifyBuffer2(const Size: Integer): TG2Result;
+    function VerifyBuffer3(const Size: Integer): TG2Result;
     function VerifyIndices(const Size: Integer): TG2Result;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
@@ -4509,6 +4548,16 @@ type
       const t0c1, t0c2, t0c3, t0c4: TG2Vec2;
       const Texture1: TG2Texture2DBase;
       const t1c1, t1c2, t1c3, t1c4: TG2Vec2
+    ): TG2Result;
+    function DrawQuad3(
+      const v1, v2, v3, v4: TG2Vec2;
+      const c1, c2, c3, c4: TG2Color;
+      const Texture0: TG2Texture2DBase;
+      const t0c1, t0c2, t0c3, t0c4: TG2Vec2;
+      const Texture1: TG2Texture2DBase;
+      const t1c1, t1c2, t1c3, t1c4: TG2Vec2;
+      const Texture2: TG2Texture2DBase;
+      const t2c1, t2c2, t2c3, t2c4: TG2Vec2
     ): TG2Result;
     function DrawQuadRaw(
       const v1, v2, v3, v4: TG2Vec2;
@@ -14740,9 +14789,8 @@ begin
 end;
 
 procedure TG2Texture2DVideo.ClearGraph;
-var
-  Filter: IBaseFilter;
-  Enum: IEnumFilters;
+  var Filter: IBaseFilter;
+  var Enum: IEnumFilters;
 begin
   if Assigned(m_Control) then
   m_Control.Stop;
@@ -14754,6 +14802,39 @@ begin
       m_Graph.RemoveFilter(Filter);
       SafeRelease(Filter);
       Enum.Reset;
+    end;
+  end;
+end;
+
+procedure TG2Texture2DVideo.CompleteGraph;
+  var Filter: IBaseFilter;
+  var Enum: IEnumFilters;
+  var Pin, PinIn: IPin;
+  var EnumPins: IEnumPins;
+  var PinInfo: TPinInfo;
+begin
+  if Assigned(m_Graph)
+  and Succeeded(m_Graph.EnumFilters(Enum)) then
+  begin
+    while Enum.Next(1, Filter, nil) = S_OK do
+    begin
+      Filter.EnumPins(EnumPins);
+      while EnumPins.Next(1, Pin, nil) = S_OK do
+      begin
+        Pin.QueryPinInfo(PinInfo);
+        if PinInfo.dir = PINDIR_OUTPUT then
+        begin
+          Pin.ConnectedTo(PinIn);
+          if not Assigned(PinIn) then
+          begin
+            try
+              m_Graph.Render(Pin);
+            finally
+            end;
+          end;
+          SafeRelease(PinIn);
+        end;
+      end;
     end;
   end;
 end;
@@ -14882,8 +14963,11 @@ end;
 
 function TG2Texture2DVideo.StreamFile(const f: WideString): TG2Result;
 var
+  FileSourceBase: IBaseFilter;
+  FileSource: IFileSourceFilter;
   FilterConfig: IVMRFilterConfig9;
   CurPin: IPin;
+  FileSourcePin: IPin;
   EnumPins: IEnumPins;
   PinInfo: TPinInfo;
 begin
@@ -14943,6 +15027,36 @@ begin
       Exit;
     end;
     m_AllocatorPresenter := TG2VMRAllocatorPresenter.Create(Self);
+    FileSourceBase := AddFilter(CLSID_AsyncReader, 'FileSource');
+    FileSourceBase.QueryInterface(IID_IFileSourceFilter, FileSource);
+    if not Assigned(FileSource) then
+    begin
+      Release;
+      Result := grFail;
+      Exit;
+    end;
+    if Failed(FileSource.Load(PWideChar(f), nil)) then
+    begin
+      Release;
+      Result := grFail;
+      Exit;
+    end;
+    FileSourceBase.EnumPins(EnumPins);
+    while EnumPins.Next(1, CurPin, nil) = S_OK do
+    begin
+      CurPin.QueryPinInfo(PinInfo);
+      if PinInfo.dir = PINDIR_OUTPUT then
+      begin
+        FileSourcePin := CurPin;
+        Break;
+      end;
+    end;
+    if not Assigned(FileSourcePin) then
+    begin
+      Release;
+      Result := grFail;
+      Exit;
+    end;
     m_VMR := AddFilter(CLSID_VideoMixingRenderer9, 'VMR9');
     if not Assigned(m_VMR) then
     begin
@@ -14972,14 +15086,6 @@ begin
       Result := grFail;
       Exit;
     end;
-    if Failed(
-      m_Graph.RenderFile(PWideChar(f), nil)
-    ) then
-    begin
-      Release;
-      Result := grFail;
-      Exit;
-    end;
     m_VMR.EnumPins(EnumPins);
     while EnumPins.Next(1, CurPin, nil) = S_OK do
     begin
@@ -14990,7 +15096,19 @@ begin
         Break;
       end;
     end;
-    if Assigned(m_PinIn) then
+    if not Assigned(m_PinIn) then
+    begin
+      Release;
+      Result := grFail;
+      Exit;
+    end;
+    if Failed(m_Graph.Connect(FileSourcePin, m_PinIn)) then
+    begin
+      Release;
+      Result := grFail;
+      Exit;
+    end;
+    CompleteGraph;
     m_PinIn.ConnectedTo(m_PinOut);
     m_Loaded := True;
     Result := grOk;
@@ -16419,7 +16537,7 @@ begin
     cy := (CharHeight - m_Props[XChar].Height) div 2;
     m_Props[XChar].OffsetX := -cx;
     m_Props[XChar].OffsetY := -cy;
-    bmp.Canvas.TextOut(i * CharWidth + cx, j * CharHeight + cy, AnsiChar(XChar));
+    bmp.Canvas.TextOut(i * CharWidth + cx, j * CharHeight + cy, String(AnsiChar(XChar)));
   end;
   for j := 0 to h - 1 do
   begin
@@ -17517,35 +17635,43 @@ procedure TG2MeshInst.SetMesh(const Value: TG2Mesh);
 var
   i, r: Integer;
 begin
-  m_Mesh := Value;
-  m_Effect := m_Mesh.Effect;
-  SetLength(Materials, m_Mesh.MaterialCount);
-  for i := 0 to m_Mesh.MaterialCount - 1 do
+  if Value <> m_Mesh then
   begin
-    Materials[i].Name := m_Mesh.Materials[i].Name;
-    Materials[i].TwoSided := m_Mesh.Materials[i].TwoSided;
-  end;
-  r := 0;
-  SetLength(m_RootNodes, m_Mesh.NodeCount);
-  SetLength(NodeTransforms, m_Mesh.NodeCount);
-  SetLength(m_TempMat, m_Mesh.NodeCount);
-  for i := 0 to m_Mesh.NodeCount - 1 do
-  begin
-    if m_Mesh.Nodes[i].OwnerID = -1 then
+    m_Mesh := Value;
+    m_Effect := m_Mesh.Effect;
+    SetLength(Materials, m_Mesh.MaterialCount);
+    for i := 0 to m_Mesh.MaterialCount - 1 do
     begin
-      m_RootNodes[r] := i;
-      Inc(r);
+      Materials[i].Name := m_Mesh.Materials[i].Name;
+      Materials[i].TwoSided := m_Mesh.Materials[i].TwoSided;
     end;
-    NodeTransforms[i].TransformDef := m_Mesh.Nodes[i].Transform;
-    NodeTransforms[i].TransformCur := NodeTransforms[i].TransformDef;
-    NodeTransforms[i].TransformRen.SetIdentity;
+    SetLength(GeomProperties, m_Mesh.GeomCount);
+    for i := 0 to m_Mesh.GeomCount - 1 do
+    begin
+      GeomProperties[i].Visible := m_Mesh.Geoms[i].Visible;
+    end;
+    r := 0;
+    SetLength(m_RootNodes, m_Mesh.NodeCount);
+    SetLength(NodeTransforms, m_Mesh.NodeCount);
+    SetLength(m_TempMat, m_Mesh.NodeCount);
+    for i := 0 to m_Mesh.NodeCount - 1 do
+    begin
+      if m_Mesh.Nodes[i].OwnerID = -1 then
+      begin
+        m_RootNodes[r] := i;
+        Inc(r);
+      end;
+      NodeTransforms[i].TransformDef := m_Mesh.Nodes[i].Transform;
+      NodeTransforms[i].TransformCur := NodeTransforms[i].TransformDef;
+      NodeTransforms[i].TransformRen.SetIdentity;
+    end;
+    SetLength(m_RootNodes, r);
+    SetLength(m_SkinTransforms, m_Mesh.GeomCount);
+    for i := 0 to m_Mesh.GeomCount - 1 do
+    if m_Mesh.Geoms[i].Skinned then
+    SetLength(m_SkinTransforms[i], m_Mesh.Geoms[i].BoneCount);
+    ComputeTransforms;
   end;
-  SetLength(m_RootNodes, r);
-  SetLength(m_SkinTransforms, m_Mesh.GeomCount);
-  for i := 0 to m_Mesh.GeomCount - 1 do
-  if m_Mesh.Geoms[i].Skinned then
-  SetLength(m_SkinTransforms[i], m_Mesh.Geoms[i].BoneCount);
-  ComputeTransforms;
 end;
 
 function TG2MeshInst.GetSkinTransforms(const Index: Integer): PG2Mat;
@@ -17633,7 +17759,7 @@ begin
   W := m_Mesh.Core.Graphics.Transforms.W[0];
   m_Mesh.Core.Graphics.Transforms.PushW;
   for i := 0 to m_Mesh.GeomCount - 1 do
-  if m_Mesh.Geoms[i].Visible then
+  if GeomProperties[i].Visible then
   begin
     if m_AutoFrustumCull then
     begin
@@ -17756,7 +17882,7 @@ begin
   CurTechnique := nil;
   PassOpen := False;
   for i := 0 to m_Mesh.GeomCount - 1 do
-  if m_Mesh.Geoms[i].Visible then
+  if GeomProperties[i].Visible then
   begin
     if m_AutoFrustumCull then
     begin
@@ -18094,7 +18220,14 @@ begin
   end;
 end;
 
-function TG2MeshInst.Pick(const Ray: TG2Ray; const OutD: PSingle = nil; const OutFaceID: PWord = nil; const OutU: PSingle = nil; const OutV: PSingle = nil): Boolean;
+function TG2MeshInst.Pick(
+  const Ray: TG2Ray;
+  const OutD: PSingle = nil;
+  const OutGeomID: PInteger = nil;
+  const OutFaceID: PWord = nil;
+  const OutU: PSingle = nil;
+  const OutV: PSingle = nil
+): Boolean;
   var VCount, i, j: Integer;
   var t: Word;
   var W, m: TG2Mat;
@@ -18103,6 +18236,7 @@ function TG2MeshInst.Pick(const Ray: TG2Ray; const OutD: PSingle = nil; const Ou
   var CurD, CurU, CurV: Single;
   var FinD, FinU, FinV: Single;
   var FinFaceID: Word;
+  var FinGeomID: Integer;
   var FirstHit: Boolean;
   var v: PG2Vec3;
   var tmpv: TG2Vec3;
@@ -18110,7 +18244,7 @@ function TG2MeshInst.Pick(const Ray: TG2Ray; const OutD: PSingle = nil; const Ou
   var bw: Single;
 begin
   Result := False;
-  FinU := 0; FinV := 0; FinD := 0; FinFaceID := 0;
+  FinU := 0; FinV := 0; FinD := 0; FinFaceID := 0; FinGeomID := 0;
   for i := 0 to m_Mesh.GeomCount - 1 do
   if Ray.IntersectAABox((GetGeomBBox(i) * m_Mesh.Core.Graphics.Transforms.W[0]).AABox) then
   begin
@@ -18173,6 +18307,7 @@ begin
           FinU := CurU;
           FinV := CurV;
           FinD := CurD;
+          FinGeomID := i;
           FinFaceID := j;
           Result := True;
         end;
@@ -18183,6 +18318,7 @@ begin
   if Result then
   begin
     if Assigned(OutD) then OutD^ := FinD;
+    if Assigned(OutGeomID) then OutGeomID^ := FinGeomID;
     if Assigned(OutFaceID) then OutFaceID^ := FinFaceID;
     if Assigned(OutU) then OutU^ := FinU;
     if Assigned(OutV) then OutV^ := FinV;
@@ -18818,11 +18954,18 @@ begin
   Frame := FrameAtPoint(MouseDownPos);
   if Frame <> nil then
   Frame.OnMouseDown(Button);
+  if m_Overlay <> nil then
+  m_Overlay.OnMouseDown(Button);
 end;
 
 procedure TG2UI.OnMouseUp(const Button: Byte);
+  var Frame: TG2UIFrame;
 begin
-
+  Frame := FrameAtPoint(MouseDownPos);
+  if Frame <> nil then
+  Frame.OnMouseUp(Button);
+  if m_Overlay <> nil then
+  m_Overlay.OnMouseUp(Button);
 end;
 
 procedure TG2UI.OnMouseMove(const Shift: TPoint);
@@ -18849,71 +18992,6 @@ begin
   if Rect1.Top > Rect2.Top then Result.Top := Rect1.Top else Result.Top := Rect2.Top;
   if Rect1.Right < Rect2.Right then Result.Right := Rect1.Right else Result.Right := Rect2.Right;
   if Rect1.Bottom < Rect2.Bottom then Result.Bottom := Rect1.Bottom else Result.Bottom := Rect2.Bottom;
-end;
-
-procedure TG2UI.UpdateRects;
-  procedure ProcessFrame(const Frame: TG2UIFrame);
-    var r: TRect;
-  begin
-    if Frame.Parent = nil then
-    begin
-      Frame.RectScreen := Frame.RectLocal;
-      Frame.RectClip := Frame.RectLocal;
-    end
-    else
-    begin
-      r := ParentToClientRect(Frame.Parent.RectScreen, Frame.Parent.RectClient);
-      Frame.RectScreen := ParentToClientRect(r, Frame.RectLocal);
-      Frame.RectClip := ClipRect(r, Frame.Parent.RectClip);
-    end;
-  end;
-begin
-  ProcessFrame(m_Root);
-end;
-
-function TG2UI.FrameAtPoint(const Pt: TPoint): TG2UIFrame;
-  var TargetFrame: TG2UIFrame;
-  procedure CheckFrame(const Frame: TG2UIFrame);
-    var i: Integer;
-    var R: TRect;
-  begin
-    R := ClipRect(Frame.RectScreen, Frame.RectClip);
-    if PtInRect(R, Pt) then
-    begin
-      TargetFrame := Frame;
-      for i := 0 to Frame.SubFrameCount - 1 do
-      if Frame.SubFrames[i].CanInput then
-      CheckFrame(Frame.SubFrames[i]);
-    end;
-  end;
-begin
-  TargetFrame := nil;
-  CheckFrame(m_Root);
-  Result := TargetFrame;
-end;
-
-procedure TG2UI.PushClipRect(const R: TRect);
-  var ClipRectPtr: PRect;
-begin
-  New(ClipRectPtr);
-  ClipRectPtr^ := R;
-  m_ClipRects.Add(ClipRectPtr);
-  Core.Graphics.Device.SetScissorRect(ClipRectPtr);
-end;
-
-procedure TG2UI.PopClipRect;
-  var ClipRectPtr: PRect;
-begin
-  if m_ClipRects.Count > 0 then
-  begin
-    ClipRectPtr := m_ClipRects.Pop;
-    Dispose(ClipRectPtr);
-    if m_ClipRects.Count > 0 then
-    begin
-      ClipRectPtr := m_ClipRects.Last;
-      Core.Graphics.Device.SetScissorRect(ClipRectPtr);
-    end;
-  end;
 end;
 
 constructor TG2UI.Create;
@@ -18986,9 +19064,60 @@ end;
 procedure TG2UI.Render;
 begin
   Core.Graphics.RenderStates.ScissorTestEnable := True;
+  RenderOverlays := False;
   if m_Skin <> nil then
   m_Root.Render;
+  RenderOverlays := True;
+  if m_Overlay <> nil then
+  m_Overlay.Render;
   Core.Graphics.RenderStates.ScissorTestEnable := False;
+end;
+
+function TG2UI.FrameAtPoint(const Pt: TPoint): TG2UIFrame;
+  var TargetFrame: TG2UIFrame;
+  procedure CheckFrame(const Frame: TG2UIFrame);
+    var i: Integer;
+    var R: TRect;
+  begin
+    if (not Frame.Visible)
+    or (Frame = m_Overlay) then Exit;
+    R := ClipRect(Frame.RectScreen, Frame.RectClip);
+    if PtInRect(R, Pt) then
+    begin
+      TargetFrame := Frame;
+      for i := 0 to Frame.SubFrameCount - 1 do
+      if Frame.SubFrames[i].CanInput then
+      CheckFrame(Frame.SubFrames[i]);
+    end;
+  end;
+begin
+  TargetFrame := nil;
+  CheckFrame(m_Root);
+  Result := TargetFrame;
+end;
+
+procedure TG2UI.PushClipRect(const R: TRect);
+  var ClipRectPtr: PRect;
+begin
+  New(ClipRectPtr);
+  ClipRectPtr^ := R;
+  m_ClipRects.Add(ClipRectPtr);
+  Core.Graphics.Device.SetScissorRect(ClipRectPtr);
+end;
+
+procedure TG2UI.PopClipRect;
+  var ClipRectPtr: PRect;
+begin
+  if m_ClipRects.Count > 0 then
+  begin
+    ClipRectPtr := m_ClipRects.Pop;
+    Dispose(ClipRectPtr);
+    if m_ClipRects.Count > 0 then
+    begin
+      ClipRectPtr := m_ClipRects.Last;
+      Core.Graphics.Device.SetScissorRect(ClipRectPtr);
+    end;
+  end;
 end;
 //TG2UI END
 
@@ -19410,6 +19539,15 @@ begin
   Result := m_RectClient.Bottom - m_RectClient.Top + 1;
 end;
 
+procedure TG2UIFrame.SetOrder(const Value: Integer);
+begin
+  if m_Order = Value then Exit;
+  m_Order := Value;
+  if m_Parent <> nil then
+  m_Parent.SubFrameRemove(Self);
+  m_Parent.SubFrameAdd(Self);
+end;
+
 procedure TG2UIFrame.ClientRectAdjust;
 begin
   m_RectClient.Left := 0;
@@ -19536,7 +19674,7 @@ end;
 
 procedure TG2UIFrame.SubFrameAdd(const Frame: TG2UIFrame);
 begin
-  m_SubFrames.Add(Frame);
+  m_SubFrames.Add(Frame, Frame.Order);
 end;
 
 procedure TG2UIFrame.SubFrameRemove(const Frame: TG2UIFrame);
@@ -19548,6 +19686,8 @@ constructor TG2UIFrame.Create(const OwnerGUI: TG2UI);
 begin
   inherited Create;
   m_Initialized := False;
+  m_Visible := True;
+  m_Order := 0;
   GUI := OwnerGUI;
   m_SubFrames.Capacity := 16;
   m_SubFrames.Clear;
@@ -19582,6 +19722,8 @@ end;
 procedure TG2UIFrame.Render;
   var i: Integer;
 begin
+  if not m_Visible
+  or ((Self = GUI.Overlay) and not GUI.RenderOverlays) then Exit;
   GUI.PushClipRect(RectClip);
   OnRender;
   for i := 0 to m_SubFrames.Count - 1 do
@@ -19603,7 +19745,7 @@ end;
 
 procedure TG2UIPanel.OnRender;
 begin
-  GUI.Skin.DrawTemplate(m_Template, RectGlobal);
+  GUI.Skin.DrawTemplate(WideString(m_Template), RectGlobal);
 end;
 //TG2UIPanel END
 
@@ -19669,7 +19811,6 @@ begin
 end;
 
 procedure TG2UIButton.OnRender;
-  var RDraw, RClip: TRect;
 begin
   if IsMouseDown then
   GUI.Skin.DrawTemplate('ButtonDown', RectGlobal)
@@ -19677,6 +19818,13 @@ begin
   GUI.Skin.DrawTemplate('ButtonOver', RectGlobal)
   else
   GUI.Skin.DrawTemplate('Button', RectGlobal);
+end;
+
+procedure TG2UIButton.OnMouseUp(const Button: Byte);
+begin
+  if IsMouseDown
+  and Assigned(m_ProcOnClick) then
+  m_ProcOnClick();
 end;
 
 function TG2UIButton.GetImage: TG2Texture2D;
@@ -19739,15 +19887,21 @@ end;
 procedure TG2UIButtonSwitch.SetSwitch(const Value: Boolean);
   var i: Integer;
 begin
-  m_Switch := Value;
-  if m_Switch
-  and (m_SwitchGroup > 0)
-  and (Parent <> nil) then
-  for i := 0 to Parent.SubFrameCount - 1 do
+  if m_Switch <> Value then
   begin
-    if (Parent.SubFrames[i] is TG2UIButtonSwitch)
-    and (TG2UIButtonSwitch(Parent.SubFrames[i]).SwitchGroup = m_SwitchGroup) then
-    TG2UIButtonSwitch(Parent.SubFrames[i]).Switch := False;
+    m_Switch := Value;
+    if Assigned(m_ProcOnSwitch) then
+    m_ProcOnSwitch();
+    if m_Switch
+    and (m_SwitchGroup > 0)
+    and (Parent <> nil) then
+    for i := 0 to Parent.SubFrameCount - 1 do
+    begin
+      if (Parent.SubFrames[i] is TG2UIButtonSwitch)
+      and (Parent.SubFrames[i] <> Self)
+      and (TG2UIButtonSwitch(Parent.SubFrames[i]).SwitchGroup = m_SwitchGroup) then
+      TG2UIButtonSwitch(Parent.SubFrames[i]).Switch := False;
+    end;
   end;
 end;
 
@@ -24374,6 +24528,31 @@ begin
   end;
 end;
 
+function TG2Render2D.VerifyBuffer3(const Size: Integer): TG2Result;
+begin
+  Result := grOk;
+  if (Size > m_VB3Size)
+  or (m_VB3 = nil) then
+  begin
+    SafeRelease(m_VB3);
+    if Succeeded(
+      m_Gfx.Device.CreateVertexBuffer(
+        Size * SizeOf(TVertex3),
+        D3DUSAGE_WRITEONLY,
+        FVF3,
+        D3DPOOL_MANAGED,
+        m_VB3,
+        nil
+      )
+    ) then
+    begin
+      m_VB3Size := Size;
+    end
+    else
+    Result := grFail;
+  end;
+end;
+
 function TG2Render2D.VerifyIndices(const Size: Integer): TG2Result;
 begin
   Result := grOk;
@@ -24981,6 +25160,61 @@ begin
   Result := grOk;
 end;
 
+function TG2Render2D.DrawQuad3(
+      const v1, v2, v3, v4: TG2Vec2;
+      const c1, c2, c3, c4: TG2Color;
+      const Texture0: TG2Texture2DBase;
+      const t0c1, t0c2, t0c3, t0c4: TG2Vec2;
+      const Texture1: TG2Texture2DBase;
+      const t1c1, t1c2, t1c3, t1c4: TG2Vec2;
+      const Texture2: TG2Texture2DBase;
+      const t2c1, t2c2, t2c3, t2c4: TG2Vec2
+    ): TG2Result;
+var
+  Vertices: PVertex3Array;
+  hr: HResult;
+begin
+  Result := grFail;
+  if G2ResFail(VerifyBuffer3(4)) then Exit;
+  hr := m_VB3.Lock(0, SizeOf(TVertex3) * 4, Pointer(Vertices), D3DLOCK_DISCARD);
+  if Failed(hr) then Exit;
+  Vertices^[0].x := v1.X; Vertices^[0].y := v1.Y; Vertices^[0].z := 0;
+  Vertices^[0].rhw := 1; Vertices^[0].Color := c1;
+  Vertices^[0].tu1 := t0c1.X; Vertices^[0].tv1 := t0c1.Y;
+  Vertices^[0].tu2 := t1c1.X; Vertices^[0].tv2 := t1c1.Y;
+
+  Vertices^[1].x := v2.X; Vertices^[1].y := v2.Y; Vertices^[0].z := 0;
+  Vertices^[1].rhw := 1; Vertices^[1].Color := c2;
+  Vertices^[1].tu1 := t0c2.X; Vertices^[1].tv1 := t0c2.Y;
+  Vertices^[1].tu2 := t1c2.X; Vertices^[1].tv2 := t1c2.Y;
+
+  Vertices^[2].x := v3.X; Vertices^[2].y := v3.Y; Vertices^[0].z := 0;
+  Vertices^[2].rhw := 1; Vertices^[2].Color := c3;
+  Vertices^[2].tu1 := t0c3.X; Vertices^[2].tv1 := t0c3.Y;
+  Vertices^[2].tu2 := t1c3.X; Vertices^[2].tv2 := t1c3.Y;
+
+  Vertices^[3].x := v4.X; Vertices^[3].y := v4.Y; Vertices^[0].z := 0;
+  Vertices^[3].rhw := 1; Vertices^[3].Color := c4;
+  Vertices^[3].tu1 := t0c4.X; Vertices^[3].tv1 := t0c4.Y;
+  Vertices^[3].tu2 := t1c4.X; Vertices^[3].tv2 := t1c4.Y;
+  hr := m_VB3.Unlock;
+  if Failed(hr) then Exit;
+
+  hr := m_Gfx.Device.SetTexture(0, Texture0.Texture);
+  if Failed(hr) then Exit;
+  hr := m_Gfx.Device.SetTexture(1, Texture1.Texture);
+  if Failed(hr) then Exit;
+  hr := m_Gfx.Device.SetTexture(2, Texture2.Texture);
+  if Failed(hr) then Exit;
+  hr := m_Gfx.Device.SetFVF(FVF3);
+  if Failed(hr) then Exit;
+  hr := m_Gfx.Device.SetStreamSource(0, m_VB3, 0, SizeOf(TVertex3));
+  if Failed(hr) then Exit;
+  hr := m_Gfx.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  if Failed(hr) then Exit;
+  Result := grOk;
+end;
+
 function TG2Render2D.DrawQuadRaw(
       const v1, v2, v3, v4: TG2Vec2;
       const c1, c2, c3, c4: TG2Color;
@@ -25207,6 +25441,7 @@ begin
   m_PlugGraphics.OnDeviceReset := OnDeviceReset;
   VerifyBuffer(4);
   VerifyBuffer2(4);
+  VerifyBuffer3(4);
   VerifyIndices(6);
   SetLength(m_PosArr, 4);
   SetLength(m_ColArr, 4);
@@ -25231,6 +25466,7 @@ begin
   if G2ResFail(Result) then Exit;
   Core.ReleasePlug(@m_PlugGraphics);
   m_IBBatch.Free;
+  SafeRelease(m_VB3);
   SafeRelease(m_VB2);
   SafeRelease(m_VB);
   Result := grOk;
@@ -30178,6 +30414,7 @@ begin
     8: PassID := 7;//17x17
     9: PassID := 8;//19x19
     10: PassID := 9;//21x21
+    else PassID := 0;
   end;
   PrevZEnable := m_Core.Graphics.RenderStates.ZEnable;
   m_Core.Graphics.RenderStates.ZEnable := False;
@@ -30186,11 +30423,22 @@ begin
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   Tmp01 := RequestSurface(Input.Width, Input.Height);
   m_Shaders.Technique := 'Blur';
-  m_Core.Graphics.Device.SetRenderTarget(0, Tmp01.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Tmp01.Width - 1, Tmp01.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.Offset.SetValue(1 / Input.RealWidth, 0);
   m_Shaders.SetValue('VarBlur', @ShaderVar, SizeOf(ShaderVar));
   m_Shaders.BeginEffect(nil);
@@ -30237,11 +30485,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'Sharpen';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.PixelSize := Input.TexelSize;
   ShaderVar.Scale := Amount;
   m_Shaders.SetValue('VarSharpen', @ShaderVar, SizeOf(ShaderVar));
@@ -30279,11 +30538,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'Monotone';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.Amount := Amount;
   ShaderVar.Mask.SetValue(((Mask shr 16) and $ff) * Rcp255, ((Mask shr 8) and $ff) * Rcp255, (Mask and $ff) * Rcp255, ((Mask shr 24) and $ff) * Rcp255);
   m_Shaders.SetValue('VarMonotone', @ShaderVar, SizeOf(ShaderVar));
@@ -30319,11 +30589,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'Contrast';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.Amount := Amount;
   m_Shaders.SetValue('VarContrast', @ShaderVar, SizeOf(ShaderVar));
   m_Shaders.BeginEffect(nil);
@@ -30359,11 +30640,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'Emboss';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.PixelSize := Input.TexelSize;
   ShaderVar.Scale := Amount;
   m_Shaders.SetValue('VarEmboss', @ShaderVar, SizeOf(ShaderVar));
@@ -30402,11 +30694,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'Edge';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.PixelSize := Input.TexelSize;
   ShaderVar.Scale := Amount;
   ShaderVar.Power := Power;
@@ -30445,11 +30748,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'ColorClamp';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.ClampMin := ClampMin;
   ShaderVar.ClampMax := ClampMax;
   m_Shaders.SetValue('VarColorClamp', @ShaderVar, SizeOf(ShaderVar));
@@ -30487,11 +30801,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'MonotoneClamp';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.ClampMin := ClampMin;
   ShaderVar.ClampMax := ClampMax;
   m_Shaders.SetValue('VarMonotoneClamp', @ShaderVar, SizeOf(ShaderVar));
@@ -30531,11 +30856,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'DistortMap';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer1(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^, DistortMap.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.PixelSize := Input.TexelSize;
   ShaderVar.DistortShift := DistortShift;
   ShaderVar.Amount := Amount;
@@ -30580,11 +30916,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'DistortMap2';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer2(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^, DistortMap0.DrawRect^, DistortMap1.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.PixelSize := Input.TexelSize;
   ShaderVar.DistortShift0 := DistortShift0;
   ShaderVar.DistortShift1 := DistortShift1;
@@ -30625,11 +30972,22 @@ begin
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   m_Shaders.Technique := 'Bloom';
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-  LoadBuffer0(
-    G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-    Input.DrawRect^
-  );
+  if Output <> nil then
+  begin
+    m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
+    LoadBuffer0(
+      G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
+      Input.DrawRect^
+    );
+  end
+  else
+  begin
+    m_Core.Graphics.SetRenderTargetDefault;
+    LoadBuffer0(
+      G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
+      Input.DrawRect^
+    );
+  end;
   ShaderVar.PixelSize := Input.TexelSize;
   ShaderVar.Power := Power;
   m_Shaders.SetValue('VarBloom', @ShaderVar, SizeOf(ShaderVar));

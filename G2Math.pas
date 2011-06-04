@@ -46,6 +46,19 @@ type
   PG2PlaneRef = ^TG2PlaneRef;
   TG2PlaneRef = TD3DXPlane;
 
+  TFloat4x4 = array[0..3, 0..3] of Single;
+  PFloat4x4 = ^TFloat4x4;
+  TFloat4x3 = array[0..3, 0..2] of Single;
+  PFloat4x3 = ^TFloat4x3;
+  TFloat3x3 = array[0..2, 0..2] of Single;
+  PFloat3x3 = ^TFloat3x3;
+  TFloat4 = array[0..3] of Single;
+  PFloat4 = ^TFloat4;
+  TFloat3 = array[0..2] of Single;
+  PFloat3 = ^TFloat3;
+  TFloat2 = array[0..1] of Single;
+  PFloat2 = ^TFloat2;
+
   PG2Mat = ^TG2Mat;
   TG2Mat = record
   strict private
@@ -62,8 +75,20 @@ type
     property Mat[const ix, iy: Integer]: Single read GetMat write SetMat; default;
     class operator Explicit(const m: TG2Mat): TG2MatRef;
     class operator Explicit(const m: TG2MatRef): TG2Mat;
+    class operator Explicit(const m: TG2Mat): TFloat4x4;
+    class operator Explicit(const m: TFloat4x4): TG2Mat;
+    class operator Explicit(const m: TG2Mat): TFloat4x3;
+    class operator Explicit(const m: TFloat4x3): TG2Mat;
+    class operator Explicit(const m: TG2Mat): TFloat3x3;
+    class operator Explicit(const m: TFloat3x3): TG2Mat;
     class operator Implicit(const m: TG2Mat): TG2MatRef;
     class operator Implicit(const m: TG2MatRef): TG2Mat;
+    class operator Implicit(const m: TG2Mat): TFloat4x4;
+    class operator Implicit(const m: TFloat4x4): TG2Mat;
+    class operator Implicit(const m: TG2Mat): TFloat4x3;
+    class operator Implicit(const m: TFloat4x3): TG2Mat;
+    class operator Implicit(const m: TG2Mat): TFloat3x3;
+    class operator Implicit(const m: TFloat3x3): TG2Mat;
     class operator Equal(const m1, m2: TG2Mat): Boolean;
     class operator NotEqual(const m1, m2: TG2Mat): Boolean;
     class operator Add(const m1, m2: TG2Mat): TG2Mat;
@@ -112,6 +137,7 @@ type
     procedure SetOrthogonal(const Width, Height, ZNear, ZFar: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetPerspective(const FOV, Aspect, ZNear, ZFar: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure Decompose(const Scaling: PG2Vec3Ref; const Rotation: PG2QuatRef; const Translation: PG2Vec3Ref); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure GetSpaceVectors(const VecX, VecY, VecZ, Pos: PG2Vec3Ref); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetTranslation: TG2Vec3Ref;
     function GetRotation: TG2QuatRef;
     function GetScaling: TG2Vec3Ref;
@@ -652,9 +678,53 @@ begin
   Result := PG2MatRef(@m)^;
 end;
 
-class operator TG2Mat.Explicit(const m: TG2MatRef): TG2Mat;       
+class operator TG2Mat.Explicit(const m: TG2MatRef): TG2Mat;
 begin
   Result := PG2Mat(@m)^;
+end;
+
+class operator TG2Mat.Explicit(const m: TG2Mat): TFloat4x4;
+begin
+  Result := PFloat4x4(@m)^;
+end;
+
+class operator TG2Mat.Explicit(const m: TFloat4x4): TG2Mat;
+begin
+  Result := PG2Mat(@m)^;
+end;
+
+class operator TG2Mat.Explicit(const m: TG2Mat): TFloat4x3;
+begin
+  Result[0, 0] := m.e00; Result[1, 0] := m.e10; Result[2, 0] := m.e20; Result[3, 0] := m.e30;
+  Result[0, 1] := m.e01; Result[1, 1] := m.e11; Result[2, 1] := m.e21; Result[3, 1] := m.e31;
+  Result[0, 2] := m.e02; Result[1, 2] := m.e12; Result[2, 2] := m.e22; Result[3, 2] := m.e32;
+end;
+
+class operator TG2Mat.Explicit(const m: TFloat4x3): TG2Mat;
+begin
+  Result.SetValue(
+    m[0, 0], m[1, 0], m[2, 0], m[3, 0],
+    m[0, 1], m[1, 1], m[2, 1], m[3, 1],
+    m[0, 2], m[1, 2], m[2, 2], m[3, 2],
+    0, 0, 0, 1
+  );
+end;
+
+class operator TG2Mat.Explicit(const m: TG2Mat): TFloat3x3;
+begin
+  Result[0, 0] := m.e00; Result[1, 0] := m.e10; Result[2, 0] := m.e20;
+  Result[0, 1] := m.e01; Result[1, 1] := m.e11; Result[2, 1] := m.e21;
+  Result[0, 2] := m.e02; Result[1, 2] := m.e12; Result[2, 2] := m.e22;
+end;
+
+class operator TG2Mat.Explicit(const m: TFloat3x3): TG2Mat;
+begin
+  Result.SetValue(
+    m[0, 0], m[1, 0], m[2, 0], 0,
+    m[0, 1], m[1, 1], m[2, 1], 0,
+    m[0, 2], m[1, 2], m[2, 2], 0,
+    0, 0, 0, 1
+  );
 end;
 
 class operator TG2Mat.Implicit(const m: TG2Mat): TG2MatRef;   
@@ -665,6 +735,50 @@ end;
 class operator TG2Mat.Implicit(const m: TG2MatRef): TG2Mat; 
 begin
   Result := PG2Mat(@m)^;
+end;
+
+class operator TG2Mat.Implicit(const m: TG2Mat): TFloat4x4;
+begin
+  Result := PFloat4x4(@m)^;
+end;
+
+class operator TG2Mat.Implicit(const m: TFloat4x4): TG2Mat;
+begin
+  Result := PG2Mat(@m)^;
+end;
+
+class operator TG2Mat.Implicit(const m: TG2Mat): TFloat4x3;
+begin
+  Result[0, 0] := m.e00; Result[1, 0] := m.e10; Result[2, 0] := m.e20; Result[3, 0] := m.e30;
+  Result[0, 1] := m.e01; Result[1, 1] := m.e11; Result[2, 1] := m.e21; Result[3, 1] := m.e31;
+  Result[0, 2] := m.e02; Result[1, 2] := m.e12; Result[2, 2] := m.e22; Result[3, 2] := m.e32;
+end;
+
+class operator TG2Mat.Implicit(const m: TFloat4x3): TG2Mat;
+begin
+  Result.SetValue(
+    m[0, 0], m[1, 0], m[2, 0], m[3, 0],
+    m[0, 1], m[1, 1], m[2, 1], m[3, 1],
+    m[0, 2], m[1, 2], m[2, 2], m[3, 2],
+    0, 0, 0, 1
+  );
+end;
+
+class operator TG2Mat.Implicit(const m: TG2Mat): TFloat3x3;
+begin
+  Result[0, 0] := m.e00; Result[1, 0] := m.e10; Result[2, 0] := m.e20;
+  Result[0, 1] := m.e01; Result[1, 1] := m.e11; Result[2, 1] := m.e21;
+  Result[0, 2] := m.e02; Result[1, 2] := m.e12; Result[2, 2] := m.e22;
+end;
+
+class operator TG2Mat.Implicit(const m: TFloat3x3): TG2Mat;
+begin
+  Result.SetValue(
+    m[0, 0], m[1, 0], m[2, 0], 0,
+    m[0, 1], m[1, 1], m[2, 1], 0,
+    m[0, 2], m[1, 2], m[2, 2], 0,
+    0, 0, 0, 1
+  );
 end;
 
 class operator TG2Mat.Equal(const m1, m2: TG2Mat): Boolean;   
@@ -1078,6 +1192,14 @@ begin
     PD3DXVector3(Translation),
     PG2MatRef(@Self)^
   );
+end;
+
+procedure TG2Mat.GetSpaceVectors(const VecX, VecY, VecZ, Pos: PG2Vec3Ref);
+begin
+  VecX^.x := e00; VecX^.y := e10; VecX^.z := e20;
+  VecY^.x := e01; VecY^.y := e11; VecY^.z := e21;
+  VecZ^.x := e02; VecZ^.y := e12; VecZ^.z := e22;
+  Pos^.x := e30; Pos^.y := e31; Pos^.z := e32;
 end;
 
 function TG2Mat.GetTranslation: TG2Vec3Ref;

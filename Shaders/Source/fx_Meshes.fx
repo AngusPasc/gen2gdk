@@ -230,7 +230,7 @@ float4 PShaderSM3 (const in TPSInputSM3 Input, uniform int LCPoint, uniform int 
 	float4 TexDiffuse = tex2D(SampDiffuse, Input._TexCoord0);
 	float4 TexSpecular = tex2D(SampSpecular, Input._TexCoord0);
 	float4 Output = TexDiffuse * float4(saturate(Dif) + LightAmbient, 1) + float4(pow(saturate(Spec), 5), 0) * TexSpecular;
-	Output.w = 1;
+	Output.w = TexDiffuse.w;
 	return Output;
 }
 

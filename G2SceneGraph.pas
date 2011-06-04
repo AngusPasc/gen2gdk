@@ -113,14 +113,15 @@ type
     var ObjectsRendered: Integer;
   end;
 
+  TG2SGOcclusionCullQuality = (cqFastest, cqLow, cqBalanced, cqBest);
+
   TG2SGQuery = record
   strict private
-    type TOcclusionCullQuality = (cqFastest, cqLow, cqBalanced, cqBest);
     var m_OcclusionCullEnable: Boolean;
-    var m_OcclusionCullQuality: TOcclusionCullQuality;
+    var m_OcclusionCullQuality: TG2SGOcclusionCullQuality;
     var m_DistanceSortEnable: Boolean;
     procedure SetOcclusionCullEnable(const Value: Boolean);
-    procedure SetOcclusionCullQuality(const Value: TOcclusionCullQuality);
+    procedure SetOcclusionCullQuality(const Value: TG2SGOcclusionCullQuality);
     procedure SetOcclusionCullParams;
   private
     var ID: Integer;
@@ -139,7 +140,7 @@ type
   public
     var Stats: TG2SGQueryStatistics;
     property OcclusionCullEnable: Boolean read m_OcclusionCullEnable write SetOcclusionCullEnable;
-    property OcclusionCullQuality: TOcclusionCullQuality read m_OcclusionCullQuality write SetOcclusionCullQuality;
+    property OcclusionCullQuality: TG2SGOcclusionCullQuality read m_OcclusionCullQuality write SetOcclusionCullQuality;
     property DistanceSortEnable: Boolean read m_DistanceSortEnable write m_DistanceSortEnable;
     property GeomCount: Integer read GetGeomCount;
     property Geoms[const Index: Integer]: TG2SGGeom read GetGeoms;
@@ -390,7 +391,7 @@ begin
   end;
 end;
 
-procedure TG2SGQuery.SetOcclusionCullQuality(const Value: TOcclusionCullQuality);
+procedure TG2SGQuery.SetOcclusionCullQuality(const Value: TG2SGOcclusionCullQuality);
 begin
   if m_OcclusionCullQuality <> Value then
   begin
@@ -1081,7 +1082,7 @@ function TG2SceneGraph.FindTextureLightMap(const Name: WideString): TG2Texture2D
 begin
   if Length(Name) > 0 then
   begin
-    Result := FindTexture(Name);
+    Result := FindTexture(Name, 4, D3DFMT_DXT1);
     if not Assigned(Result) then
     begin
       if Length(Name) > 0 then
@@ -1460,7 +1461,7 @@ begin
     begin
       if AABoxChar.Intersect(Geom.Collider.Faces[j].AABox) then
       begin
-        if Geom.Collider.Faces[j].Plane.N.Dot(StepNorm) < -0.7 then
+        if Geom.Collider.Faces[j].Plane.N.Dot(StepNorm) < -0.6 then
         begin
           if G2Ray(s.C, StepNorm).IntersectTri(
             Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[0]],
