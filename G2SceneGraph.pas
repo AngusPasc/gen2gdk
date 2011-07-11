@@ -58,6 +58,7 @@ type
     var Channels: array of record
     public
       var Name: AnsiString;
+      var TwoSided: Boolean;
       var TexDiffuse: TG2Texture2D;
       var TexNormals: TG2Texture2D;
       var TexSpecular: TG2Texture2D;
@@ -107,30 +108,57 @@ type
   end;
   PG2SGCollider = ^TG2SGCollider;
 
+  PG2SGOcTreeNode = ^TG2SGOcTreeNode;
+  TG2SGOcTreeNode = record
+  public
+    var AABox: TG2AABox;
+    var Parent: PG2SGOcTreeNode;
+    var SubNodes: array of array of array of TG2SGOcTreeNode;
+    var DivX: Boolean;
+    var DivY: Boolean;
+    var DivZ: Boolean;
+    var DivN: Boolean;
+    var MinX, MaxX, MinY, MaxY, MinZ, MaxZ: Integer;
+    var TotalItemCount: Integer;
+    var Items: TG2QuickList;
+    var QueryLinks: TG2QuickList;
+    procedure TotalItemsInc(const Amount: Integer = 1);
+    procedure TotalItemsDec(const Amount: Integer = 1);
+  end;
+
+  TG2SGOcTreeItem = record
+  public
+    var Frame: TG2SGFrame;
+    var QueryLinks: TG2QuickList;
+    var OcTreeNodes: TG2QuickList;
+  end;
+  PG2SGOcTreeItem = ^TG2SGOcTreeItem;
+
   TG2SGQueryStatistics = record
   public
     var ObjectsCulled: Integer;
     var ObjectsRendered: Integer;
   end;
 
-  TG2SGOcclusionCullQuality = (cqFastest, cqLow, cqBalanced, cqBest);
+  TG2SGOcclusionCull = (ocOcTree, ocObjects);
+  TG2SGOcclusionCullSet = set of TG2SGOcclusionCull;
 
   TG2SGQuery = record
   strict private
-    var m_OcclusionCullEnable: Boolean;
-    var m_OcclusionCullQuality: TG2SGOcclusionCullQuality;
+    var m_OcclusionCull: TG2SGOcclusionCullSet;
+    var m_OcclusionCheckTimeBias: DWord;
     var m_DistanceSortEnable: Boolean;
-    procedure SetOcclusionCullEnable(const Value: Boolean);
-    procedure SetOcclusionCullQuality(const Value: TG2SGOcclusionCullQuality);
-    procedure SetOcclusionCullParams;
   private
     var ID: Integer;
+    var FetchID: DWord;
     var SceneGraph: TG2SceneGraph;
     var QueryLists: array [0..2] of TG2QuickSortList;
+    var QueryNodes: TG2QuickList;
+    var QueryGeoms: TG2QuickList;
     var OcclusionRT: TG2SurfaceRT;
-    var OcclusionDS: TG2SurfaceDS;
     procedure Init;
     procedure UnInit;
+    procedure CheckFetchID;
     function GetGeomCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetGeoms(const Index: Integer): TG2SGGeom; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetCharCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -139,8 +167,8 @@ type
     function GetLights(const Index: Integer): TG2SGLight; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     var Stats: TG2SGQueryStatistics;
-    property OcclusionCullEnable: Boolean read m_OcclusionCullEnable write SetOcclusionCullEnable;
-    property OcclusionCullQuality: TG2SGOcclusionCullQuality read m_OcclusionCullQuality write SetOcclusionCullQuality;
+    property OcclusionCull: TG2SGOcclusionCullSet read m_OcclusionCull write m_OcclusionCull;
+    property OcclusionCheckTimeBias: DWord read m_OcclusionCheckTimeBias write m_OcclusionCheckTimeBias;
     property DistanceSortEnable: Boolean read m_DistanceSortEnable write m_DistanceSortEnable;
     property GeomCount: Integer read GetGeomCount;
     property Geoms[const Index: Integer]: TG2SGGeom read GetGeoms;
@@ -148,68 +176,63 @@ type
     property Chars[const Index: Integer]: TG2SGChar read GetChars;
     property LightCount: Integer read GetLightCount;
     property Lights[const Index: Integer]: TG2SGLight read GetLights;
+    procedure CheckOcclusion(const Frustum: TG2Frustum);
   end;
   PG2SGQuery = ^TG2SGQuery;
 
-  TG2SGQueryLink = record
+  TG2SGQueryItemLink = record
   public
     var Query: PG2SGQuery;
+    var FetchID: DWord;
     var OcclusionQuery: IDirect3DQuery9;
-    var OcclusionTest: Boolean;
+    var OcclusionQueryID: DWord;
+    var OcclusionQueryEnabled: Boolean;
     var OcclusionVisible: Boolean;
-    var OcclusionTestTime: DWord;
+    var OcclusionCheckTime: DWord;
     procedure Init;
     procedure UnInit;
   end;
-  PG2SGQueryLink = ^TG2SGQueryLink;
+  PG2SGQueryItemLink = ^TG2SGQueryItemLink;
 
-  TG2SGOcTreeItem = record
+  TG2SGQueryNodeLink = record
   public
-    var Frame: TG2SGFrame;
+    var Query: PG2SGQuery;
     var FetchID: DWord;
-    var QueryLinks: TG2QuickList;
-    var OcTreeNodes: TG2QuickList;
+    var OcclusionQuery: IDirect3DQuery9;
+    var OcclusionQueryID: DWord;
+    var OcclusionQueryEnabled: Boolean;
+    var OcclusionVisible: Boolean;
+    var OcclusionCheckTime: DWord;
+    var FrustumTest: TG2FrustumCheck;
+    procedure Init;
+    procedure UnInit;
   end;
-  PG2SGOcTreeItem = ^TG2SGOcTreeItem;
+  PG2SGQueryNodeLink = ^TG2SGQueryNodeLink;
 
   TG2SceneGraph = class
   strict private
-    type POcTreeNode = ^TOcTreeNode;
-    TOcTreeNode = record
-    public
-      var AABox: TG2AABox;
-      var Parent: POcTreeNode;
-      var SubNodes: array of array of array of TOcTreeNode;
-      var DivX: Boolean;
-      var DivY: Boolean;
-      var DivZ: Boolean;
-      var DivN: Boolean;
-      var MinX, MaxX, MinY, MaxY, MinZ, MaxZ: Integer;
-      var TotalItemCount: Integer;
-      var Items: TG2QuickList;
-      var FrustumTest: TG2FrustumCheck;
-      procedure TotalItemsInc(const Amount: Integer = 1);
-      procedure TotalItemsDec(const Amount: Integer = 1);
-    end;
-    var m_RootNode: TOcTreeNode;
-    var m_OcTreeGrid: array of array of array of POcTreeNode;
+    var m_OcTreeGrid: array of array of array of PG2SGOcTreeNode;
     var m_OcTreeNodeFetch: TG2QuickList;
     var m_GeomCollideList: TG2QuickList;
     var m_Prim3D: TG2Primitives3D;
-    var m_CurFetchID: DWord;
     var m_CurCollideID: DWord;
     var m_PlugGraphics: TG2PlugGraphics;
-    procedure ResetFetchID;
     procedure ResetCollideID;
     procedure OnDeviceLost;
     procedure OnDeviceReset;
+    function GetAABox: TG2AABox; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   private
+    var RootNode: TG2SGOcTreeNode;
+    var OcTreeBuilt: Boolean;
+    var VB: TG2VB;
+    var IB: TG2IB;
     function OcTreeAutoBuild: Boolean;
     procedure OcTreeBuild(const AABox: TG2AABox; const MinDivSize: Single);
+    procedure OcTreeDestroy;
     procedure OcTreeAddItem(const Item: PG2SGOcTreeItem);
     procedure OcTreeRemoveItem(const Item: PG2SGOcTreeItem);
     procedure OcTreeFetchNodes(const AABox: TG2AABox; const List: PG2QuickList; const IncludeEmpty: Boolean = False); overload;
-    procedure OcTreeFetchNodes(const Frustum: TG2Frustum; const List: PG2QuickList); overload;
+    procedure OcTreeFetchNodes(const Frustum: TG2Frustum; const Query: PG2SGQuery); overload;
     procedure OcTreeGetIndices(const AABox: TG2AABox; var IndMinX, IndMinY, IndMinZ, IndMaxX, IndMaxY, IndMaxZ: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     var DataFormats: TG2SGDataFormats;
@@ -225,6 +248,7 @@ type
     var Chars: TG2QuickList;
     var Lights: TG2QuickList;
     var Depth: Integer;
+    property AABox: TG2AABox read GetAABox;
     constructor Create(const G2Core: TG2Core);
     destructor Destroy; override;
     procedure SearchPathAdd(const Dir: String);
@@ -244,14 +268,16 @@ type
     function QueryCreate: PG2SGQuery;
     procedure QueryDestroy(const q: PG2SGQuery);
     procedure QueryFetch(const Frustum: TG2Frustum; const Query: PG2SGQuery);
-    function CollideSphere(var s: TG2Sphere): Boolean;
-    function CollideChar(const c: TG2SGChar): Boolean;
+    function CollideSphere(var s: TG2Sphere; const Query: PG2SGQuery): Boolean;
+    function CollideChar(const c: TG2SGChar; const Query: PG2SGQuery): Boolean;
+    function CollideRay(const r: TG2Ray; var GeomID: Integer; var FaceID: Word; var U, V, D: Single): Boolean; overload;
+    function CollideRay(const r: TG2Ray; const Query: PG2SGQuery; const Distance: Single; var GeomID: Integer; var FaceID: Word; var U, V, D: Single): Boolean; overload;
     procedure LoadG2M(const Loader: TG2MeshLoaderG2M); overload;
     procedure LoadG2M(const f: String); overload;
     procedure LoadG2M(const s: TStream); overload;
     procedure LoadG2M(const Buffer: Pointer; const Size: Integer); overload;
     procedure Clear;
-    procedure Update;
+    procedure Update(const Query: PG2SGQuery);
   end;
 
   TG2SGNode = class
@@ -293,6 +319,7 @@ type
   strict private
     var m_PrevTransform: TG2Mat;
     var m_Collide: Boolean;
+    var m_Occluder: Boolean;
     procedure SetCollide(const Value: Boolean);
     procedure UpdateCollider;
   protected
@@ -310,11 +337,12 @@ type
     var Collider: TG2SGCollider;
     var OOBox: TG2Box;
     property Collide: Boolean read m_Collide write SetCollide;
+    property Occluder: Boolean read m_Occluder write m_Occluder;
     constructor Create(const SceneGraph: TG2SceneGraph); override;
     destructor Destroy; override;
     procedure Update; override;
     function IntersectRay(const r: TG2Ray): Boolean; overload;
-    function IntersectRay(const r: TG2Ray; var U, V, Dist: Single): Boolean; overload;
+    function IntersectRay(const r: TG2Ray; var FaceID: Word; var U, V, Dist: Single): Boolean; overload;
   end;
 
   TG2SGChar = class (TG2SGFrame)
@@ -381,110 +409,53 @@ type
 
 implementation
 
+//TG2SGOcTreeNode BEGIN
+procedure TG2SGOcTreeNode.TotalItemsInc(const Amount: Integer = 1);
+  procedure IncItemCount(const n: PG2SGOcTreeNode);
+  begin
+    Inc(n^.TotalItemCount, Amount);
+    if Assigned(n^.Parent) then
+    IncItemCount(n^.Parent);
+  end;
+begin
+  IncItemCount(@Self);
+end;
+
+procedure TG2SGOcTreeNode.TotalItemsDec(const Amount: Integer = 1);
+  procedure DecItemCount(const n: PG2SGOcTreeNode);
+  begin
+    Dec(n^.TotalItemCount, Amount);
+    if Assigned(n^.Parent) then
+    DecItemCount(n^.Parent);
+  end;
+begin
+  DecItemCount(@Self);
+end;
+//TG2SGOcTreeNode END
+
 //TG2SGQuery BEGIN
-procedure TG2SGQuery.SetOcclusionCullEnable(const Value: Boolean);
-begin
-  if m_OcclusionCullEnable <> Value then
-  begin
-    m_OcclusionCullEnable := Value;
-    SetOcclusionCullParams;
-  end;
-end;
-
-procedure TG2SGQuery.SetOcclusionCullQuality(const Value: TG2SGOcclusionCullQuality);
-begin
-  if m_OcclusionCullQuality <> Value then
-  begin
-    m_OcclusionCullQuality := Value;
-    if m_OcclusionCullEnable then
-    SetOcclusionCullParams;
-  end;
-end;
-
-procedure TG2SGQuery.SetOcclusionCullParams;
-  var w, h: DWord;
-begin
-  if m_OcclusionCullEnable then
-  begin
-    case m_OcclusionCullQuality of
-      cqFastest:
-      begin
-        w := SceneGraph.Core.Graphics.Params.Width div 16;
-        h := SceneGraph.Core.Graphics.Params.Height div 16;
-      end;
-      cqLow:
-      begin
-        w := SceneGraph.Core.Graphics.Params.Width div 8;
-        h := SceneGraph.Core.Graphics.Params.Height div 8;
-      end;
-      cqBalanced:
-      begin
-        w := SceneGraph.Core.Graphics.Params.Width div 4;
-        h := SceneGraph.Core.Graphics.Params.Height div 4;
-      end;
-      cqBest:
-      begin
-        w := SceneGraph.Core.Graphics.Params.Width div 2;
-        h := SceneGraph.Core.Graphics.Params.Height div 2;
-      end;
-      else
-      begin
-        w := SceneGraph.Core.Graphics.Params.Width;
-        h := SceneGraph.Core.Graphics.Params.Height;
-      end;
-    end;
-    if Assigned(OcclusionRT) then
-    begin
-      if (OcclusionRT.Width <> w)
-      or (OcclusionRT.Height <> h) then
-      begin
-        OcclusionRT.Release;
-        OcclusionRT.CreateRenderTarget(w, h, D3DFMT_X8R8G8B8);
-      end;
-    end
-    else
-    begin
-      OcclusionRT := TG2SurfaceRT.Create;
-      OcclusionRT.Initialize(SceneGraph.Core);
-      OcclusionRT.CreateRenderTarget(w, h, D3DFMT_X8R8G8B8);
-    end;
-    if Assigned(OcclusionDS) then
-    begin
-      if (OcclusionDS.Width <> w)
-      or (OcclusionDS.Height <> h) then
-      begin
-        OcclusionDS.Release;
-        OcclusionDS.CreateDepthStencil(w, h, D3DFMT_D16);
-      end;
-    end
-    else
-    begin
-      OcclusionDS := TG2SurfaceDS.Create;
-      OcclusionDS.Initialize(SceneGraph.Core);
-      OcclusionDS.CreateDepthStencil(w, h, D3DFMT_D16);
-    end;
-  end
-  else
-  begin
-    if Assigned(OcclusionRT) then
-    begin
-      OcclusionRT.Finalize;
-      OcclusionRT.Free;
-      OcclusionRT := nil;
-    end;
-    if Assigned(OcclusionDS) then
-    begin
-      OcclusionDS.Finalize;
-      OcclusionDS.Free;
-      OcclusionDS := nil;
-    end;
-  end;
-end;
-
 procedure TG2SGQuery.Init;
   var i: Integer;
-  var Link: PG2SGqueryLink;
+  var Link: PG2SGqueryItemLink;
+  procedure LinkNode(const n: PG2SGOcTreeNode);
+    var Link: PG2SGQueryNodeLink;
+    var nx, ny, nz: Integer;
+  begin
+    New(Link);
+    Link^.Query := @Self;
+    Link^.Init;
+    n^.QueryLinks.Add(Link);
+    if not n^.DivN then
+    for nx := n^.MinX to n^.MaxX do
+    for ny := n^.MinY to n^.MaxY do
+    for nz := n^.MinZ to n^.MaxZ do
+    LinkNode(@n^.SubNodes[nx, ny, nz]);
+  end;
 begin
+  QueryNodes.Clear;
+  QueryNodes.Capacity := 32;
+  QueryGeoms.Clear;
+  QueryGeoms.Capacity := 32;
   for i := 0 to 2 do
   begin
     QueryLists[i].Capacity := 32;
@@ -497,35 +468,67 @@ begin
     Link^.Init;
     TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks.Add(Link);
   end;
-  m_OcclusionCullEnable := False;
-  m_OcclusionCullQuality := cqFastest;
+  if SceneGraph.OcTreeBuilt then
+  LinkNode(@SceneGraph.RootNode);
+  m_OcclusionCull := [];
+  m_OcclusionCheckTimeBias := 1000;
   m_DistanceSortEnable := False;
-  OcclusionRT := nil;
-  OcclusionDS := nil;
   Stats.ObjectsCulled := 0;
   Stats.ObjectsRendered := 0;
+  OcclusionRT := TG2SurfaceRT.Create;
+  OcclusionRT.Initialize(SceneGraph.Core);
 end;
 
 procedure TG2SGQuery.UnInit;
   var i: Integer;
-  var Link: PG2SGqueryLink;
-begin
-  if Assigned(OcclusionRT) then
+  var Link: PG2SGQueryItemLink;
+  procedure UnLinkNode(const n: PG2SGOcTreeNode);
+    var Link: PG2SGQueryNodeLink;
+    var nx, ny, nz: Integer;
   begin
-    OcclusionRT.Finalize;
-    OcclusionRT.Free;
-  end;
-  if Assigned(OcclusionDS) then
-  begin
-    OcclusionDS.Finalize;
-    OcclusionDS.Free;
-  end;
-  for i := 0 to SceneGraph.Frames.Count - 1 do
-  begin
-    Link := PG2SGQueryLink(TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks[ID]);
-    TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks.Remove(Link);
+    Link := n^.QueryLinks[ID];
+    n^.QueryLinks.Delete(ID);
     Link^.UnInit;
     Dispose(Link);
+    if not n^.DivN then
+    for nx := n^.MinX to n^.MaxX do
+    for ny := n^.MinY to n^.MaxY do
+    for nz := n^.MinZ to n^.MaxZ do
+    UnLinkNode(@n^.SubNodes[nx, ny, nz]);
+  end;
+begin
+  OcclusionRT.Finalize;
+  OcclusionRT.Free;
+  if SceneGraph.OcTreeBuilt then
+  UnLinkNode(@SceneGraph.RootNode);
+  for i := 0 to SceneGraph.Frames.Count - 1 do
+  begin
+    Link := PG2SGQueryItemLink(TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks[ID]);
+    TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks.Delete(ID);
+    Link^.UnInit;
+    Dispose(Link);
+  end;
+end;
+
+procedure TG2SGQuery.CheckFetchID;
+  procedure ResetNodeFetchID(const n: PG2SGOcTreeNode);
+    var nx, ny, nz: Integer;
+  begin
+    PG2SGQueryNodeLink(n^.QueryLinks[ID])^.FetchID := 0;
+    PG2SGQueryNodeLink(n^.QueryLinks[ID])^.OcclusionQueryID := 0;
+    if not n^.DivN then
+    for nx := n^.MinX to n^.MaxX do
+    for ny := n^.MinY to n^.MaxY do
+    for nz := n^.MinZ to n^.MaxZ do
+    ResetNodeFetchID(@n^.SubNodes[nx, ny, nz]);
+  end;
+  var i: Integer;
+begin
+  if FetchID >= High(DWord) - 1 then
+  begin
+    FetchID := 0;
+    for i := 0 to SceneGraph.Frames.Count - 1 do
+    PG2SGQueryItemLink(TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks[ID])^.FetchID := 0;
   end;
 end;
 
@@ -558,57 +561,164 @@ function TG2SGQuery.GetLights(const Index: Integer): TG2SGLight;
 begin
   Result := TG2SGLight(QueryLists[G2QL_LIGHTS][Index]);
 end;
+
+procedure TG2SGQuery.CheckOcclusion(const Frustum: TG2Frustum);
+  var RenderSurface, DepthSurface: IDirect3DSurface9;
+  var DepthDesc: TD3DSurfaceDesc;
+  var i: Integer;
+  var Node: PG2SGOcTreeNode;
+  var Geom: TG2SGGeom;
+  var LinkNode: PG2SGQueryNodeLink;
+  var LinkItem: PG2SGQueryItemLink;
+  var m: TG2Mat;
+  var PrevZEnable: Boolean;
+  var PrevZWriteEnable: Boolean;
+  var PrevV, PrevP, PrevW: TG2Mat;
+  var PrevTexture: IDirect3DBaseTexture9;
+  var VPos: TG2Vec3;
+  var AABox: TG2AABox;
+  var NearPlaneBias: Single;
+begin
+  if m_OcclusionCull = [] then Exit;
+  SceneGraph.Core.Graphics.Device.GetDepthStencilSurface(DepthSurface);
+  SceneGraph.Core.Graphics.Device.GetRenderTarget(0, RenderSurface);
+  DepthSurface.GetDesc(DepthDesc);
+  if (OcclusionRT.Width <> DepthDesc.Width)
+  or (OcclusionRT.Height <> DepthDesc.Height) then
+  OcclusionRT.CreateRenderTarget(DepthDesc.Width, DepthDesc.Height);
+  SafeRelease(DepthSurface);
+  SceneGraph.Core.Graphics.Device.SetRenderTarget(0, OcclusionRT.Surface);
+  PrevZEnable := SceneGraph.Core.Graphics.RenderStates.ZEnable;
+  PrevZWriteEnable := SceneGraph.Core.Graphics.RenderStates.ZWriteEnable;
+  SceneGraph.Core.Graphics.Device.GetTexture(0, PrevTexture);
+  SceneGraph.Core.Graphics.Device.GetTransform(D3DTS_VIEW, PG2MatRef(@PrevV)^);
+  SceneGraph.Core.Graphics.Device.GetTransform(D3DTS_PROJECTION, PG2MatRef(@PrevP)^);
+  SceneGraph.Core.Graphics.Device.GetTransform(D3DTS_WORLD, PG2MatRef(@PrevW)^);
+  SceneGraph.Core.Graphics.Device.SetTransform(D3DTS_VIEW, Frustum.RefV^);
+  SceneGraph.Core.Graphics.Device.SetTransform(D3DTS_PROJECTION, Frustum.RefP^);
+  SceneGraph.Core.Graphics.RenderStates.ZEnable := True;
+  SceneGraph.Core.Graphics.RenderStates.ZWriteEnable := False;
+  SceneGraph.Core.Graphics.RenderStates.DepthBias := -0.0001;
+  SceneGraph.Core.Graphics.Device.SetTexture(0, nil);
+  SceneGraph.Core.Graphics.Device.SetFVF(D3DFVF_XYZ);
+  SceneGraph.IB.SetToDevice;
+  SceneGraph.VB.SetToDevice;
+  VPos.x := -Frustum.RefV^.e30;
+  VPos.y := -Frustum.RefV^.e31;
+  VPos.z := -Frustum.RefV^.e32;
+  VPos := VPos.Transform3x3(Frustum.RefV^.Transpose);
+  NearPlaneBias := -Frustum.RefP^.e32 * 1.4;
+  if ocOcTree in m_OcclusionCull then
+  for i := 0 to QueryNodes.Count - 1 do
+  begin
+    Node := PG2SGOcTreeNode(QueryNodes[i]);
+    LinkNode := PG2SGQueryNodeLink(Node^.QueryLinks[ID]);
+    AABox := Node^.AABox;
+    AABox.MinV := AABox.MinV - NearPlaneBias;
+    AABox.MaxV := AABox.MaxV + NearPlaneBias;
+    if (GetTickCount - LinkNode^.OcclusionCheckTime >= m_OcclusionCheckTimeBias)
+    and (not AABox.PointInside(VPos)) then
+    begin
+      LinkNode^.OcclusionQueryID := FetchID;
+      LinkNode^.OcclusionQueryEnabled := True;
+      LinkNode^.OcclusionQuery.Issue(D3DISSUE_BEGIN);
+      m.SetScaling(
+        Node^.AABox.MaxV.x - Node^.AABox.MinV.x,
+        Node^.AABox.MaxV.y - Node^.AABox.MinV.y,
+        Node^.AABox.MaxV.z - Node^.AABox.MinV.z
+      );
+      m.Translate(Node^.AABox.MinV);
+      SceneGraph.Core.Graphics.Device.SetTransform(D3DTS_WORLD, m);
+      SceneGraph.Core.Graphics.Device.DrawIndexedPrimitive(
+        D3DPT_TRIANGLELIST, 0,
+        0, 8, 0, 12
+      );
+      LinkNode^.OcclusionQuery.Issue(D3DISSUE_END);
+      LinkNode^.OcclusionCheckTime := GetTickCount;
+    end;
+  end;
+  if ocObjects in m_OcclusionCull then
+  for i := 0 to QueryGeoms.Count - 1 do
+  begin
+    Geom := TG2SGGeom(QueryGeoms[i]);
+    LinkItem := PG2SGQueryItemLink(Geom.OcTreeItem.QueryLinks[ID]);
+    AABox := Geom.AABox;
+    AABox.MinV := AABox.MinV - NearPlaneBias;
+    AABox.MaxV := AABox.MaxV + NearPlaneBias;
+    if (GetTickCount - LinkItem^.OcclusionCheckTime >= m_OcclusionCheckTimeBias)
+    and (not AABox.PointInside(VPos)) then
+    begin
+      LinkItem^.OcclusionQueryID := FetchID;
+      LinkItem^.OcclusionQueryEnabled := True;
+      LinkItem^.OcclusionQuery.Issue(D3DISSUE_BEGIN);
+      m.SetScaling(
+        Geom.AABox.MaxV.x - Geom.AABox.MinV.x,
+        Geom.AABox.MaxV.y - Geom.AABox.MinV.y,
+        Geom.AABox.MaxV.z - Geom.AABox.MinV.z
+      );
+      m.Translate(Geom.AABox.MinV);
+      SceneGraph.Core.Graphics.Device.SetTransform(D3DTS_WORLD, m);
+      SceneGraph.Core.Graphics.Device.DrawIndexedPrimitive(
+        D3DPT_TRIANGLELIST, 0,
+        0, 8, 0, 12
+      );
+      LinkItem^.OcclusionQuery.Issue(D3DISSUE_END);
+      LinkItem^.OcclusionCheckTime := GetTickCount;
+    end;
+  end;
+  SceneGraph.Core.Graphics.Device.SetRenderTarget(0, RenderSurface);
+  SafeRelease(RenderSurface);
+  SceneGraph.Core.Graphics.RenderStates.DepthBias := 0;
+  SceneGraph.Core.Graphics.RenderStates.ZEnable := PrevZEnable;
+  SceneGraph.Core.Graphics.RenderStates.ZWriteEnable := PrevZWriteEnable;
+  SceneGraph.Core.Graphics.Device.SetTransform(D3DTS_WORLD, PrevW);
+  SceneGraph.Core.Graphics.Device.SetTransform(D3DTS_VIEW, PrevV);
+  SceneGraph.Core.Graphics.Device.SetTransform(D3DTS_PROJECTION, PrevP);
+  SceneGraph.Core.Graphics.Device.SetTexture(0, PrevTexture);
+end;
 //TG2SGQuery END
 
-//TG2SGQueryLink BEGIN
-procedure TG2SGQueryLink.Init;
+//TG2SGQueryItemLink BEGIN
+procedure TG2SGQueryItemLink.Init;
 begin
   Query.SceneGraph.Core.Graphics.Device.CreateQuery(
     D3DQUERYTYPE_OCCLUSION,
     OcclusionQuery
   );
-  OcclusionTest := False;
+  FetchID := 0;
+  OcclusionQueryID := 0;
+  OcclusionQueryEnabled := False;
   OcclusionVisible := True;
-  OcclusionTestTime := GetTickCount - 1000;
+  OcclusionCheckTime := GetTickCount;
 end;
 
-procedure TG2SGQueryLink.UnInit;
+procedure TG2SGQueryItemLink.UnInit;
 begin
   SafeRelease(OcclusionQuery);
 end;
-//TG2SGQueryLink END
+//TG2SGQueryItemLink END
+
+//TG2SGQueryNodeLink BEGIN
+procedure TG2SGQueryNodeLink.Init;
+begin
+  Query.SceneGraph.Core.Graphics.Device.CreateQuery(
+    D3DQUERYTYPE_OCCLUSION,
+    OcclusionQuery
+  );
+  FetchID := 0;
+  OcclusionQueryID := 0;
+  OcclusionQueryEnabled := False;
+  OcclusionVisible := True;
+  OcclusionCheckTime := GetTickCount;
+end;
+
+procedure TG2SGQueryNodeLink.UnInit;
+begin
+  SafeRelease(OcclusionQuery);
+end;
+//TG2SGQueryNodeLink END
 
 //TG2SceneGraph BEGIN
-procedure TG2SceneGraph.TOcTreeNode.TotalItemsInc(const Amount: Integer = 1);
-  procedure IncItemCount(const n: TG2SceneGraph.POcTreeNode);
-  begin
-    Inc(n^.TotalItemCount, Amount);
-    if Assigned(n^.Parent) then
-    IncItemCount(n^.Parent);
-  end;
-begin
-  IncItemCount(@Self);
-end;
-
-procedure TG2SceneGraph.TOcTreeNode.TotalItemsDec(const Amount: Integer = 1);
-  procedure DecItemCount(const n: TG2SceneGraph.POcTreeNode);
-  begin
-    Dec(n^.TotalItemCount, Amount);
-    if Assigned(n^.Parent) then
-    DecItemCount(n^.Parent);
-  end;
-begin
-  DecItemCount(@Self);
-end;
-
-procedure TG2SceneGraph.ResetFetchID;
-  var i: Integer;
-begin
-  m_CurFetchID := 0;
-  for i := 0 to Frames.Count - 1 do
-  TG2SGFrame(Frames[i]).OcTreeItem.FetchID := 0;
-end;
-
 procedure TG2SceneGraph.ResetCollideID;
   var i, j: Integer;
 begin
@@ -623,28 +733,25 @@ procedure TG2SceneGraph.OnDeviceLost;
   var i, j: Integer;
 begin
   for i := 0 to Queries.Count - 1 do
-  if PG2SGQuery(Queries[i])^.OcclusionCullEnable then
-  begin
-    PG2SGQuery(Queries[i])^.OcclusionRT.OnDeviceLost;
-    PG2SGQuery(Queries[i])^.OcclusionDS.OnDeviceLost;
-  end;
+  PG2SGQuery(Queries[i])^.OcclusionRT.OnDeviceLost;
   for i := 0 to Frames.Count - 1 do
   for j := 0 to TG2SGFrame(Frames[i]).OcTreeItem.QueryLinks.Count - 1 do
-  PG2SGQueryLink(TG2SGFrame(Frames[i]).OcTreeItem.QueryLinks[j])^.UnInit;
+  PG2SGQueryItemLink(TG2SGFrame(Frames[i]).OcTreeItem.QueryLinks[j])^.UnInit;
 end;
 
 procedure TG2SceneGraph.OnDeviceReset;
   var i, j: Integer;
 begin
   for i := 0 to Queries.Count - 1 do
-  if PG2SGQuery(Queries[i])^.OcclusionCullEnable then
-  begin
-    PG2SGQuery(Queries[i])^.OcclusionRT.OnDeviceReset;
-    PG2SGQuery(Queries[i])^.OcclusionDS.OnDeviceReset;
-  end;
+  PG2SGQuery(Queries[i])^.OcclusionRT.OnDeviceReset;
   for i := 0 to Frames.Count - 1 do
   for j := 0 to TG2SGFrame(Frames[i]).OcTreeItem.QueryLinks.Count - 1 do
-  PG2SGQueryLink(TG2SGFrame(Frames[i]).OcTreeItem.QueryLinks[j])^.Init;
+  PG2SGQueryItemLink(TG2SGFrame(Frames[i]).OcTreeItem.QueryLinks[j])^.Init;
+end;
+
+function TG2SceneGraph.GetAABox: TG2AABox;
+begin
+  Result := RootNode.AABox;
 end;
 
 function TG2SceneGraph.OcTreeAutoBuild: Boolean;
@@ -669,12 +776,12 @@ begin
     FrameAABox.MinV - bs,
     FrameAABox.MaxV + bs
   );
-  if (FrameAABox.MinV.x < m_RootNode.AABox.MinV.x)
-  or (FrameAABox.MinV.y < m_RootNode.AABox.MinV.y)
-  or (FrameAABox.MinV.z < m_RootNode.AABox.MinV.z)
-  or (FrameAABox.MaxV.x > m_RootNode.AABox.MaxV.x)
-  or (FrameAABox.MaxV.y > m_RootNode.AABox.MaxV.y)
-  or (FrameAABox.MaxV.z > m_RootNode.AABox.MaxV.z) then
+  if (FrameAABox.MinV.x < RootNode.AABox.MinV.x)
+  or (FrameAABox.MinV.y < RootNode.AABox.MinV.y)
+  or (FrameAABox.MinV.z < RootNode.AABox.MinV.z)
+  or (FrameAABox.MaxV.x > RootNode.AABox.MaxV.x)
+  or (FrameAABox.MaxV.y > RootNode.AABox.MaxV.y)
+  or (FrameAABox.MaxV.z > RootNode.AABox.MaxV.z) then
   begin
     AvFrameSize := AvFrameSize * (2 / Frames.Count);
     MaxFrameSize := Max(
@@ -703,9 +810,10 @@ end;
 
 procedure TG2SceneGraph.OcTreeBuild(const AABox: TG2AABox; const MinDivSize: Single);
   var DivStopSize: Single;
-  procedure BuildNode(const n: POcTreeNode);
+  procedure BuildNode(const n: PG2SGOcTreeNode);
     var gx, gy, gz, sx, sy, sz: Single;
-    var nx, ny, nz: Integer;
+    var nx, ny, nz, i: Integer;
+    var Link: PG2SGQueryNodeLink;
   begin
     n^.TotalItemCount := 0;
     sx := n^.AABox.MaxV.x - n^.AABox.MinV.x;
@@ -760,11 +868,20 @@ procedure TG2SceneGraph.OcTreeBuild(const AABox: TG2AABox; const MinDivSize: Sin
         BuildNode(@n^.SubNodes[nx, ny, nz]);
       end;
     end;
+    n^.QueryLinks.Clear;
+    for i := 0 to Queries.Count - 1 do
+    begin
+      New(Link);
+      Link^.Query := PG2SGQuery(Queries[i]);
+      Link^.Init;
+      n^.QueryLinks.Add(Link);
+    end;
   end;
   var MaxDim: Single;
   var sx, sy, sz: Single;
   var DivX, DivY, DivZ: Integer;
 begin
+  OcTreeDestroy;
   DivStopSize := MinDivSize * 2;
   sx := AABox.MaxV.x - AABox.MinV.x;
   sy := AABox.MaxV.y - AABox.MinV.y;
@@ -780,13 +897,34 @@ begin
     Inc(Depth);
     MaxDim := MaxDim * 0.5;
   end;
-  m_RootNode.AABox := AABox;
-  m_RootNode.DivX := False;
-  m_RootNode.DivY := False;
-  m_RootNode.DivZ := False;
-  m_RootNode.DivN := True;
-  m_RootNode.Parent := nil;
-  BuildNode(@m_RootNode);
+  RootNode.AABox := AABox;
+  RootNode.DivX := False;
+  RootNode.DivY := False;
+  RootNode.DivZ := False;
+  RootNode.DivN := True;
+  RootNode.Parent := nil;
+  BuildNode(@RootNode);
+  OcTreeBuilt := True;
+end;
+
+procedure TG2SceneGraph.OcTreeDestroy;
+  procedure DestroyNode(const n: PG2SGOcTreeNode);
+    var nx, ny, nz, i: Integer;
+  begin
+    if not n^.DivN then
+    for nx := n^.MinX to n^.MaxX do
+    for ny := n^.MinY to n^.MaxY do
+    for nz := n^.MinZ to n^.MaxZ do
+    DestroyNode(@n^.SubNodes[nx, ny, nz]);
+    for i := 0 to n^.QueryLinks.Count - 1 do
+    begin
+      PG2SGQueryNodeLink(n^.QueryLinks[i])^.UnInit;
+      Dispose(PG2SGQueryNodeLink(n^.QueryLinks[i]));
+    end;
+  end;
+begin
+  if OcTreeBuilt then
+  DestroyNode(@RootNode);
 end;
 
 procedure TG2SceneGraph.OcTreeAddItem(const Item: PG2SGOcTreeItem);
@@ -795,8 +933,8 @@ begin
   OcTreeFetchNodes(Item^.Frame.AABox, @Item^.OcTreeNodes, True);
   for i := 0 to Item^.OcTreeNodes.Count - 1 do
   begin
-    POcTreeNode(Item^.OcTreeNodes[i])^.Items.Add(Item);
-    POcTreeNode(Item^.OcTreeNodes[i])^.TotalItemsInc();
+    PG2SGOcTreeNode(Item^.OcTreeNodes[i])^.Items.Add(Item);
+    PG2SGOcTreeNode(Item^.OcTreeNodes[i])^.TotalItemsInc();
   end;
 end;
 
@@ -805,8 +943,8 @@ procedure TG2SceneGraph.OcTreeRemoveItem(const Item: PG2SGOcTreeItem);
 begin
   for i := 0 to Item^.OcTreeNodes.Count - 1 do
   begin
-    POcTreeNode(Item^.OcTreeNodes[i])^.Items.Remove(Item);
-    POcTreeNode(Item^.OcTreeNodes[i])^.TotalItemsDec();
+    PG2SGOcTreeNode(Item^.OcTreeNodes[i])^.Items.Remove(Item);
+    PG2SGOcTreeNode(Item^.OcTreeNodes[i])^.TotalItemsDec();
   end;
   Item^.OcTreeNodes.Clear;
 end;
@@ -824,15 +962,39 @@ begin
   List^.Add(m_OcTreeGrid[nx, ny, nz]);
 end;
 
-procedure TG2SceneGraph.OcTreeFetchNodes(const Frustum: TG2Frustum; const List: PG2QuickList);
-  procedure IncludeNode(const n: POcTreeNode);
+procedure TG2SceneGraph.OcTreeFetchNodes(const Frustum: TG2Frustum; const Query: PG2SGQuery);
+  procedure AddNode(const n: PG2SGOcTreeNode);
+    var Link: PG2SGQueryNodeLink;
+    var DataSize: DWord;
+    var VisiblePixels: DWord;
+  begin
+    Query^.QueryNodes.Add(n);
+    Link := PG2SGQueryNodeLink(n^.QueryLinks[Query^.ID]);
+    Link^.OcclusionVisible := True;
+    if Link^.OcclusionQueryEnabled then
+    begin
+      if
+      (Link^.OcclusionQueryID >= Query^.FetchID - 1) then
+      begin
+        DataSize := Link^.OcclusionQuery.GetDataSize;
+        while Link^.OcclusionQuery.GetData(@VisiblePixels, DataSize, D3DGETDATA_FLUSH) = S_FALSE do ;
+        if VisiblePixels <= 1 then
+        begin
+          Link^.OcclusionVisible := False;
+          Link^.OcclusionCheckTime := GetTickCount - Query^.OcclusionCheckTimeBias;
+        end;
+      end;
+      Link^.OcclusionQueryEnabled := False;
+    end;
+  end;
+  procedure IncludeNode(const n: PG2SGOcTreeNode);
     var nx, ny, nz: Integer;
   begin
-    n^.FrustumTest := fcInside;
+    PG2SGQueryNodeLink(n^.QueryLinks[Query^.ID])^.FrustumTest := fcInside;
     if n^.DivN then
     begin
       if n^.Items.Count > 0 then
-      List.Add(n);
+      AddNode(n);
     end
     else
     for nx := n^.MinX to n^.MaxX do
@@ -841,19 +1003,19 @@ procedure TG2SceneGraph.OcTreeFetchNodes(const Frustum: TG2Frustum; const List: 
     if n^.SubNodes[nx, ny, nz].TotalItemCount > 0 then
     IncludeNode(@n^.SubNodes[nx, ny, nz]);
   end;
-  procedure CheckNode(const n: POcTreeNode);
+  procedure CheckNode(const n: PG2SGOcTreeNode);
     var nx, ny, nz: Integer;
   begin
-    n^.FrustumTest := Frustum.FrustumCheckBox(n^.AABox.MinV, n^.AABox.MaxV);
-    if (n^.FrustumTest = fcInside) then
+    PG2SGQueryNodeLink(n^.QueryLinks[Query^.ID])^.FrustumTest := Frustum.FrustumCheckBox(n^.AABox.MinV, n^.AABox.MaxV);
+    if (PG2SGQueryNodeLink(n^.QueryLinks[Query^.ID])^.FrustumTest = fcInside) then
     IncludeNode(n)
     else
-    if (n^.FrustumTest = fcIntersect) then
+    if (PG2SGQueryNodeLink(n^.QueryLinks[Query^.ID])^.FrustumTest = fcIntersect) then
     begin
       if n^.DivN then
       begin
         if n^.Items.Count > 0 then
-        List.Add(n);
+        AddNode(n);
       end
       else
       for nx := n^.MinX to n^.MaxX do
@@ -864,26 +1026,30 @@ procedure TG2SceneGraph.OcTreeFetchNodes(const Frustum: TG2Frustum; const List: 
     end;
   end;
 begin
-  if m_RootNode.TotalItemCount > 0 then
-  CheckNode(@m_RootNode);
+  if RootNode.TotalItemCount > 0 then
+  CheckNode(@RootNode);
 end;
 
 procedure TG2SceneGraph.OcTreeGetIndices(const AABox: TG2AABox; var IndMinX, IndMinY, IndMinZ, IndMaxX, IndMaxY, IndMaxZ: Integer);
   var sx, sy, sz: Single;
 begin
-  sx := m_RootNode.AABox.MaxV.x - m_RootNode.AABox.MinV.x;
-  sy := m_RootNode.AABox.MaxV.y - m_RootNode.AABox.MinV.y;
-  sz := m_RootNode.AABox.MaxV.z - m_RootNode.AABox.MinV.z;
-  IndMinX := Min(Max(Trunc((AABox.MinV.x - m_RootNode.AABox.MinV.x) / sx * Length(m_OcTreeGrid)), 0), Length(m_OcTreeGrid));
-  IndMaxX := Min(Max(Trunc((AABox.MaxV.x - m_RootNode.AABox.MinV.x) / sx * Length(m_OcTreeGrid)), -1), High(m_OcTreeGrid));
-  IndMinY := Min(Max(Trunc((AABox.MinV.y - m_RootNode.AABox.MinV.y) / sy * Length(m_OcTreeGrid[0])), 0), Length(m_OcTreeGrid[0]));
-  IndMaxY := Min(Max(Trunc((AABox.MaxV.y - m_RootNode.AABox.MinV.y) / sy * Length(m_OcTreeGrid[0])), -1), High(m_OcTreeGrid[0]));
-  IndMinZ := Min(Max(Trunc((AABox.MinV.z - m_RootNode.AABox.MinV.z) / sz * Length(m_OcTreeGrid[0, 0])), 0), Length(m_OcTreeGrid[0, 0]));
-  IndMaxZ := Min(Max(Trunc((AABox.MaxV.z - m_RootNode.AABox.MinV.z) / sz * Length(m_OcTreeGrid[0, 0])), -1), High(m_OcTreeGrid[0, 0]));
+  sx := RootNode.AABox.MaxV.x - RootNode.AABox.MinV.x;
+  sy := RootNode.AABox.MaxV.y - RootNode.AABox.MinV.y;
+  sz := RootNode.AABox.MaxV.z - RootNode.AABox.MinV.z;
+  IndMinX := Min(Max(Trunc((AABox.MinV.x - RootNode.AABox.MinV.x) / sx * Length(m_OcTreeGrid)), 0), Length(m_OcTreeGrid));
+  IndMaxX := Min(Max(Trunc((AABox.MaxV.x - RootNode.AABox.MinV.x) / sx * Length(m_OcTreeGrid)), -1), High(m_OcTreeGrid));
+  IndMinY := Min(Max(Trunc((AABox.MinV.y - RootNode.AABox.MinV.y) / sy * Length(m_OcTreeGrid[0])), 0), Length(m_OcTreeGrid[0]));
+  IndMaxY := Min(Max(Trunc((AABox.MaxV.y - RootNode.AABox.MinV.y) / sy * Length(m_OcTreeGrid[0])), -1), High(m_OcTreeGrid[0]));
+  IndMinZ := Min(Max(Trunc((AABox.MinV.z - RootNode.AABox.MinV.z) / sz * Length(m_OcTreeGrid[0, 0])), 0), Length(m_OcTreeGrid[0, 0]));
+  IndMaxZ := Min(Max(Trunc((AABox.MaxV.z - RootNode.AABox.MinV.z) / sz * Length(m_OcTreeGrid[0, 0])), -1), High(m_OcTreeGrid[0, 0]));
 end;
 
 constructor TG2SceneGraph.Create(const G2Core: TG2Core);
+  type TVertexArr = array[Word] of TG2Vec3;
+  type PVertexArr = ^TVertexArr;
   var i, j: Integer;
+  var PtrVertices: PVertexArr;
+  var PtrIndices: PG2Index16Array;
 begin
   inherited Create;
   Core := G2Core;
@@ -901,6 +1067,7 @@ begin
   Chars.Clear;
   Lights.Capacity := 32;
   Lights.Clear;
+  OcTreeBuilt := False;
   m_OcTreeNodeFetch.Capacity := 32;
   m_OcTreeNodeFetch.Clear;
   m_GeomCollideList.Capacity := 32;
@@ -922,6 +1089,41 @@ begin
   DataFormats.DefClassOfLightSpot := TG2SGLightSpot;
   DataFormats.DefClassOfLightDir := TG2SGLightDir;
   Core.Graphics.Device.CreateVertexDeclaration(@DataFormats.FVFGeom, DataFormats.DeclGeom);
+  VB := TG2VB.Create;
+  VB.Initialize(Core);
+  VB.Verify(SizeOf(TG2Vec3), 8, 0, D3DFVF_XYZ, D3DPOOL_MANAGED);
+  VB.Lock(0, SizeOf(TG2Vec3) * 8, Pointer(PtrVertices));
+  PtrVertices^[0].SetValue(0, 0, 0);
+  PtrVertices^[1].SetValue(0, 0, 1);
+  PtrVertices^[2].SetValue(1, 0, 1);
+  PtrVertices^[3].SetValue(1, 0, 0);
+  PtrVertices^[4].SetValue(0, 1, 0);
+  PtrVertices^[5].SetValue(0, 1, 1);
+  PtrVertices^[6].SetValue(1, 1, 1);
+  PtrVertices^[7].SetValue(1, 1, 0);
+  VB.UnLock;
+  IB := TG2IB.Create;
+  IB.Initialize(Core);
+  IB.Verify(36, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED);
+  IB.Lock(0, 36, Pointer(PtrIndices));
+  PtrIndices^[0] := 1; PtrIndices^[1] := 0; PtrIndices^[2] := 3;
+  PtrIndices^[3] := 1; PtrIndices^[4] := 3; PtrIndices^[5] := 2;
+
+  PtrIndices^[6] := 0; PtrIndices^[7] := 4; PtrIndices^[8] := 7;
+  PtrIndices^[9] := 0; PtrIndices^[10] := 7; PtrIndices^[11] := 3;
+
+  PtrIndices^[12] := 1; PtrIndices^[13] := 5; PtrIndices^[14] := 4;
+  PtrIndices^[15] := 1; PtrIndices^[16] := 4; PtrIndices^[17] := 0;
+
+  PtrIndices^[18] := 3; PtrIndices^[19] := 7; PtrIndices^[20] := 6;
+  PtrIndices^[21] := 3; PtrIndices^[22] := 6; PtrIndices^[23] := 2;
+
+  PtrIndices^[24] := 2; PtrIndices^[25] := 6; PtrIndices^[26] := 5;
+  PtrIndices^[27] := 2; PtrIndices^[28] := 5; PtrIndices^[29] := 1;
+
+  PtrIndices^[30] := 4; PtrIndices^[31] := 5; PtrIndices^[32] := 6;
+  PtrIndices^[33] := 4; PtrIndices^[34] := 6; PtrIndices^[35] := 7;
+  IB.UnLock;
   MgrTextures := TG2TextureMgr.Create;
   MgrTextures.Initialize(Core);
   with MgrTextures.CreateTexture2D('NULL_DIFFUSE', 4, 4, 1, 0, D3DFMT_A8R8G8B8) do
@@ -961,16 +1163,21 @@ begin
   m_Prim3D := TG2Primitives3D.Create;
   m_Prim3D.Initialize(Core);
   SearchPathAdd(String(AppPath));
-  m_RootNode.AABox.SetValue(G2Vec3(0, 0, 0), G2Vec3(0, 0, 0));
+  RootNode.AABox.SetValue(G2Vec3(0, 0, 0), G2Vec3(0, 0, 0));
   Depth := 0;
 end;
 
 destructor TG2SceneGraph.Destroy;
 begin
-  Clear;
-  MaterialsClear;
   while Queries.Count > 0 do
   QueryDestroy(PG2SGQuery(Queries[0]));
+  Clear;
+  MaterialsClear;
+  OcTreeDestroy;
+  IB.Finalize;
+  IB.Free;
+  VB.Finalize;
+  VB.Free;
   m_Prim3D.Finalize;
   m_Prim3D.Free;
   SafeRelease(DataFormats.DeclGeom);
@@ -1144,90 +1351,51 @@ end;
 procedure TG2SceneGraph.QueryFetch(const Frustum: TG2Frustum; const Query: PG2SGQuery);
   var i, j: Integer;
   var Frame: TG2SGFrame;
-  var Link: PG2SGQueryLink;
-  var PrevRT: IDirect3DSurface9;
-  var PrevDS: IDirect3DSurface9;
-  var PrevV, PrevP, PrevW: TG2Mat;
-  var PrevViewport: TD3DViewport9;
-  var PrevZEnable, PrevZWriteEnable: Boolean;
-  var PrevDstBlend, PrevSrcBlend: DWord;
-  var PrevCullMode: DWord;
+  var Link: PG2SGQueryItemLink;
   var VisiblePixels: DWord;
   var DataSize: DWord;
-  var ViewPos: TG2Vec3;
-  var m: TG2Mat;
 begin
-  m_OcTreeNodeFetch.Clear;
-  OcTreeFetchNodes(Frustum, @m_OcTreeNodeFetch);
-  if m_CurFetchID >= High(DWord) - 1 then
-  ResetFetchID;
-  Inc(m_CurFetchID);
+  Query.QueryNodes.Clear;
+  OcTreeFetchNodes(Frustum, Query);
+  Query.CheckFetchID;
+  Inc(Query.FetchID);
   Query^.QueryLists[G2QL_CHARS].Clear;
   Query^.QueryLists[G2QL_LIGHTS].Clear;
-  if Query^.OcclusionCullEnable then
+  Query^.QueryLists[G2QL_GEOMS].Clear;
+  Query^.QueryGeoms.Clear;
+
+  Query^.Stats.ObjectsRendered := 0;
+  for i := 0 to Query.QueryNodes.Count - 1 do
+  if PG2SGQueryNodeLink(PG2SGOcTreeNode(Query.QueryNodes[i])^.QueryLinks[Query^.ID])^.OcclusionVisible then
+  for j := 0 to PG2SGOcTreeNode(Query.QueryNodes[i])^.Items.Count - 1 do
+  if PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(Query.QueryNodes[i])^.Items[j])^.QueryLinks[Query.ID])^.FetchID < Query.FetchID then
   begin
-    ViewPos.SetValue(-Frustum.RefV^.e30, -Frustum.RefV^.e31, -Frustum.RefV^.e32);
-    ViewPos := ViewPos.Transform3x3(Frustum.RefV^.Transpose);
-    Core.Graphics.Device.GetTransform(D3DTS_VIEW, PG2MatRef(@PrevV)^);
-    Core.Graphics.Device.GetTransform(D3DTS_PROJECTION, PG2MatRef(@PrevP)^);
-    Core.Graphics.Device.GetTransform(D3DTS_WORLD, PG2MatRef(@PrevW)^);
-    Core.Graphics.Device.SetTransform(D3DTS_VIEW, Frustum.RefV^);
-    Core.Graphics.Device.SetTransform(D3DTS_PROJECTION, Frustum.RefP^);
-    Core.Graphics.Device.GetRenderTarget(0, PrevRT);
-    Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
-    PrevViewport := Core.Graphics.GetViewPort;
-    Core.Graphics.Device.SetRenderTarget(0, Query^.OcclusionRT.Surface);
-    Core.Graphics.Device.SetDepthStencilSurface(Query^.OcclusionDS.Surface);
-    Core.Graphics.SetViewPort(Query^.OcclusionRT.ViewPort^);
-    Core.Graphics.Device.Clear(0, nil, D3DCLEAR_ZBUFFER, 0, 1, 0);
-    Core.Graphics.Device.SetTexture(0, nil);
-    Core.Graphics.Device.SetVertexDeclaration(DataFormats.DeclGeom);
-    PrevZEnable := Core.Graphics.RenderStates.ZEnable;
-    PrevZWriteEnable := Core.Graphics.RenderStates.ZWriteEnable;
-    PrevSrcBlend := Core.Graphics.RenderStates.SrcBlend;
-    PrevDstBlend := Core.Graphics.RenderStates.DestBlend;
-    Core.Graphics.RenderStates.SrcBlend := D3DBLEND_ZERO;
-    Core.Graphics.RenderStates.DestBlend := D3DBLEND_ZERO;
-    PrevCullMode := Core.Graphics.RenderStates.CullMode;
-    Core.Graphics.RenderStates.ZEnable := True;
-    Core.Graphics.RenderStates.ZWriteEnable := True;
-    Core.Graphics.RenderStates.DepthBias := 0.0001;
-    for i := 0 to Query^.QueryLists[G2QL_GEOMS].Count - 1 do
+    PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(Query.QueryNodes[i])^.Items[j])^.QueryLinks[Query.ID])^.FetchID := Query.FetchID;
+    Frame := PG2SGOcTreeItem(PG2SGOcTreeNode(Query.QueryNodes[i])^.Items[j])^.Frame;
+    if Frame.Render
+    and (
+      (PG2SGQueryNodeLink(PG2SGOcTreeNode(Query.QueryNodes[i])^.QueryLinks[Query^.ID])^.FrustumTest = fcInside)
+      or Frustum.BoxInFrustum(Frame.AABox)
+    ) then
     begin
-      Core.Graphics.Device.SetTransform(D3DTS_WORLD, TG2SGGeom(Query^.QueryLists[G2QL_GEOMS][i]).Transform);
-      Core.Graphics.Device.SetStreamSource(0, TG2SGGeom(Query^.QueryLists[G2QL_GEOMS][i]).VB, 0, DataFormats.VertexStrideGeom);
-      Core.Graphics.Device.SetIndices(TG2SGGeom(Query^.QueryLists[G2QL_GEOMS][i]).IB);
-      Core.Graphics.Device.DrawIndexedPrimitive(
-        D3DPT_TRIANGLELIST, 0,
-        0, TG2SGGeom(Query^.QueryLists[G2QL_GEOMS][i]).VCount,
-        0, TG2SGGeom(Query^.QueryLists[G2QL_GEOMS][i]).FCount
-      );
-    end;
-    Query^.QueryLists[G2QL_GEOMS].Clear;
-    m.SetIdentity;
-    Core.Graphics.RenderStates.DepthBias := 0;
-    Core.Graphics.RenderStates.ZWriteEnable := False;
-    Core.Graphics.RenderStates.CullMode := D3DCULL_NONE;
-    Core.Graphics.Device.SetTransform(D3DTS_WORLD, m);
-    for i := 0 to m_OcTreeNodeFetch.Count - 1 do
-    for j := 0 to POcTreeNode(m_OcTreeNodeFetch[i])^.Items.Count - 1 do
-    if PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID < m_CurFetchID then
-    begin
-      PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID := m_CurFetchID;
-      Frame := PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame;
-      Link := PG2SGQueryLink(Frame.OcTreeItem.QueryLinks[Query^.ID]);
-      if Frame.Render
-      and (
-        (POcTreeNode(m_OcTreeNodeFetch[i])^.FrustumTest = fcInside)
-        or Frustum.BoxInFrustum(Frame.AABox)
-      ) then
+      if (Frame is TG2SGGeom) then
       begin
-        if Link^.OcclusionTest then
+        Link := PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(Query.QueryNodes[i])^.Items[j])^.QueryLinks[Query.ID]);
+        Link^.OcclusionVisible := True;
+        Query^.QueryGeoms.Add(Frame);
+        if Link^.OcclusionQueryEnabled then
         begin
-          DataSize := Link^.OcclusionQuery.GetDataSize;
-          while Link^.OcclusionQuery.GetData(@VisiblePixels, DataSize, D3DGETDATA_FLUSH) = S_FALSE do ;
-          Link^.OcclusionVisible := (VisiblePixels > 10);
-          Link^.OcclusionTest := False;
+          if Link^.OcclusionQueryID >= Query^.FetchID - 1 then
+          begin
+            DataSize := Link^.OcclusionQuery.GetDataSize;
+            while Link^.OcclusionQuery.GetData(@VisiblePixels, DataSize, D3DGETDATA_FLUSH) = S_FALSE do ;
+            if VisiblePixels <= 1 then
+            begin
+              Link^.OcclusionVisible := False;
+              Link^.OcclusionCheckTime := GetTickCount - Query^.OcclusionCheckTimeBias;
+            end;
+          end;
+          Link^.OcclusionQueryEnabled := False;
         end;
         if Link^.OcclusionVisible then
         begin
@@ -1235,73 +1403,22 @@ begin
           Query^.QueryLists[Frame.QueryListID].Add(Frame, Frustum.Planes[4].DistanceToPoint((Frame.AABox.MaxV + Frame.AABox.MinV) * 0.5))
           else
           Query^.QueryLists[Frame.QueryListID].Add(Frame);
-          if GetTickCount - Link^.OcclusionTestTime >= 1000 then
-          Link^.OcclusionVisible := False;
         end;
-        if not Link^.OcclusionVisible then
-        begin
-          Link^.OcclusionTestTime := GetTickCount;
-          if Frame.AABox.PointInside(ViewPos) then
-          Link^.OcclusionVisible := True
-          else
-          begin
-            Link^.OcclusionTest := True;
-            Link^.OcclusionQuery.Issue(D3DISSUE_BEGIN);
-            m_Prim3D.DrawBox(
-              Frame.AABox.MinV.x,
-              Frame.AABox.MinV.y,
-              Frame.AABox.MinV.z,
-              Frame.AABox.MaxV.x - Frame.AABox.MinV.x,
-              Frame.AABox.MaxV.y - Frame.AABox.MinV.y,
-              Frame.AABox.MaxV.z - Frame.AABox.MinV.z,
-              $ffffffff
-            );
-            Link^.OcclusionQuery.Issue(D3DISSUE_END);
-          end;
-        end;
-      end;
-    end;
-    Core.Graphics.RenderStates.CullMode := PrevCullMode;
-    Core.Graphics.RenderStates.SrcBlend := PrevSrcBlend;
-    Core.Graphics.RenderStates.DestBlend := PrevDstBlend;
-    Core.Graphics.RenderStates.ZEnable := PrevZEnable;
-    Core.Graphics.RenderStates.ZWriteEnable := PrevZWriteEnable;
-    Core.Graphics.Device.SetRenderTarget(0, PrevRT);
-    Core.Graphics.Device.SetDepthStencilSurface(PrevDS);
-    Core.Graphics.Device.SetTransform(D3DTS_VIEW, PrevV);
-    Core.Graphics.Device.SetTransform(D3DTS_PROJECTION, PrevP);
-    Core.Graphics.Device.SetTransform(D3DTS_WORLD, PrevW);
-  end
-  else
-  begin
-    Query^.QueryLists[G2QL_GEOMS].Clear;
-    for i := 0 to m_OcTreeNodeFetch.Count - 1 do
-    for j := 0 to POcTreeNode(m_OcTreeNodeFetch[i])^.Items.Count - 1 do
-    if PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID < m_CurFetchID then
-    begin
-      PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID := m_CurFetchID;
-      Frame := PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame;
-      if Frame.Render
-      and (
-        (POcTreeNode(m_OcTreeNodeFetch[i])^.FrustumTest = fcInside)
-        or Frustum.BoxInFrustum(Frame.AABox)
-      ) then
+      end
+      else
       begin
-        if Frame.QueryListID > -1 then
-        begin
-          if Query^.DistanceSortEnable then
-          Query^.QueryLists[Frame.QueryListID].Add(Frame, Frustum.Planes[4].DistanceToPoint((Frame.AABox.MaxV + Frame.AABox.MinV) * 0.5))
-          else
-          Query^.QueryLists[Frame.QueryListID].Add(Frame);
-        end;
+        if Query^.DistanceSortEnable then
+        Query^.QueryLists[Frame.QueryListID].Add(Frame, Frustum.Planes[4].DistanceToPoint((Frame.AABox.MaxV + Frame.AABox.MinV) * 0.5))
+        else
+        Query^.QueryLists[Frame.QueryListID].Add(Frame);
       end;
     end;
   end;
-  Query^.Stats.ObjectsRendered := Query^.QueryLists[G2QL_GEOMS].Count;
-  Query^.Stats.ObjectsCulled := Geoms.Count - Query^.QueryLists[G2QL_GEOMS].Count;
+  Query^.Stats.ObjectsRendered := Query^.QueryLists[G2QL_GEOMS].Count + Query^.QueryLists[G2QL_CHARS].Count;
+  Query^.Stats.ObjectsCulled := Geoms.Count + Chars.Count - Query^.Stats.ObjectsRendered;
 end;
 
-function TG2SceneGraph.CollideSphere(var s: TG2Sphere): Boolean;
+function TG2SceneGraph.CollideSphere(var s: TG2Sphere; const Query: PG2SGQuery): Boolean;
   var AABox: TG2AABox;
   var Geom: TG2SGGeom;
   var ShiftVec: TG2Vec3;
@@ -1319,19 +1436,18 @@ begin
   if m_CurCollideID > High(DWord) - 1 then
   ResetCollideID;
   Inc(m_CurCollideID);
-  if m_CurFetchID >= High(DWord) - 1 then
-  ResetFetchID;
-  Inc(m_CurFetchID);
+  Query.CheckFetchID;
+  Inc(Query.FetchID);
   m_GeomCollideList.Clear;
   for i := 0 to m_OcTreeNodeFetch.Count - 1 do
-  for j := 0 to POcTreeNode(m_OcTreeNodeFetch[i])^.Items.Count - 1 do
-  if (PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame is TG2SGGeom)
-  and (TG2SGGeom(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame).Collide)
-  and (PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID < m_CurFetchID) then
+  for j := 0 to PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items.Count - 1 do
+  if (PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame is TG2SGGeom)
+  and (TG2SGGeom(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame).Collide)
+  and (PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.QueryLinks[Query.ID])^.FetchID < Query.FetchID) then
   begin
-    PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID := m_CurFetchID;
-    if AABox.Intersect(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame.AABox) then
-    m_GeomCollideList.Add(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame);
+    PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.QueryLinks[Query.ID])^.FetchID := Query.FetchID;
+    if AABox.Intersect(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame.AABox) then
+    m_GeomCollideList.Add(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame);
   end;
   for i := 0 to m_GeomCollideList.Count - 1 do
   begin
@@ -1410,7 +1526,7 @@ begin
   end;
 end;
 
-function TG2SceneGraph.CollideChar(const c: TG2SGChar): Boolean;
+function TG2SceneGraph.CollideChar(const c: TG2SGChar; const Query: PG2SGQuery): Boolean;
   var s: TG2Sphere;
   var AABoxChar, AABoxTop: TG2AABox;
   var StepNorm: TG2Vec3;
@@ -1440,19 +1556,18 @@ begin
   if m_CurCollideID > High(DWord) - 1 then
   ResetCollideID;
   Inc(m_CurCollideID);
-  if m_CurFetchID >= High(DWord) - 1 then
-  ResetFetchID;
-  Inc(m_CurFetchID);
+  Query.CheckFetchID;
+  Inc(Query.FetchID);
   m_GeomCollideList.Clear;
   for i := 0 to m_OcTreeNodeFetch.Count - 1 do
-  for j := 0 to POcTreeNode(m_OcTreeNodeFetch[i])^.Items.Count - 1 do
-  if (PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame is TG2SGGeom)
-  and (TG2SGGeom(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame).Collide)
-  and (PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID < m_CurFetchID) then
+  for j := 0 to PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items.Count - 1 do
+  if (PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame is TG2SGGeom)
+  and (TG2SGGeom(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame).Collide)
+  and (PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.QueryLinks[Query.ID])^.FetchID < Query.FetchID) then
   begin
-    PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.FetchID := m_CurFetchID;
-    if AABoxChar.Intersect(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame.AABox) then
-    m_GeomCollideList.Add(PG2SGOcTreeItem(POcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame);
+    PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.QueryLinks[Query.ID])^.FetchID := Query.FetchID;
+    if AABoxChar.Intersect(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame.AABox) then
+    m_GeomCollideList.Add(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j])^.Frame);
   end;
   for i := 0 to m_GeomCollideList.Count - 1 do
   begin
@@ -1461,7 +1576,7 @@ begin
     begin
       if AABoxChar.Intersect(Geom.Collider.Faces[j].AABox) then
       begin
-        if Geom.Collider.Faces[j].Plane.N.Dot(StepNorm) < -0.6 then
+        if Geom.Collider.Faces[j].Plane.N.Dot(StepNorm) < -0.8 then
         begin
           if G2Ray(s.C, StepNorm).IntersectTri(
             Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[0]],
@@ -1477,7 +1592,7 @@ begin
               begin
                 c.Grounded := True;
                 c.Vel := c.Vel - StepNorm * (StepNorm.Dot(c.Vel));
-                ShiftVec := -StepNorm * (StepLen - d);
+                ShiftVec := -StepNorm * ((StepLen - d) * 0.3);
                 s.C := s.C + ShiftVec;
                 AABoxTop.MinV := AABoxTop.MinV + ShiftVec;
                 AABoxTop.MaxV := AABoxTop.MaxV + ShiftVec;
@@ -1571,6 +1686,74 @@ begin
   end;
 end;
 
+function TG2SceneGraph.CollideRay(const r: TG2Ray; var GeomID: Integer; var FaceID: Word; var U, V, D: Single): Boolean;
+  var i: Integer;
+  var CurFaceID: Word;
+  var FirstHit: Boolean;
+  var CurU, CurV, CurD: Single;
+begin
+  Result := False;
+  FirstHit := True;
+  for i := 0 to Geoms.Count - 1 do
+  if TG2SGGeom(Geoms[i]).Collide then
+  begin
+    if TG2SGGeom(Geoms[i]).IntersectRay(r, CurFaceID, CurU, CurV, CurD) then
+    begin
+      if FirstHit or (CurD < D) then
+      begin
+        Result := True;
+        FirstHit := False;
+        FaceID := CurFaceID;
+        U := CurU;
+        V := CurV;
+        D := CurD;
+        GeomID := i;
+      end;
+    end;
+  end;
+end;
+
+function TG2SceneGraph.CollideRay(const r: TG2Ray; const Query: PG2SGQuery; const Distance: Single; var GeomID: Integer; var FaceID: Word; var U, V, D: Single): Boolean;
+  var i, j: Integer;
+  var CurFaceID: Word;
+  var FirstHit: Boolean;
+  var CurU, CurV, CurD: Single;
+  var AABox: TG2AABox;
+begin
+  Result := False;
+  FirstHit := True;
+  AABox.MinV := r.Origin;
+  AABox.MaxV := r.Origin;
+  AABox := AABox + (r.Origin + r.Dir * Distance);
+  m_OcTreeNodeFetch.Clear;
+  OcTreeFetchNodes(AABox, @m_OcTreeNodeFetch);
+  Query.CheckFetchID;
+  Inc(Query.FetchID);
+  for i := 0 to m_OcTreeNodeFetch.Count - 1 do
+  for j := 0 to PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items.Count - 1 do
+  if PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j]).QueryLinks[Query.ID]).FetchID < Query.FetchID then
+  begin
+    PG2SGQueryItemLink(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j]).QueryLinks[Query.ID]).FetchID := Query.FetchID;
+    if PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j]).Frame is TG2SGGeom then
+    if TG2SGGeom(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j]).Frame).Collide then
+    begin
+      if TG2SGGeom(PG2SGOcTreeItem(PG2SGOcTreeNode(m_OcTreeNodeFetch[i])^.Items[j]).Frame).IntersectRay(r, CurFaceID, CurU, CurV, CurD) then
+      begin
+        if FirstHit or (CurD < D) then
+        begin
+          Result := True;
+          FirstHit := False;
+          FaceID := CurFaceID;
+          U := CurU;
+          V := CurV;
+          D := CurD;
+          GeomID := i;
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure TG2SceneGraph.LoadG2M(const Loader: TG2MeshLoaderG2M);
   procedure ComputeNodeTransform(const n: TG2SGNode);
     var i: Integer;
@@ -1614,6 +1797,7 @@ begin
     for j := 0 to Material^.ChannelCount - 1 do
     begin
       Material^.Channels[j].Name := MeshData.Materials[i].Channels[j].Name;
+      Material^.Channels[j].TwoSided := MeshData.Materials[i].Channels[j].TwoSided;
       Material^.Channels[j].TexDiffuse := FindTextureDiffuse(WideString(MeshData.Materials[i].Channels[j].DiffuseMap));
       Material^.Channels[j].TexNormals := FindTextureNormals(WideString(MeshData.Materials[i].Channels[j].NormalMap));
       Material^.Channels[j].TexSpecular := FindTextureSpecular(WideString(MeshData.Materials[i].Channels[j].SpecularMap));
@@ -1834,14 +2018,14 @@ begin
   TG2SGNode(Nodes[0]).Free;
 end;
 
-procedure TG2SceneGraph.Update;
+procedure TG2SceneGraph.Update(const Query: PG2SGQuery);
   var i: Integer;
 begin
   for i := 0 to Nodes.Count - 1 do
   TG2SGNode(Nodes[i]).Update;
   for i := 0 to Chars.Count - 1 do
   if TG2SGChar(Chars[i]).Collide then
-  CollideChar(TG2SGChar(Chars[i]));
+  CollideChar(TG2SGChar(Chars[i]), Query);
 end;
 //TG2SceneGraph END
 
@@ -1874,12 +2058,11 @@ end;
 
 constructor TG2SGFrame.Create(const SceneGraph: TG2SceneGraph);
   var i: Integer;
-  var Link: PG2SGQueryLink;
+  var Link: PG2SGQueryItemLink;
 begin
   inherited Create(SceneGraph);
   m_SceneGraph.Frames.Add(Self);
   OcTreeItem.Frame := Self;
-  OcTreeItem.FetchID := 0;
   OcTreeItem.QueryLinks.Capacity := 32;
   OcTreeItem.QueryLinks.Clear;
   OcTreeItem.OcTreeNodes.Capacity := 32;
@@ -1899,11 +2082,11 @@ end;
 
 destructor TG2SGFrame.Destroy;
   var i: Integer;
-  var Link: PG2SGQueryLink;
+  var Link: PG2SGQueryItemLink;
 begin
   for i := 0 to m_SceneGraph.Queries.Count - 1 do
   begin
-    Link := PG2SGQueryLink(OcTreeItem.QueryLinks[PG2SGQuery(m_SceneGraph.Queries[i])^.ID]);
+    Link := PG2SGQueryItemLink(OcTreeItem.QueryLinks[PG2SGQuery(m_SceneGraph.Queries[i])^.ID]);
     Link^.UnInit;
     Dispose(Link);
   end;
@@ -2023,6 +2206,7 @@ begin
   m_SceneGraph.Geoms.Add(Self);
   m_Render := False;
   m_Collide := False;
+  m_Occluder := True;
   m_PrevTransform.SetValue(
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -2093,8 +2277,8 @@ begin
   Result := False;
 end;
 
-function TG2SGGeom.IntersectRay(const r: TG2Ray; var U, V, Dist: Single): Boolean;
-  var i: Integer;
+function TG2SGGeom.IntersectRay(const r: TG2Ray; var FaceID: Word; var U, V, Dist: Single): Boolean;
+  var i: Word;
   var cu, cv, d: Single;
   var v0, v1, v2: TG2Vec3;
 begin
@@ -2114,6 +2298,7 @@ begin
       or (d < Dist) then
       begin
         Result := True;
+        FaceID := i;
         U := cu;
         V := cv;
         Dist := d;
@@ -2133,6 +2318,7 @@ begin
         or (d < Dist) then
         begin
           Result := True;
+          FaceID := i;
           U := cu;
           V := cv;
           Dist := d;

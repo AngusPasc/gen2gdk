@@ -1893,6 +1893,12 @@ type
       const MipLevels: Integer = 1;
       const Format: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2TextureCube;
+    function CreateTextureCubeFromPack(
+      const Name: WideString;
+      const FolderName, FileName: AnsiString;
+      const MipLevels: Integer = 1;
+      const Format: TD3DFormat = D3DFMT_UNKNOWN
+    ): TG2TextureCube;
     function CreateTextureCubeRT(
       const Name: WideString;
       const Size: Integer;
@@ -2268,7 +2274,18 @@ type
     function LoadFromFile(
       const f: WideString;
       const MipLevels: Integer = 1;
-      const Format: TD3DFormat = D3DFMT_UNKNOWN
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
+    ): TG2Result;
+    function LoadFromBuffer(
+      const Buffer: Pointer;
+      const Size: DWord;
+      const MipLevels: Integer = 1;
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
+    ): TG2Result;
+    function LoadFromPack(
+      const FolderName, FileName: AnsiString;
+      const MipLevels: Integer = 1;
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Result;
     function MakeTexture(
       const Size: Integer;
@@ -2676,6 +2693,44 @@ type
 
   TG2Mesh = class (TG2Res)
   strict private
+    type TG2MeshVertexStatic = packed record
+      var Position: TG2Vec3;
+      var Tangent: TG2Vec3;
+      var Binormal: TG2Vec3;
+      var Normal: TG2Vec3;
+      var TexCoords: TG2Vec2;
+    end;
+    type TG2MeshVertexStaticArr = array[Word] of TG2MeshVertexStatic;
+    type PG2MeshVertexStaticArr = ^TG2MeshVertexStaticArr;
+    type TG2MeshVertexSkinned = packed record
+      var Position: TG2Vec3;
+      var Tangent: TG2Vec3;
+      var Binormal: TG2Vec3;
+      var Normal: TG2Vec3;
+      var TexCoords: TG2Vec2;
+      var BoneIndices: array[0..3] of Single;
+      var BoneWeights: array[0..3] of Single;
+    end;
+    type PG2MeshVertexSkinned = ^TG2MeshVertexSkinned;
+    type TG2MeshVertexSkinnedArr = array[Word] of TG2MeshVertexSkinned;
+    type PG2MeshVertexSkinnedArr = ^TG2MeshVertexSkinnedArr;
+    type TG2MeshVertexStaticFF = packed record
+      var Position: TG2Vec3;
+      var Normal: TG2Vec3;
+      var TexCoords: TG2Vec2;
+    end;
+    type TG2MeshVertexStaticFFArr = array[Word] of TG2MeshVertexStaticFF;
+    type PG2MeshVertexStaticFFArr = ^TG2MeshVertexStaticFFArr;
+    type TG2MeshVertexSkinnedFF = packed record
+      var Position: TG2Vec3;
+      var BWeights: array[0..3] of Single;
+      var BIndices: array[0..3] of Byte;
+      var Normal: TG2Vec3;
+      var TexCoords: TG2Vec2;
+    end;
+    type PG2MeshVertexSkinnedFF = ^TG2MeshVertexSkinnedFF;
+    type TG2MeshVertexSkinnedFFArr = array[Word] of TG2MeshVertexSkinnedFF;
+    type PG2MeshVertexSkinnedFFArr = ^TG2MeshVertexSkinnedFFArr;
     var m_Effect: TG2Effect;
   public
     class var RenderMode: TG2MeshRenderMode;
@@ -2779,6 +2834,7 @@ type
     end;
     property Effect: TG2Effect read m_Effect;
     function LoadData(const MeshData: TG2MeshData): TG2Result;
+    function ExtractData: TG2MeshData;
     function NodeIndex(const NodeName: AnsiString): Integer;
     function GeomIndex(const NodeName: AnsiString): Integer;
     function AnimIndex(const AnimName: AnsiString): Integer;
@@ -2847,6 +2903,14 @@ type
       const Ray: TG2Ray;
       const OutD: PSingle = nil;
       const OutGeomID: PInteger = nil;
+      const OutFaceID: PWord = nil;
+      const OutU: PSingle = nil;
+      const OutV: PSingle = nil
+    ): Boolean;
+    function PickGeom(
+      const GeomID: Integer;
+      const Ray: TG2Ray;
+      const OutD: PSingle = nil;
       const OutFaceID: PWord = nil;
       const OutU: PSingle = nil;
       const OutV: PSingle = nil
@@ -4517,6 +4581,12 @@ type
     ): TG2Result; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function DrawRect(
       const X, Y, Width, Height: Single;
+      const TexRect: TRect;
+      const Color: TG2Color;
+      const Texture: TG2Texture2DBase
+    ): TG2Result; overload;
+    function DrawRect(
+      const X, Y, Width, Height: Single;
       const Color: TG2Color;
       const Texture: TG2Texture2DBase
     ): TG2Result; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -5170,6 +5240,7 @@ type
     function Finalize: TG2Result; override;
     function CreateEffectFromFile(const Name: WideString; const f: WideString): TG2Effect;
     function CreateEffectFromMemory(const Name: WideString; const Ptr: Pointer; const Size: Integer): TG2Effect;
+    function CreateEffectFromPack(const Name: WideString; const FolderName, FileName: AnsiString): TG2Effect;
     function FindEffect(const Name: WideString): TG2Effect;
   end;
 //TG2EffectMgr END
@@ -5250,6 +5321,7 @@ type
     function Finalize: TG2Result; override;
     function LoadFromFile(const f: WideString): TG2Result;
     function LoadFromMemory(const Ptr: Pointer; const Size: Integer): TG2Result;
+    function LoadFromPack(const FolderName, FileName: AnsiString): TG2Result;
     procedure Release;  {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure OnLostDevice; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure OnResetDevice; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -5744,6 +5816,7 @@ function G2TimeInterval(Interval: DWord = 1000): Single; overload; {$IFDEF G2_US
 function G2TimeInterval(Interval: DWord; Time: DWord): Single; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2RandomPi: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2Random2Pi: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+function G2RandomCirclePoint: TG2Vec2; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2RandomSpherePoint: TG2Vec3; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2RandomColor(const MinBrightness: Byte = 0): DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 procedure G2EncDec(const Ptr: PByteArray; const Count: Integer; const Key: AnsiString);
@@ -12965,6 +13038,20 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
+function TG2TextureMgr.CreateTextureCubeFromPack(
+      const Name: WideString;
+      const FolderName, FileName: AnsiString;
+      const MipLevels: Integer = 1;
+      const Format: TD3DFormat = D3DFMT_UNKNOWN
+    ): TG2TextureCube;
+begin
+  Result := TG2TextureCube.Create;
+  Result.Name := Name;
+  Result.Initialize(Core);
+  if G2ResOk(Result.LoadFromPack(FolderName, FileName, MipLevels, Format)) then
+  AddResource(Result) else FreeAndNil(Result);
+end;
+
 function TG2TextureMgr.CreateTextureCubeRT(
       const Name: WideString;
       const Size: Integer;
@@ -15280,7 +15367,7 @@ end;
 function TG2TextureCube.LoadFromFile(
       const f: WideString;
       const MipLevels: Integer = 1;
-      const Format: TD3DFormat = D3DFMT_UNKNOWN
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
     ): TG2Result;
 var
   ImageInfo: TD3DXImageInfo;
@@ -15290,7 +15377,7 @@ begin
   if Format = D3DFMT_UNKNOWN then
   m_Format := m_Gfx.m_InitParamsActual.FormatTextureCube
   else
-  m_Format := m_Gfx.Specs.FindCompatiableTextureCubeFormat(Format);
+  m_Format := m_Gfx.Specs.FindCompatiableTextureCubeFormat(NewFormat);
 
   if Failed(
     D3DXCreateCubeTextureFromFileExW(
@@ -15332,6 +15419,81 @@ begin
   InitLevels;
   Result := grOk;
   G2WriteLogTimed(AnsiString('(>) Texture Loaded (' + String(Name) + '): TextureCube ' + IntToStr(m_Width) + 'x' + IntToStr(m_Height) + 'x' + IntToStr(m_Depth) + ' ' + String(G2FormatToString(m_Format)) + ' ' + IntToStr(m_Levels) + 'Mip'), 'Textures');
+end;
+
+function TG2TextureCube.LoadFromBuffer(
+      const Buffer: Pointer;
+      const Size: DWord;
+      const MipLevels: Integer = 1;
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
+    ): TG2Result;
+var
+  ImageInfo: TD3DXImageInfo;
+begin
+  Release;
+
+  if Format = D3DFMT_UNKNOWN then
+  m_Format := m_Gfx.m_InitParamsActual.FormatTextureCube
+  else
+  m_Format := m_Gfx.Specs.FindCompatiableTextureCubeFormat(NewFormat);
+
+  if Failed(
+    D3DXCreateCubeTextureFromFileInMemoryEx(
+      m_Gfx.Device,
+      Buffer,
+      Size,
+      0,
+      MipLevels,
+      0,
+      m_Format,
+      D3DPOOL_MANAGED,
+      D3DX_FILTER_NONE,
+      D3DX_FILTER_NONE,
+      0,
+      @ImageInfo,
+      nil,
+      m_Texture
+    )
+  ) then
+  begin
+    Result := grFail;
+    Exit;
+  end;
+
+  m_Width := ImageInfo.Width;
+  m_Height := ImageInfo.Height;
+  m_Depth := ImageInfo.Depth;
+
+  m_Levels := m_Texture.GetLevelCount;
+  if m_Levels > 1 then
+  begin
+    D3DXFilterCubeTexture(
+      m_Texture,
+      nil,
+      0,
+      D3DX_FILTER_BOX
+    );
+  end;
+
+  InitLevels;
+  Result := grOk;
+  G2WriteLogTimed(AnsiString('(>) Texture Loaded (' + String(Name) + '): TextureCube ' + IntToStr(m_Width) + 'x' + IntToStr(m_Height) + 'x' + IntToStr(m_Depth) + ' ' + String(G2FormatToString(m_Format)) + ' ' + IntToStr(m_Levels) + 'Mip'), 'Textures');
+end;
+
+function TG2TextureCube.LoadFromPack(
+      const FolderName, FileName: AnsiString;
+      const MipLevels: Integer = 1;
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
+    ): TG2Result;
+var
+  Data: Pointer;
+  DataSize: DWord;
+begin
+  Core.PackLinker.GetFileData(FolderName, FileName, Data, DataSize);
+  if Assigned(Data) then
+  Result := LoadFromBuffer(Data, DataSize, MipLevels, NewFormat)
+  else
+  Result := grFail;
 end;
 
 function TG2TextureCube.MakeTexture(
@@ -17024,60 +17186,6 @@ end;
 
 //TG2Mesh BEGIN
 function TG2Mesh.LoadData(const MeshData: TG2MeshData): TG2Result;
-  procedure CopyRagdollObject(const Src, Dst: PG2RagdollObject);
-    var i: Integer;
-  begin
-    Dst^.NodeID := Src^.NodeID;
-    Dst^.MinV := Src^.MinV;
-    Dst^.MaxV := Src^.MaxV;
-    Dst^.Transform := Src^.Transform;
-    Dst^.DependantCount := Src^.DependantCount;
-    SetLength(Dst^.Dependants, Dst^.DependantCount);
-    for i := 0 to Dst^.DependantCount - 1 do
-    begin
-      Dst^.Dependants[i].NodeID := Src^.Dependants[i].NodeID;
-      Dst^.Dependants[i].Offset := Src^.Dependants[i].Offset;
-    end;
-  end;
-type
-  TG2MeshVertexStatic = packed record
-    Position: TG2Vec3;
-    Tangent: TG2Vec3;
-    Binormal: TG2Vec3;
-    Normal: TG2Vec3;
-    TexCoords: TG2Vec2;
-  end;
-  TG2MeshVertexStaticArr = array[Word] of TG2MeshVertexStatic;
-  PG2MeshVertexStaticArr = ^TG2MeshVertexStaticArr;
-  TG2MeshVertexSkinned = packed record
-    Position: TG2Vec3;
-    Tangent: TG2Vec3;
-    Binormal: TG2Vec3;
-    Normal: TG2Vec3;
-    TexCoords: TG2Vec2;
-    BoneIndices: array[0..3] of Single;
-    BoneWeights: array[0..3] of Single;
-  end;
-  PG2MeshVertexSkinned = ^TG2MeshVertexSkinned;
-  TG2MeshVertexSkinnedArr = array[Word] of TG2MeshVertexSkinned;
-  PG2MeshVertexSkinnedArr = ^TG2MeshVertexSkinnedArr;
-  TG2MeshVertexStaticFF = packed record
-    Position: TG2Vec3;
-    Normal: TG2Vec3;
-    TexCoords: TG2Vec2;
-  end;
-  TG2MeshVertexStaticFFArr = array[Word] of TG2MeshVertexStaticFF;
-  PG2MeshVertexStaticFFArr = ^TG2MeshVertexStaticFFArr;
-  TG2MeshVertexSkinnedFF = packed record
-    Position: TG2Vec3;
-    BWeights: array[0..3] of Single;
-    BIndices: array[0..3] of Byte;
-    Normal: TG2Vec3;
-    TexCoords: TG2Vec2;
-  end;
-  PG2MeshVertexSkinnedFF = ^TG2MeshVertexSkinnedFF;
-  TG2MeshVertexSkinnedFFArr = array[Word] of TG2MeshVertexSkinnedFF;
-  PG2MeshVertexSkinnedFFArr = ^TG2MeshVertexSkinnedFFArr;
 var
   i, j, k, b: Integer;
   Decl: TFVFDeclaration;
@@ -17523,19 +17631,273 @@ begin
     SetLength(Ragdolls[i].ArmLNodes, Ragdolls[i].ArmLNodeCount);
     SetLength(Ragdolls[i].LegRNodes, Ragdolls[i].LegRNodeCount);
     SetLength(Ragdolls[i].LegLNodes, Ragdolls[i].LegLNodeCount);
-    CopyRagdollObject(@MeshData.RagDolls[i].Head, @Ragdolls[i].Head);
-    CopyRagdollObject(@MeshData.RagDolls[i].Neck, @Ragdolls[i].Neck);
-    CopyRagdollObject(@MeshData.RagDolls[i].Pelvis, @Ragdolls[i].Pelvis);
+    G2MeshRagdollObjectCopy(@MeshData.RagDolls[i].Head, @Ragdolls[i].Head);
+    G2MeshRagdollObjectCopy(@MeshData.RagDolls[i].Neck, @Ragdolls[i].Neck);
+    G2MeshRagdollObjectCopy(@MeshData.RagDolls[i].Pelvis, @Ragdolls[i].Pelvis);
     for j := 0 to Ragdolls[i].BodyNodeCount - 1 do
-    CopyRagdollObject(@MeshData.RagDolls[i].BodyNodes[j], @Ragdolls[i].BodyNodes[j]);
+    G2MeshRagdollObjectCopy(@MeshData.RagDolls[i].BodyNodes[j], @Ragdolls[i].BodyNodes[j]);
     for j := 0 to Ragdolls[i].ArmRNodeCount - 1 do
-    CopyRagdollObject(@MeshData.RagDolls[i].ArmRNodes[j], @Ragdolls[i].ArmRNodes[j]);
+    G2MeshRagdollObjectCopy(@MeshData.RagDolls[i].ArmRNodes[j], @Ragdolls[i].ArmRNodes[j]);
     for j := 0 to Ragdolls[i].ArmLNodeCount - 1 do
-    CopyRagdollObject(@MeshData.RagDolls[i].ArmLNodes[j], @Ragdolls[i].ArmLNodes[j]);
+    G2MeshRagdollObjectCopy(@MeshData.RagDolls[i].ArmLNodes[j], @Ragdolls[i].ArmLNodes[j]);
     for j := 0 to Ragdolls[i].LegRNodeCount - 1 do
-    CopyRagdollObject(@MeshData.RagDolls[i].LegRNodes[j], @Ragdolls[i].LegRNodes[j]);
+    G2MeshRagdollObjectCopy(@MeshData.RagDolls[i].LegRNodes[j], @Ragdolls[i].LegRNodes[j]);
     for j := 0 to Ragdolls[i].LegLNodeCount - 1 do
-    CopyRagdollObject(@MeshData.RagDolls[i].LegLNodes[j], @Ragdolls[i].LegLNodes[j]);
+    G2MeshRagdollObjectCopy(@MeshData.RagDolls[i].LegLNodes[j], @Ragdolls[i].LegLNodes[j]);
+  end;
+end;
+
+function TG2Mesh.ExtractData: TG2MeshData;
+  type TSkin = record
+    var SkinID: Integer;
+    var GeomID: Integer;
+  end;
+  var Skins: array of TSkin;
+  function AddSkin(const GeomID: Integer): Integer;
+  begin
+    SetLength(Skins, Length(Skins) + 1);
+    Skins[High(Skins)].SkinID := High(Skins);
+    Skins[High(Skins)].GeomID := GeomID;
+    Result := High(Skins);
+  end;
+  var i, j, n: Integer;
+  var VStatic: PG2MeshVertexStaticArr;
+  var VSkinned: PG2MeshVertexSkinnedArr;
+  var VStaticFF: PG2MeshVertexStaticFFArr;
+  var VSkinnedFF: PG2MeshVertexSkinnedFFArr;
+  var Ind: PG2Index16Array;
+  var Att: PDWordArray;
+begin
+  Result.NodeCount := NodeCount;
+  SetLength(Result.Nodes, Result.NodeCount);
+  for i := 0 to Result.NodeCount - 1 do
+  begin
+    Result.Nodes[i].OwnerID := Nodes[i].OwnerID;
+    Result.Nodes[i].Name := Nodes[i].Name;
+    Result.Nodes[i].Transform := Nodes[i].Transform;
+  end;
+  Result.GeomCount := GeomCount;
+  SetLength(Result.Geoms, Result.GeomCount);
+  for i := 0 to Result.GeomCount - 1 do
+  begin
+    Result.Geoms[i].NodeID := Geoms[i].NodeID;
+    Result.Geoms[i].VCount := Geoms[i].Mesh.GetNumVertices;
+    Result.Geoms[i].FCount := Geoms[i].Mesh.GetNumFaces;
+    Result.Geoms[i].TCount := 1;
+    Result.Geoms[i].MCount := Geoms[i].MaterialCount;
+    SetLength(Result.Geoms[i].Vertices, Result.Geoms[i].VCount);
+    if TG2Mesh.RenderMode = rmFF then
+    begin
+      if Geoms[i].Skinned then
+      begin
+        Result.Geoms[i].SkinID := AddSkin(i);
+        Geoms[i].Mesh.LockVertexBuffer(D3DLOCK_READONLY, Pointer(VSkinnedFF));
+        for j := 0 to Result.Geoms[i].VCount - 1 do
+        begin
+          Result.Geoms[i].Vertices[j].Position := VSkinnedFF^[j].Position;
+          Result.Geoms[i].Vertices[j].Tangent.SetValue(0, 0, 0);
+          Result.Geoms[i].Vertices[j].Binormal.SetValue(0, 0, 0);
+          Result.Geoms[i].Vertices[j].Normal := VSkinnedFF^[j].Normal;
+          SetLength(Result.Geoms[i].Vertices[j].TexCoords, 1);
+          Result.Geoms[i].Vertices[j].TexCoords[0] := VSkinnedFF^[j].TexCoords;
+          Result.Geoms[i].Vertices[j].Color := $ffffffff;
+        end;
+        Geoms[i].Mesh.UnlockVertexBuffer;
+      end
+      else
+      begin
+        Result.Geoms[i].SkinID := -1;
+        Geoms[i].Mesh.LockVertexBuffer(D3DLOCK_READONLY, Pointer(VStaticFF));
+        for j := 0 to Result.Geoms[i].VCount - 1 do
+        begin
+          Result.Geoms[i].Vertices[j].Position := VStaticFF^[j].Position;
+          Result.Geoms[i].Vertices[j].Tangent.SetValue(0, 0, 0);
+          Result.Geoms[i].Vertices[j].Binormal.SetValue(0, 0, 0);
+          Result.Geoms[i].Vertices[j].Normal := VStaticFF^[j].Normal;
+          SetLength(Result.Geoms[i].Vertices[j].TexCoords, 1);
+          Result.Geoms[i].Vertices[j].TexCoords[0] := VStaticFF^[j].TexCoords;
+          Result.Geoms[i].Vertices[j].Color := $ffffffff;
+        end;
+        Geoms[i].Mesh.UnlockVertexBuffer;
+      end;
+    end
+    else
+    begin
+      if Geoms[i].Skinned then
+      begin
+        Result.Geoms[i].SkinID := AddSkin(i);
+        Geoms[i].Mesh.LockVertexBuffer(D3DLOCK_READONLY, Pointer(VSkinned));
+        for j := 0 to Result.Geoms[i].VCount - 1 do
+        begin
+          Result.Geoms[i].Vertices[j].Position := VSkinned^[j].Position;
+          Result.Geoms[i].Vertices[j].Tangent := VSkinned^[j].Tangent;
+          Result.Geoms[i].Vertices[j].Binormal := VSkinned^[j].Binormal;
+          Result.Geoms[i].Vertices[j].Normal := VSkinned^[j].Normal;
+          SetLength(Result.Geoms[i].Vertices[j].TexCoords, 1);
+          Result.Geoms[i].Vertices[j].TexCoords[0] := VSkinned^[j].TexCoords;
+          Result.Geoms[i].Vertices[j].Color := $ffffffff;
+        end;
+        Geoms[i].Mesh.UnlockVertexBuffer;
+      end
+      else
+      begin
+        Result.Geoms[i].SkinID := -1;
+        Geoms[i].Mesh.LockVertexBuffer(D3DLOCK_READONLY, Pointer(VStatic));
+        for j := 0 to Result.Geoms[i].VCount - 1 do
+        begin
+          Result.Geoms[i].Vertices[j].Position := VStatic^[j].Position;
+          Result.Geoms[i].Vertices[j].Tangent := VStatic^[j].Tangent;
+          Result.Geoms[i].Vertices[j].Binormal := VStatic^[j].Binormal;
+          Result.Geoms[i].Vertices[j].Normal := VStatic^[j].Normal;
+          SetLength(Result.Geoms[i].Vertices[j].TexCoords, 1);
+          Result.Geoms[i].Vertices[j].TexCoords[0] := VStatic^[j].TexCoords;
+          Result.Geoms[i].Vertices[j].Color := $ffffffff;
+        end;
+        Geoms[i].Mesh.UnlockVertexBuffer;
+      end;
+    end;
+    SetLength(Result.Geoms[i].Faces, Result.Geoms[i].FCount);
+    Geoms[i].Mesh.LockIndexBuffer(D3DLOCK_READONLY, Pointer(Ind));
+    Geoms[i].Mesh.LockAttributeBuffer(D3DLOCK_READONLY, PDword(Att));
+    for j := 0 to Result.Geoms[i].FCount - 1 do
+    begin
+      Result.Geoms[i].Faces[j].Indices[0] := Ind^[j * 3 + 0];
+      Result.Geoms[i].Faces[j].Indices[1] := Ind^[j * 3 + 1];
+      Result.Geoms[i].Faces[j].Indices[2] := Ind^[j * 3 + 2];
+      Result.Geoms[i].Faces[j].MaterialID := Att^[j];
+    end;
+    Geoms[i].Mesh.UnlockIndexBuffer;
+    Geoms[i].Mesh.UnlockAttributeBuffer;
+    SetLength(Result.Geoms[i].Materials, Result.Geoms[i].MCount);
+    for j := 0 to Result.Geoms[i].MCount - 1 do
+    Result.Geoms[i].Materials[j] := Geoms[i].Materials[j];
+  end;
+  Result.SkinCount := Length(Skins);
+  SetLength(Result.Skins, Result.SkinCount);
+  for i := 0 to Result.SkinCount - 1 do
+  begin
+    Result.Skins[i].GeomID := Skins[i].GeomID;
+    Result.Skins[i].MaxWeights := Geoms[Skins[i].GeomID].MaxWeights;
+    Result.Skins[i].BoneCount := Geoms[Skins[i].GeomID].BoneCount;
+    SetLength(Result.Skins[i].Bones, Result.Skins[i].BoneCount);
+    for j := 0 to Result.Skins[i].BoneCount - 1 do
+    begin
+      Result.Skins[i].Bones[j].NodeID := Geoms[Skins[i].GeomID].Bones[j].NodeID;
+      Result.Skins[i].Bones[j].Bind := Geoms[Skins[i].GeomID].Bones[j].Bind;
+    end;
+    SetLength(Result.Skins[i].Vertices, Result.Geoms[Skins[i].GeomID].VCount);
+    if TG2Mesh.RenderMode = rmFF then
+    begin
+      Geoms[Skins[i].GeomID].Mesh.LockVertexBuffer(D3DLOCK_READONLY, Pointer(VSkinnedFF));
+      for j := 0 to Result.Geoms[Skins[i].GeomID].VCount - 1 do
+      begin
+        Result.Skins[i].Vertices[j].WeightCount := Result.Skins[i].MaxWeights;
+        for n := 0 to Result.Skins[i].MaxWeights - 1 do
+        begin
+          Result.Skins[i].Vertices[j].Weights[n].BoneID := Round(VSkinnedFF^[j].BIndices[n]);
+          Result.Skins[i].Vertices[j].Weights[n].Weight := VSkinnedFF^[j].BWeights[n];
+        end;
+      end;
+      Geoms[Skins[i].GeomID].Mesh.UnlockVertexBuffer;
+    end
+    else
+    begin
+      Geoms[Skins[i].GeomID].Mesh.LockVertexBuffer(D3DLOCK_READONLY, Pointer(VSkinned));
+      for j := 0 to Result.Geoms[Skins[i].GeomID].VCount - 1 do
+      begin
+        Result.Skins[i].Vertices[j].WeightCount := Result.Skins[i].MaxWeights;
+        for n := 0 to Result.Skins[i].MaxWeights - 1 do
+        begin
+          Result.Skins[i].Vertices[j].Weights[n].BoneID := Round(VSkinned^[j].BoneIndices[n]);
+          Result.Skins[i].Vertices[j].Weights[n].Weight := VSkinned^[j].BoneWeights[n];
+        end;
+      end;
+      Geoms[Skins[i].GeomID].Mesh.UnlockVertexBuffer;
+    end;
+  end;
+  Result.AnimCount := AnimCount;
+  SetLength(Result.Anims, Result.AnimCount);
+  for i := 0 to Result.AnimCount - 1 do
+  begin
+    Result.Anims[i].Name := Anims[i].Name;
+    Result.Anims[i].FrameRate := Anims[i].FrameRate;
+    Result.Anims[i].FrameCount := Anims[i].FrameCount;
+    Result.Anims[i].NodeCount := Anims[i].NodeCount;
+    SetLength(Result.Anims[i].Nodes, Result.Anims[i].NodeCount);
+    for j := 0 to Result.Anims[i].NodeCount - 1 do
+    begin
+      Result.Anims[i].Nodes[j].NodeID := Anims[i].Nodes[j].NodeID;
+      SetLength(Result.Anims[i].Nodes[j].Frames, Result.Anims[i].FrameCount);
+      for n := 0 to Result.Anims[i].FrameCount - 1 do
+      begin
+        Result.Anims[i].Nodes[j].Frames[n].Scaling := Anims[i].Nodes[j].Frames[n].Scale;
+        Result.Anims[i].Nodes[j].Frames[n].Rotation := Anims[i].Nodes[j].Frames[n].Rotation;
+        Result.Anims[i].Nodes[j].Frames[n].Translation := Anims[i].Nodes[j].Frames[n].Translation;
+      end;
+    end;
+  end;
+  Result.MaterialCount := MaterialCount;
+  SetLength(Result.Materials, Result.MaterialCount);
+  for i := 0 to Result.MaterialCount - 1 do
+  begin
+    Result.Materials[i].ChannelCount := 1;
+    SetLength(Result.Materials[i].Channels, 1);
+    Result.Materials[i].Channels[0].Name := Materials[i].Name;
+    Result.Materials[i].Channels[0].TwoSided := Materials[i].TwoSided;
+    Result.Materials[i].Channels[0].AmbientColor := Materials[i].AmbientColor;
+    Result.Materials[i].Channels[0].DiffuseColor := Materials[i].DiffuseColor;
+    Result.Materials[i].Channels[0].SpecularColor := Materials[i].SpecularColor;
+    Result.Materials[i].Channels[0].SpecularColorAmount := Materials[i].SpecularColorAmount;
+    Result.Materials[i].Channels[0].SpecularPower := Materials[i].SpecularPower;
+    Result.Materials[i].Channels[0].EmmissiveColor := Materials[i].EmmissiveColor;
+    Result.Materials[i].Channels[0].EmmissiveColorAmount := Materials[i].EmmissiveColorAmount;
+    Result.Materials[i].Channels[0].AmbientMapEnable := Materials[i].AmbientMapEnable;
+    Result.Materials[i].Channels[0].AmbientMap := Materials[i].AmbientMap;
+    Result.Materials[i].Channels[0].AmbientMapAmount := Materials[i].AmbientMapAmount;
+    Result.Materials[i].Channels[0].DiffuseMapEnable := Materials[i].DiffuseMapEnable;
+    Result.Materials[i].Channels[0].DiffuseMap := Materials[i].DiffuseMap;
+    Result.Materials[i].Channels[0].DiffuseMapAmount := Materials[i].DiffuseMapAmount;
+    Result.Materials[i].Channels[0].SpecularMapEnable := Materials[i].SpecularMapEnable;
+    Result.Materials[i].Channels[0].SpecularMap := Materials[i].SpecularMap;
+    Result.Materials[i].Channels[0].SpecularMapAmount := Materials[i].SpecularMapAmount;
+    Result.Materials[i].Channels[0].OpacityMapEnable := Materials[i].OpacityMapEnable;
+    Result.Materials[i].Channels[0].OpacityMap := Materials[i].OpacityMap;
+    Result.Materials[i].Channels[0].OpacityMapAmount := Materials[i].OpacityMapAmount;
+    Result.Materials[i].Channels[0].LightMapEnable := Materials[i].LightMapEnable;
+    Result.Materials[i].Channels[0].LightMap := Materials[i].LightMap;
+    Result.Materials[i].Channels[0].LightMapAmount := Materials[i].LightMapAmount;
+    Result.Materials[i].Channels[0].NormalMapEnable := Materials[i].NormalMapEnable;
+    Result.Materials[i].Channels[0].NormalMap := Materials[i].NormalMap;
+    Result.Materials[i].Channels[0].NormalMapAmount := Materials[i].NormalMapAmount;
+  end;
+  Result.RagDollCount := RagdollCount;
+  SetLength(Result.RagDolls, Result.RagDollCount);
+  for i := 0 to Result.RagDollCount - 1 do
+  begin
+    Result.RagDolls[i].NodeID := Ragdolls[i].NodeID;
+    Result.RagDolls[i].BodyNodeCount := Ragdolls[i].BodyNodeCount;
+    Result.RagDolls[i].ArmRNodeCount := Ragdolls[i].ArmRNodeCount;
+    Result.RagDolls[i].ArmLNodeCount := Ragdolls[i].ArmLNodeCount;
+    Result.RagDolls[i].LegRNodeCount := Ragdolls[i].LegRNodeCount;
+    Result.RagDolls[i].LegLNodeCount := Ragdolls[i].LegLNodeCount;
+    SetLength(Result.Ragdolls[i].BodyNodes, Result.Ragdolls[i].BodyNodeCount);
+    SetLength(Result.Ragdolls[i].ArmRNodes, Result.Ragdolls[i].ArmRNodeCount);
+    SetLength(Result.Ragdolls[i].ArmLNodes, Result.Ragdolls[i].ArmLNodeCount);
+    SetLength(Result.Ragdolls[i].LegRNodes, Result.Ragdolls[i].LegRNodeCount);
+    SetLength(Result.Ragdolls[i].LegLNodes, Result.Ragdolls[i].LegLNodeCount);
+    G2MeshRagdollObjectCopy(@RagDolls[i].Head, @Result.Ragdolls[i].Head);
+    G2MeshRagdollObjectCopy(@RagDolls[i].Neck, @Result.Ragdolls[i].Neck);
+    G2MeshRagdollObjectCopy(@RagDolls[i].Pelvis, @Result.Ragdolls[i].Pelvis);
+    for j := 0 to Result.Ragdolls[i].BodyNodeCount - 1 do
+    G2MeshRagdollObjectCopy(@RagDolls[i].BodyNodes[j], @Result.Ragdolls[i].BodyNodes[j]);
+    for j := 0 to Result.Ragdolls[i].ArmRNodeCount - 1 do
+    G2MeshRagdollObjectCopy(@RagDolls[i].ArmRNodes[j], @Result.Ragdolls[i].ArmRNodes[j]);
+    for j := 0 to Result.Ragdolls[i].ArmLNodeCount - 1 do
+    G2MeshRagdollObjectCopy(@RagDolls[i].ArmLNodes[j], @Result.Ragdolls[i].ArmLNodes[j]);
+    for j := 0 to Result.Ragdolls[i].LegRNodeCount - 1 do
+    G2MeshRagdollObjectCopy(@RagDolls[i].LegRNodes[j], @Result.Ragdolls[i].LegRNodes[j]);
+    for j := 0 to Result.Ragdolls[i].LegLNodeCount - 1 do
+    G2MeshRagdollObjectCopy(@RagDolls[i].LegLNodes[j], @Result.Ragdolls[i].LegLNodes[j]);
   end;
 end;
 
@@ -18228,7 +18590,50 @@ function TG2MeshInst.Pick(
   const OutU: PSingle = nil;
   const OutV: PSingle = nil
 ): Boolean;
-  var VCount, i, j: Integer;
+  var i: Integer;
+  var CurD, CurU, CurV: Single;
+  var FinD, FinU, FinV: Single;
+  var CurFaceID: Word;
+  var FinFaceID: Word;
+  var FinGeomID: Integer;
+  var FirstHit: Boolean;
+begin
+  Result := False;
+  FinU := 0; FinV := 0; FinD := 0; FinFaceID := 0; FinGeomID := 0;
+  FirstHit := True;
+  for i := 0 to m_Mesh.GeomCount - 1 do
+  if PickGeom(i, Ray, @CurD, @CurFaceID, @CurU, @CurV) then
+  begin
+    if FirstHit or (CurD < FinD) then
+    begin
+      FirstHit := False;
+      FinU := CurU;
+      FinV := CurV;
+      FinD := CurD;
+      FinGeomID := i;
+      FinFaceID := CurFaceID;
+      Result := True;
+    end;
+  end;
+  if Result then
+  begin
+    if Assigned(OutD) then OutD^ := FinD;
+    if Assigned(OutGeomID) then OutGeomID^ := FinGeomID;
+    if Assigned(OutFaceID) then OutFaceID^ := FinFaceID;
+    if Assigned(OutU) then OutU^ := FinU;
+    if Assigned(OutV) then OutV^ := FinV;
+  end;
+end;
+
+function TG2MeshInst.PickGeom(
+      const GeomID: Integer;
+      const Ray: TG2Ray;
+      const OutD: PSingle = nil;
+      const OutFaceID: PWord = nil;
+      const OutU: PSingle = nil;
+      const OutV: PSingle = nil
+    ): Boolean;
+  var VCount, i: Integer;
   var t: Word;
   var W, m: TG2Mat;
   var Ptr: Pointer;
@@ -18236,7 +18641,6 @@ function TG2MeshInst.Pick(
   var CurD, CurU, CurV: Single;
   var FinD, FinU, FinV: Single;
   var FinFaceID: Word;
-  var FinGeomID: Integer;
   var FirstHit: Boolean;
   var v: PG2Vec3;
   var tmpv: TG2Vec3;
@@ -18244,59 +18648,58 @@ function TG2MeshInst.Pick(
   var bw: Single;
 begin
   Result := False;
-  FinU := 0; FinV := 0; FinD := 0; FinFaceID := 0; FinGeomID := 0;
-  for i := 0 to m_Mesh.GeomCount - 1 do
-  if Ray.IntersectAABox((GetGeomBBox(i) * m_Mesh.Core.Graphics.Transforms.W[0]).AABox) then
+  FinU := 0; FinV := 0; FinD := 0; FinFaceID := 0;
+  if Ray.IntersectAABox((GetGeomBBox(GeomID) * m_Mesh.Core.Graphics.Transforms.W[0]).AABox) then
   begin
-    VCount := m_Mesh.Geoms[i].Mesh.GetNumVertices;
+    VCount := m_Mesh.Geoms[GeomID].Mesh.GetNumVertices;
     if Length(m_TempVec) < VCount then
     SetLength(m_TempVec, VCount);
-    m_Mesh.Geoms[i].Mesh.LockVertexBuffer(D3DLOCK_READONLY or D3DLOCK_NOSYSLOCK, Ptr);
-    if m_Mesh.Geoms[i].Skinned then
+    m_Mesh.Geoms[GeomID].Mesh.LockVertexBuffer(D3DLOCK_READONLY or D3DLOCK_NOSYSLOCK, Ptr);
+    if m_Mesh.Geoms[GeomID].Skinned then
     begin
       W := m_Mesh.Core.Graphics.Transforms.W[0];
-      if m_Mesh.Geoms[i].MaxWeights = 1 then
-      for j := 0 to VCount - 1 do
+      if m_Mesh.Geoms[GeomID].MaxWeights = 1 then
+      for i := 0 to VCount - 1 do
       begin
         v := Ptr;
         bi := Round(PSingle(DWord(Ptr) + 56)^);
-        Ptr := Pointer(DWord(Ptr) + m_Mesh.Geoms[i].VertexStride);
-        m := m_SkinTransforms[i, bi] * W;
-        D3DXVec3TransformCoord(PD3DXVector3(@m_TempVec[j])^, v^, m);
+        Ptr := Pointer(DWord(Ptr) + m_Mesh.Geoms[GeomID].VertexStride);
+        m := m_SkinTransforms[GeomID, bi] * W;
+        D3DXVec3TransformCoord(PD3DXVector3(@m_TempVec[i])^, v^, m);
       end
       else
-      for j := 0 to VCount - 1 do
+      for i := 0 to VCount - 1 do
       begin
         v := Ptr;
-        m_TempVec[j].SetValue(0, 0, 0);
-        for t := 0 to m_Mesh.Geoms[i].MaxWeights - 1 do
+        m_TempVec[i].SetValue(0, 0, 0);
+        for t := 0 to m_Mesh.Geoms[GeomID].MaxWeights - 1 do
         begin
           bi := Round(PSingle(DWord(Ptr) + 56 + t * 4)^);
-          bw := PSingle(DWord(Ptr) + 56 + m_Mesh.Geoms[i].MaxWeights * 4 + t * 4)^;
-          m := m_SkinTransforms[i, bi] * W;
+          bw := PSingle(DWord(Ptr) + 56 + m_Mesh.Geoms[GeomID].MaxWeights * 4 + t * 4)^;
+          m := m_SkinTransforms[GeomID, bi] * W;
           D3DXVec3TransformCoord(PD3DXVector3(@tmpv)^, v^, m);
           tmpv := tmpv * bw;
-          m_TempVec[j] := m_TempVec[j] + tmpv;
+          m_TempVec[i] := m_TempVec[i] + tmpv;
         end;
-        Ptr := Pointer(DWord(Ptr) + m_Mesh.Geoms[i].VertexStride);
+        Ptr := Pointer(DWord(Ptr) + m_Mesh.Geoms[GeomID].VertexStride);
       end;
     end
     else
     begin
-      W := NodeTransforms[m_Mesh.Geoms[i].NodeID].TransformRen * m_Mesh.Core.Graphics.Transforms.W[0];
+      W := NodeTransforms[m_Mesh.Geoms[GeomID].NodeID].TransformRen * m_Mesh.Core.Graphics.Transforms.W[0];
       D3DXVec3TransformCoordArray(
-        @m_TempVec[0], 12, Ptr, m_Mesh.Geoms[i].VertexStride, W, VCount
+        @m_TempVec[0], 12, Ptr, m_Mesh.Geoms[GeomID].VertexStride, W, VCount
       );
     end;
-    m_Mesh.Geoms[i].Mesh.UnlockVertexBuffer;
-    m_Mesh.Geoms[i].Mesh.LockIndexBuffer(D3DLOCK_READONLY or D3DLOCK_NOSYSLOCK, Pointer(Ind));
+    m_Mesh.Geoms[GeomID].Mesh.UnlockVertexBuffer;
+    m_Mesh.Geoms[GeomID].Mesh.LockIndexBuffer(D3DLOCK_READONLY or D3DLOCK_NOSYSLOCK, Pointer(Ind));
     FirstHit := True;
-    for j := 0 to m_Mesh.Geoms[i].Mesh.GetNumFaces - 1 do
+    for i := 0 to m_Mesh.Geoms[GeomID].Mesh.GetNumFaces - 1 do
     begin
       if D3DXIntersectTri(
-        m_TempVec[Ind^[j * 3 + 0]],
-        m_TempVec[Ind^[j * 3 + 1]],
-        m_TempVec[Ind^[j * 3 + 2]],
+        m_TempVec[Ind^[i * 3 + 0]],
+        m_TempVec[Ind^[i * 3 + 1]],
+        m_TempVec[Ind^[i * 3 + 2]],
         Ray.Origin, Ray.Dir,
         CurU, CurV, CurD
       ) then
@@ -18307,18 +18710,16 @@ begin
           FinU := CurU;
           FinV := CurV;
           FinD := CurD;
-          FinGeomID := i;
-          FinFaceID := j;
+          FinFaceID := i;
           Result := True;
         end;
       end;
     end;
-    m_Mesh.Geoms[i].Mesh.UnlockIndexBuffer;
+    m_Mesh.Geoms[GeomID].Mesh.UnlockIndexBuffer;
   end;
   if Result then
   begin
     if Assigned(OutD) then OutD^ := FinD;
-    if Assigned(OutGeomID) then OutGeomID^ := FinGeomID;
     if Assigned(OutFaceID) then OutFaceID^ := FinFaceID;
     if Assigned(OutU) then OutU^ := FinU;
     if Assigned(OutV) then OutV^ := FinV;
@@ -24969,6 +25370,35 @@ end;
 
 function TG2Render2D.DrawRect(
       const X, Y, Width, Height: Single;
+      const TexRect: TRect;
+      const Color: TG2Color;
+      const Texture: TG2Texture2DBase
+    ): TG2Result;
+  var r: TG2Rect;
+  var x1, y1, x2, y2: Single;
+begin
+  x1 := x - 0.5;
+  y1 := y - 0.5;
+  x2 := x + Width - 1 + 0.5;
+  y2 := y + Height - 1 + 0.5;
+  r.Left := (TexRect.Left) / Texture.RealWidth;
+  r.Top := (TexRect.Top) / Texture.RealHeight;
+  r.Right := (TexRect.Right) / Texture.RealWidth;
+  r.Bottom := (TexRect.Bottom) / Texture.RealHeight;
+  Result := DrawQuad(
+    G2Vec2(x1, y1), G2Vec2(x2, y1),
+    G2Vec2(x1, y2), G2Vec2(x2, y2),
+    Color, Color, Color, Color,
+    Texture,
+    G2Vec2(r.Left, r.Top),
+    G2Vec2(r.Right, r.Top),
+    G2Vec2(r.Left, r.Bottom),
+    G2Vec2(r.Right, r.Bottom)
+  );
+end;
+
+function TG2Render2D.DrawRect(
+      const X, Y, Width, Height: Single;
       const Color: TG2Color;
       const Texture: TG2Texture2DBase
     ): TG2Result;
@@ -28920,6 +29350,15 @@ begin
   AddResource(Result) else FreeAndNil(Result);
 end;
 
+function TG2EffectMgr.CreateEffectFromPack(const Name: WideString; const FolderName, FileName: AnsiString): TG2Effect;
+begin
+  Result := TG2Effect.Create;
+  Result.Name := Name;
+  Result.Initialize(Core);
+  if G2ResOk(Result.LoadFromPack(FolderName, FileName)) then
+  AddResource(Result) else FreeAndNil(Result);
+end;
+
 function TG2EffectMgr.FindEffect(const Name: WideString): TG2Effect;
 begin
   Result := TG2Effect(FindResource(Name));
@@ -29333,6 +29772,19 @@ begin
   end;
   Result := grOk;
   G2WriteLogTimed(AnsiString('(>) Effect Loaded (' + Name + ').'), 'Shaders');
+end;
+
+function TG2Effect.LoadFromPack(const FolderName, FileName: AnsiString): TG2Result;
+  var Data: Pointer;
+  var DataSize: DWord;
+begin
+  Core.PackLinker.GetFileData(FolderName, FileName, Data, DataSize);
+  if Data = nil then
+  begin
+    Result := grFail;
+    Exit;
+  end;
+  Result := LoadFromMemory(Data, DataSize);
 end;
 
 procedure TG2Effect.Release;
@@ -31946,6 +32398,13 @@ begin
   Result := Random(Round(TwoPi * 1000)) / 1000;
 end;
 
+function G2RandomCirclePoint: TG2Vec2;
+  var a: Single;
+begin
+  a := G2Random2Pi;
+  G2SinCos(a, Result.y, Result.x);
+end;
+
 function G2RandomSpherePoint: TG2Vec3;
   var a1, a2, s1, s2, c1, c2: Single;
 begin
@@ -32138,12 +32597,14 @@ end;
 
 //Unit Functions BEGIN
 procedure G2WriteLog(const Log: AnsiString);
+{$IFDEF G2_WRITE_LOG}
 var
   LogHandle: HFile;
   BytesWritten: DWord;
   LogStr: AnsiString;
 const
   FILE_APPEND_DATA = $00000004;
+{$ENDIF}
 begin
   {$IFDEF G2_WRITE_LOG}
   LogStr := Log + #$D#$A;
@@ -32173,6 +32634,7 @@ begin
 end;
 
 procedure G2WriteLogTimed(const Log: AnsiString; const Module: AnsiString = '');
+{$IFDEF G2_WRITE_LOG}
 var
   t, h, m, s: DWord;
   LogStr, ModStr, sh, sm, ss: AnsiString;
@@ -32181,6 +32643,7 @@ const
   TMin = TSec * 60;
   THrs = TMin * 60;
   ModuleStringSize = 12;
+{$ENDIF}
 begin
   {$IFDEF G2_WRITE_LOG}
   {$Warnings off}

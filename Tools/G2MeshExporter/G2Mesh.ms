@@ -33,7 +33,7 @@ Gen2 Mesh Exporter
 					Colors[CCount]: Col3
 					TexChannels[TCount]:
 						TVCount: Int4
-						TexCoords[TVCount]: Vec3f
+						TexCoords[TVCount]: Vec2f
 					Materials[MCount]: Int4
 					Faces[FCount]:
 						FaceVertices: Vec3i
@@ -129,7 +129,7 @@ Gen2 Mesh Exporter
 					DirHeightInner: Float4
 					DirHeightOutter: Float4
 \*-----------------------------------------------------------------------------*/
-MacroScript ExportMacro
+MacroScript Gen2ExportMacro
 	category: "Gen2 Export"
 	tooltip: "Gen2 Exporter"
 	buttontext: "Gen2 Export..."
@@ -1336,6 +1336,19 @@ MacroScript ExportMacro
 	);
 	
 	function MatListFindSingle Mat = (
+		if (\
+			(Classof(Mat) != Standard)\
+			and
+			(Classof(Mat) != StandardMaterial)\
+			and
+			(Classof(Mat) != Shell_Material)\
+			and
+			(Classof(Mat) != Multimaterial)\
+			and
+			(Classof(Mat) != CompositeMaterial)\
+		) then (
+			return 0;
+		);
 		m = Mat;
 		if (ClassOf(m) == Shell_Material) then (
 			if (m.viewportMtlIndex == 0) then m = m.originalMaterial;
@@ -1373,7 +1386,19 @@ MacroScript ExportMacro
 				append Res (MatListFindSingle (Mat.MaterialList[m]));
 			);
 		) else if (
+			(ClassOf(Mat) == Shell_Material)\
+			and
+			(ClassOf(Mat.originalMaterial) == Multimaterial)\
+		) then (
+			if (Mat.viewportMtlIndex == 0) then sm = Mat.originalMaterial;
+			else sm = Mat.bakedMaterial;
+			for m = 1 to sm.NumSubs do (
+				append Res (MatListFindSingle (sm.MaterialList[m]));
+			);
+		) else if (
 			(ClassOf(Mat) == Standard)\
+			or
+			(Classof(Mat) == StandardMaterial)\
 			or 
 			(ClassOf(Mat) == Shell_Material)\
 			or 
@@ -1636,14 +1661,7 @@ MacroScript ExportMacro
 	
 	function UninstallExporter = (
 		if ((maxVersion())[1] >= 12000) then (
-			MenuCount = menuMan.numMenus();
-			for i = 1 to MenuCount do (
-				m = menuMan.getMenu i;
-				if (m.GetTitle() == "Main Menu Bar") then (
-					MainMenu = m;
-					Break;
-				);
-			);
+			MainMenu = menuMan.getMainMenuBar();
 			if (MainMenu != undefined) then (
 				ItemCount = MainMenu.NumItems();
 				Gen2ID = 0;
@@ -1690,10 +1708,23 @@ MacroScript ExportMacro
 			if (Num > 0) then (
 				ExportMenuItem = FileMenu.GetItem Num;
 				FileMenu.RemoveItem ExportMenuItem;
-				menuMan.updateMenuBar();
-				PropertiesClear();
-				MessageBox "Gen2 Exporter uninstalled successfully.";
 			);
+			Num = 0;
+			for i = 1 to MenuCount do (
+				MItem = FileMenu.GetItem i;
+				MTitle = MItem.getTitle();
+				if (MTitle == "Gen2 Import...") then (
+					Num = i;
+					Break;
+				);
+			);
+			if (Num > 0) then (
+				ImportMenuItem = FileMenu.GetItem Num;
+				FileMenu.RemoveItem ImportMenuItem;
+			);
+			menuMan.updateMenuBar();
+			PropertiesClear();
+			MessageBox "Gen2 Exporter uninstalled successfully.";
 		);
 		closeRolloutFloater ExportFloater;
 	);
@@ -1701,19 +1732,252 @@ MacroScript ExportMacro
 	CreateRollout();
 );
 
-function InstallExporter = (
-	if ((maxVersion())[1] >= 12000) then (
-		MenuCount = menuMan.numMenus();
-		for i = 1 to MenuCount do (
-			m = menuMan.getMenu i;
-			if (m.GetTitle() == "Main Menu Bar") then (
-				MainMenu = m;
-				Break;
+MacroScript Gen2ImportMacro
+	category: "Gen2 Import"
+	tooltip: "Gen2 Importer"
+	buttontext: "Gen2 Import..."
+(
+	global FileEOF;
+	global FileInit;
+	global Nodes = #();
+	
+	global ReadHeader;
+	global ReadBlock;
+	global FindBlock;
+	global ReadNode;
+	global ReadGeom;
+	global ReadVector2f;
+	global ReadVector3f;
+	global ReadVector3i;
+	global ReadMatrix4x3;
+	global TransformLH;
+	
+	struct TNode (
+		OwnerID = 0,
+		NodeName = "",
+		NodeTransform = matrix3 1,
+		Obj
+	);
+	
+	function Import = (
+		FileName = GetOpenFileName types: "G2Mesh (*.g2m)|*.g2m|";
+		if (FileName == undefined) then return OK;
+		
+		f = fopen FileName "rb";
+		
+		Header = ReadHeader f;
+		if (Header == "G2M ") then (
+			FileInit = ftell f;
+			fseek f 0 #seek_end;
+			FileEOF = ftell f;
+			fseek f FileInit #seek_set;
+			if (FindBlock f "NMAP") then (
+				Nodes = #();
+				NodeCount = ReadLong f;
+				NodeTransforms = #();
+				for i = 0 to NodeCount - 1 do (
+					Pos = ReadLong f;
+					CurPos = ftell f;
+					fseek f Pos #seek_set;
+					n = ReadNode f;
+					append Nodes n;
+					append NodeTransforms n.NodeTransform;
+					fseek f CurPos #seek_set;
+				);
+				for i = 1 to NodeCount do (
+					n = i;
+					Nodes[i].NodeTransform = NodeTransforms[i];
+					while (Nodes[n].OwnerID > 0) do (
+						n = Nodes[n].OwnerID;
+						Nodes[i].NodeTransform = Nodes[i].NodeTransform * NodeTransforms[n];
+					);
+					Nodes[i].NodeTransform = TransformLH Nodes[i].NodeTransform;
+				);
+				if (FindBlock f "GMAP") then (
+					Geoms = #();
+					GeomCount = ReadLong f;
+					for i = 0 to GeomCount - 1 do (
+						Pos = ReadLong f;
+						CurPos = ftell f;
+						fseek f Pos #seek_set;
+						append Geoms (ReadGeom f);
+						fseek f CurPos #seek_set;
+					);
+				);
 			);
 		);
-		if (MainMenu == undefined) then (
-			MainMenu = menuMan.GetMainMenuBar();
+		
+		fclose f;
+	);
+	
+	--File Reading BEGIN
+	function ReadChr f = (
+		return execute ("\"\\x" + (bit.intAsHex (ReadByte f)) + "\"");
+	);
+	function ReadHeader f = (
+		s = "    ";
+		s[1] = ReadChr f;
+		s[2] = ReadChr f;
+		s[3] = ReadChr f;
+		s[4] = ReadChr f;
+		return s;
+	);
+	
+	function FindBlock f BlockName = (
+		fseek f FileInit #seek_set;
+		CurPos = ftell f;
+		TmpName = ReadHeader f;
+		TmpSize = ReadLong f;
+		while (
+			(TmpName != BlockName)\
+			or
+			(CurPos >= FileEOF)
+		) do (
+			fseek f TmpSize #seek_cur;
+			CurPos = ftell f;
+			if (CurPos < FileEOF) then (
+				TmpName = ReadHeader f;
+				TmpSize = ReadLong f;
+			);
 		);
+		if (TmpName == BlockName) then
+		return True; else return False;		
+	);
+	
+	function ReadNode f = (
+		Result = (TNode OwnerID: ((ReadLong f) + 1));
+		Result.NodeName = ReadString f;
+		Result.NodeTransform = ReadMatrix4x3 f;
+		return Result;
+	);
+	
+	function ReadGeom f = (
+		/*
+		NodeID: Int4
+		VCount: Int4
+		CCount: Int4
+		FCount: Int4
+		MCount: Int4
+		TCount: Int4
+		Vertices[VCount]: Vec3f
+		Colors[CCount]: Col3
+		TexChannels[TCount]:
+			TVCount: Int4
+			TexCoords[TVCount]: Vec2f
+		Materials[MCount]: Int4
+		Faces[FCount]:
+			FaceVertices: Vec3i
+			FaceColors: Vec3i
+			FaceTexCoords[TCount]: Vec3i
+			FaceGroup: Int4
+			FaceMaterial: Int4
+		*/
+		NodeID = (ReadLong f) + 1;
+		VCount = ReadLong f;
+		CCount = ReadLong f;
+		FCount = ReadLong f;
+		MCount = ReadLong f;
+		TCount = ReadLong f;
+		Result = Mesh numverts: VCount numfaces: FCount;
+		for i = 1 to VCount do (
+			v = ReadVector3f f;
+			setVert Result i [v.x, v.z, v.y];
+		);
+		p = CCount * 3;
+		fseek f p #seek_cur;
+		if (TCount < 1) then
+		meshop.setNumMaps Result 2;
+		else
+		meshop.setNumMaps Result (TCount + 1);
+		for i = 1 to TCount do (
+			meshop.setMapSupport Result i True;
+			TVCount = ReadLong f;
+			meshop.setNumMapVerts Result i TVCount;
+			for j = 1 to TVCount do (
+				v2 = ReadVector2f f;
+				v = [v2.x, 1 - v2.y, 0];
+				meshop.setMapVert Result i j v;
+			);
+		);
+		p = MCount * 4;
+		fseek f p #seek_cur;
+		for i = 1 to FCount do (
+			v = (ReadVector3i f);
+			setFace Result i v;
+			p = 12;
+			fseek f p #seek_cur;
+			for j = 1 to TCount do (
+				v = ReadVector3i f;
+				meshop.setMapFace Result j i v;
+			);
+			p = 4 + 4;
+			fseek f p #seek_cur;
+		);
+		Result.Name = Nodes[NodeID].NodeName;
+		Nodes[NodeID].Obj = Result;
+		n = NodeID;
+		Result.Transform = Nodes[NodeID].NodeTransform;
+		/*while (Nodes[n].OwnerID > 0) do (
+			n = Nodes[n].OwnerID;
+			Result.Transform = Result.Transform * Nodes[n].NodeTransform;
+		);
+		Result.Transform = TransformLH Result.Transform;*/
+		update Result;
+		return Result;
+	);
+	
+	function ReadVector2f f = (
+		v = [0, 0];
+		v.x = ReadFloat f;
+		v.y = ReadFloat f;
+		return v;
+	);
+	
+	function ReadVector3f f = (
+		v = [0, 0, 0];
+		v.x = ReadFloat f;
+		v.y = ReadFloat f;
+		v.z = ReadFloat f;
+		return v;
+	);
+	
+	function ReadVector3i f = (
+		v = Point3 0 0 0;
+		v.x = (ReadLong f) + 1;
+		v.y = (ReadLong f) + 1;
+		v.z = (ReadLong f) + 1;
+		return v;
+	);
+	
+	function ReadMatrix4x3 f = (
+		m = matrix3 (ReadVector3f f) (ReadVector3f f) (ReadVector3f f) (ReadVector3f f);
+		/*for i = 1 to 4 do (
+			for j = 1 to 3 do (
+				v = ReadFloat f;
+				MessageBox (v as string);
+				m[i][j] = v;
+			);
+		);*/
+		return m;
+	);
+	--File Reading END
+	
+	function TransformLH m = (
+		s = m.Scale; s = point3 s.x s.z s.y;
+		r = m.Rotation; r = quat -r.x -r.z -r.y r.w;
+		p = m.Position; p = point3 p.x p.z p.y;
+		ms = ScaleMatrix s;
+		mr = matrix3 1; mr = rotate mr r;
+		mp = TransMatrix p;
+		return (ms * mr * mp);
+	);
+	
+	Import();
+);
+
+function InstallExporter = (
+	if ((maxVersion())[1] >= 12000) then (
+		MainMenu = menuMan.getMainMenuBar();
 		if (MainMenu != undefined) then (
 			ItemCount = MainMenu.NumItems();
 			InsertID = -1;
@@ -1734,8 +1998,10 @@ function InstallExporter = (
 			if (Gen2ID == 0) then (
 				G2Menu = menuMan.createMenu "Gen2";
 				G2MenuItem = menuMan.createSubMenuItem "Gen2" G2Menu;
-				G2ActionItem = menuMan.createActionItem "ExportMacro" "Gen2 Export";
-				G2Menu.AddItem G2ActionItem -1;
+				G2ActionItemExport = menuMan.createActionItem "Gen2ExportMacro" "Gen2 Export";
+				G2ActionItemImport = menuMan.createActionItem "Gen2ImportMacro" "Gen2 Import";
+				G2Menu.AddItem G2ActionItemExport -1;
+				G2Menu.AddItem G2ActionItemImport -1;
 				MainMenu.AddItem G2MenuItem InsertID;
 				menuMan.updateMenuBar();
 				MessageBox "Gen2 Exporter installed successfully.";
@@ -1760,7 +2026,8 @@ function InstallExporter = (
 			);
 		);
 		if (Num == 0) then (
-			NewMenuItem = menuMan.createActionItem "ExportMacro" "Gen2 Export";
+			NewMenuItemExport = menuMan.createActionItem "Gen2ExportMacro" "Gen2 Export";
+			NewMenuItemImport = menuMan.createActionItem "Gen2ImportMacro" "Gen2 Import";
 			Num = 8;
 			for i = 1 to MenuCount do (
 				if ((FileMenu.GetItem i).getTitle() == "Export Selected...") then (
@@ -1768,7 +2035,8 @@ function InstallExporter = (
 					Break;
 				);
 			);
-			FileMenu.AddItem NewMenuItem Num;
+			FileMenu.AddItem NewMenuItemExport Num;
+			FileMenu.AddItem NewMenuItemImport (Num + 1);
 			menuMan.updateMenuBar();
 			MessageBox "Gen2 Exporter installed successfully.";
 		);

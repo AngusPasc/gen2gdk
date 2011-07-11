@@ -58,21 +58,37 @@ type
     var m_Mesh: TG2Mesh;
     var m_MeshInst: TG2MeshInst;
     var m_ForceCallback: TNewtonApplyForceAndTorque;
+    var m_Scale: Single;
+    var m_Enabled: Boolean;
     function CreateBoxBody(const MinV, MaxV: TG2Vec3; const Mass: Single = 1): TNewtonBody;
-    function AddSegment(const RagdollGroup: PG2RagdollGroup; const RagdollObject: TG2RagdollObject; const Mass: Single = 1): PG2RagdollSegment;
+    function AddSegment(
+      const RagdollGroup: PG2RagdollGroup;
+      const RagdollObject: TG2RagdollObject;
+      const Mass: Single = 1
+    ): PG2RagdollSegment;
     function MakePnP(const Pivot, Pin: TG2Vec3): TG2Mat;
     procedure ConnectSegmentsBall(const SegParent, SegChild: TG2RagdollSegment; const Pin: TG2Vec3; const ConeAngle, TwistMin, TwistMax: Single);
     procedure ConnectSegmentsHinge(const SegParent, SegChild: TG2RagdollSegment; const Pin: TG2Vec3; const MinAngle, MaxAngle: Single);
     procedure ConnectSegments6DOF(const SegParent, SegChild: TG2RagdollSegment; const Pin: TG2Vec3; const MinX, MinY, MinZ, MaxX, MaxY, MaxZ: Single);
   public
     var RagdollGroups: array of TG2RagdollGroup;
-    constructor Create(const World: TNewtonWorld; const MeshInst: TG2MeshInst; const ForceCallback: TNewtonApplyForceAndTorque);
+    constructor Create(
+      const World: TNewtonWorld;
+      const MeshInst: TG2MeshInst;
+      const ForceCallback: TNewtonApplyForceAndTorque;
+      const Scale: Single = 1
+    );
     destructor Destroy; override;
     procedure Render(const Prim3D: TG2Primitives3D);
+    procedure Transform(const m: TG2Mat);
     procedure Apply;
+    procedure Load;
     procedure Reset;
+    procedure Impulse(const Position, DeltaVel: TG2Vec3);
   end;
 //TG2MeshRagdoll END
+
+function G2NewtonMeshToCollision(const World: TNewtonWorld; const MeshInst: TG2MeshInst): TNewtonCollision;
 
 implementation
 
@@ -110,17 +126,24 @@ begin
   NewtonBodySetMatrix(Result, @m);
 end;
 
-function TG2MeshRagdoll.AddSegment(const RagdollGroup: PG2RagdollGroup; const RagdollObject: TG2RagdollObject; const Mass: Single = 1): PG2RagdollSegment;
+function TG2MeshRagdoll.AddSegment(
+  const RagdollGroup: PG2RagdollGroup;
+  const RagdollObject: TG2RagdollObject;
+  const Mass: Single = 1
+): PG2RagdollSegment;
   var i: Integer;
 begin
   New(Result);
   Result^.NodeID := RagdollObject.NodeID;
-  Result^.NewtonBody := CreateBoxBody(RagdollObject.MinV, RagdollObject.MaxV, Mass);
+  Result^.NewtonBody := CreateBoxBody(RagdollObject.MinV * m_Scale, RagdollObject.MaxV * m_Scale, Mass);
   NewtonBodyGetMatrix(Result^.NewtonBody, @Result^.TransformBind);
   Result^.TransformDef := RagdollObject.Transform;
+  Result^.TransformDef.e30 := Result^.TransformDef.e30 * m_Scale;
+  Result^.TransformDef.e31 := Result^.TransformDef.e31 * m_Scale;
+  Result^.TransformDef.e32 := Result^.TransformDef.e32 * m_Scale;
   Result^.SetTransform(Result^.TransformDef);
-  Result^.Size := RagdollObject.MaxV - RagdollObject.MinV;
-  SetLength(Result.Dependants, RagdollObject.DependantCount);;
+  Result^.Size := (RagdollObject.MaxV - RagdollObject.MinV) * m_Scale;
+  SetLength(Result.Dependants, RagdollObject.DependantCount);
   for i := 0 to High(Result^.Dependants) do
   begin
     Result^.Dependants[i].NodeID := RagdollObject.Dependants[i].NodeID;
@@ -182,19 +205,25 @@ begin
   NewtonCustom6DOF_SetAngularLimits(j, @v4a, @v4b);
 end;
 
-constructor TG2MeshRagdoll.Create(const World: TNewtonWorld; const MeshInst: TG2MeshInst; const ForceCallback: TNewtonApplyForceAndTorque);
+constructor TG2MeshRagdoll.Create(
+  const World: TNewtonWorld;
+  const MeshInst: TG2MeshInst;
+  const ForceCallback: TNewtonApplyForceAndTorque;
+  const Scale: Single = 1
+);
   var i, j: Integer;
   var v: TG2Vec3;
   var m, m1: TG2Mat;
   var q: TG2Quat;
   var ArmOffsets: array of TG2Mat;
-  var a: Single;
 begin
   inherited Create;
   m_World := World;
   m_Mesh := MeshInst.Mesh;
   m_MeshInst := MeshInst;
   m_ForceCallback := ForceCallback;
+  m_Scale := Scale;
+  m_Enabled := True;
   SetLength(RagdollGroups, m_Mesh.RagdollCount);
   for i := 0 to High(RagdollGroups) do
   with RagdollGroups[i] do
@@ -243,7 +272,6 @@ begin
     for j := 1 to High(BArmL) do
     BArmL[j]^.SetTransform(ArmOffsets[j - 1] * m);
 
-    //ConnectSegmentsBall(BNeck^, BHead^, G2Vec3(0, 1, 0), Pi * 0.1, -Pi * 0.1, Pi * 0.1);
     ConnectSegments6DOF(BNeck^, BHead^, G2Vec3(1, 0, 0), -QuatPi, -QuatPi, -Pi * 0.1, Pi * 0.1, QuatPi, Pi * 0.1);
     ConnectSegmentsBall(BBody[High(BBody)]^, BNeck^, G2Vec3(0, 1, 0), Pi * 0.001, -Pi * 0.001, Pi * 0.001);
     ConnectSegmentsBall(BBody[0]^, BPelvis^, G2Vec3(0, -1, 0), Pi * 0.01, -Pi * 0.01, Pi * 0.01);
@@ -255,8 +283,6 @@ begin
     ConnectSegmentsHinge(BLegL[0]^, BLegL[1]^, G2Vec3(1, 0, 0), 0, QuatPi * 3);
     ConnectSegmentsHinge(BLegR[1]^, BLegR[2]^, G2Vec3(1, 0, 0), -Pi * 0.1, Pi * 0.2);
     ConnectSegmentsHinge(BLegL[1]^, BLegL[2]^, G2Vec3(1, 0, 0), -Pi * 0.1, Pi * 0.2);
-    //ConnectSegments6DOF(BBody[High(BBody)]^, BArmR[0]^, G2Vec3(1, 0, 0), -HalfPi, -Pi * 0.02, -Pi * 0.4, QuatPi, Pi * 0.02, Pi * 0.4);
-    //ConnectSegments6DOF(BBody[High(BBody)]^, BArmL[0]^, G2Vec3(1, 0, 0), -HalfPi, -Pi * 0.02, -Pi * 0.4, QuatPi, Pi * 0.02, Pi * 0.4);
     ConnectSegmentsBall(BBody[High(BBody)]^, BArmR[0]^, G2Vec3(-1, 0, 0), QuatPi * 1.3, -Pi * 0.3, 0);
     ConnectSegmentsBall(BBody[High(BBody)]^, BArmL[0]^, G2Vec3(1, 0, 0), QuatPi * 1.3, -Pi * 0.3, 0);
     ConnectSegmentsHinge(BArmR[0]^, BArmR[1]^, G2Vec3(0, 1, 0), 0, QuatPi * 3);
@@ -302,6 +328,19 @@ begin
   Prim3D.Core.Graphics.Transforms.ApplyW(0);
 end;
 
+procedure TG2MeshRagdoll.Transform(const m: TG2Mat);
+  var i, j: Integer;
+  var Matrix: TG2Mat;
+begin
+  for i := 0 to High(RagdollGroups) do
+  for j := 0 to High(RagdollGroups[i].Segments) do
+  begin
+    NewtonBodyGetMatrix(RagdollGroups[i].Segments[j].NewtonBody, @Matrix);
+    Matrix := Matrix * m;
+    NewtonBodySetMatrix(RagdollGroups[i].Segments[j].NewtonBody, @Matrix);
+  end;
+end;
+
 procedure TG2MeshRagdoll.Apply;
   var i, j, d: Integer;
   var m, md: TG2Mat;
@@ -311,6 +350,7 @@ begin
   begin
     NewtonBodyGetMatrix(RagdollGroups[i].Segments[j].NewtonBody, @m);
     m := RagdollGroups[i].Segments[j].TransformBind.Inverse * m;
+    m.PreScale(m_Scale, m_Scale, m_Scale);
     m_MeshInst.NodeTransforms[RagdollGroups[i].Segments[j].NodeID].TransformRen := m;
     for d := 0 to High(RagdollGroups[i].Segments[j].Dependants) do
     begin
@@ -319,6 +359,21 @@ begin
     end;
   end;
   m_MeshInst.ComputeSkinTransforms;
+end;
+
+procedure TG2MeshRagdoll.Load;
+  var i, j: Integer;
+  var m: TG2Mat;
+begin
+  for i := 0 to High(RagdollGroups) do
+  for j := 0 to High(RagdollGroups[i].Segments) do
+  begin
+    m := m_MeshInst.NodeTransforms[RagdollGroups[i].Segments[j].NodeID].TransformRen;
+    m.e30 := m.e30 * m_Scale;
+    m.e31 := m.e31 * m_Scale;
+    m.e32 := m.e32 * m_Scale;
+    RagdollGroups[i].Segments[j].SetTransform(m);
+  end;
 end;
 
 procedure TG2MeshRagdoll.Reset;
@@ -330,6 +385,47 @@ begin
     RagdollGroups[i].Segments[j].SetTransform(RagdollGroups[i].Segments[j].TransformDef);
   end;
 end;
+
+procedure TG2MeshRagdoll.Impulse(const Position, DeltaVel: TG2Vec3);
+  var i, j: Integer;
+begin
+  for i := 0 to High(RagdollGroups) do
+  for j := 0 to High(RagdollGroups[i].Segments) do
+  begin
+    NewtonBodyAddImpulse(RagdollGroups[i].Segments[j].NewtonBody, @DeltaVel, @Position);
+  end;
+end;
 //TG2MeshRagdoll END
+
+function G2NewtonMeshToCollision(const World: TNewtonWorld; const MeshInst: TG2MeshInst): TNewtonCollision;
+  var MeshData: TG2MeshData;
+  var i, j: Integer;
+  var TmpFace: array[0..2] of TG2Vec3;
+begin
+  MeshInst.ComputeTransforms;
+  MeshData := MeshInst.Mesh.ExtractData;
+  Result := NewtonCreateTreeCollision(World, 0);
+  NewtonTreeCollisionBeginBuild(Result);
+  for i := 0 to MeshData.GeomCount - 1 do
+  D3DXVec3TransformCoordArray(
+    @MeshData.Geoms[i].Vertices[0],
+    SizeOf(MeshData.Geoms[i].Vertices[0]),
+    @MeshData.Geoms[i].Vertices[0],
+    SizeOf(MeshData.Geoms[i].Vertices[0]),
+    MeshData.Nodes[MeshData.Geoms[i].NodeID].Transform,
+    MeshData.Geoms[i].VCount
+  );
+  for i := 0 to MeshData.GeomCount - 1 do
+  begin
+    for j := 0 to MeshData.Geoms[i].FCount - 1 do
+    begin
+      TmpFace[0] := MeshData.Geoms[i].Vertices[MeshData.Geoms[i].Faces[j].Indices[0]].Position;
+      TmpFace[1] := MeshData.Geoms[i].Vertices[MeshData.Geoms[i].Faces[j].Indices[1]].Position;
+      TmpFace[2] := MeshData.Geoms[i].Vertices[MeshData.Geoms[i].Faces[j].Indices[2]].Position;
+      NewtonTreeCollisionAddFace(Result, 3, @TmpFace[0], SizeOf(TG2Vec3), 1);
+    end;
+  end;
+  NewtonTreeCollisionEndBuild(Result, 1);
+end;
 
 end.

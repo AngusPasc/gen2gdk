@@ -688,7 +688,6 @@ begin
     m_ForceUpdate := False;
     Exit;
   end;
-  Result := False;
   V := Core.Graphics.Transforms.V;
   for j := 0 to 3 do
   for i := 0 to 3 do
@@ -697,6 +696,7 @@ begin
     Result := True;
     Exit;
   end;
+  Result := False;
 end;
 
 function TG2Landscape.GetAltitude(const X, Z: Single): Single;
@@ -1230,7 +1230,7 @@ procedure TG2Landscape.LandBuild;
       end;
       m_Layers[l].Mask.Surfaces[0].UnLock;
       for u := l + 1 to High(m_Layers) do
-      if Transp[u] < $8 then
+      if Transp[u] < 1 then
       Alpha := 0;
       Node^.LayerVis[l] := Alpha > $f;
     end
@@ -1476,7 +1476,7 @@ var
   PrevAlphaRef: DWord;
 begin
   if not m_Built then Exit;
-
+  if NeedUpdate then Update;
   m_DrawCalls := 0;
 
   Core.Graphics.Device.SetStreamSource(0, m_VB, 0, SizeOf(TVertex));

@@ -82,9 +82,9 @@
 //        |__________|
 //
 //
-//    TG2MathNode
+//    TG2PathNode
 //      Can be accessed through Map.Nodes[X, Y]
-//      TG2MathNode.Cost
+//      TG2PathNode.Cost
 //        The cost of travelling through this node,
 //        the higher the cost the less likely it is
 //        that the path with go through this node,

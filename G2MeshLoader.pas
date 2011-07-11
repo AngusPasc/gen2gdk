@@ -178,6 +178,7 @@ procedure G2RegMeshLoader(const LoaderClass: CG2MeshLoaderClass);
 procedure G2MeshDataClear(const MeshData: PG2MeshData);
 procedure G2MeshDataCopy(const Src, Dst: PG2MeshData);
 procedure G2MeshDataLimitSkin(const MeshData: PG2MeshData; const MaxWeights: Integer = 4);
+procedure G2MeshRagdollObjectCopy(const Src, Dst: PG2RagdollObject);
 
 implementation
 
@@ -470,6 +471,22 @@ begin
       MeshData^.Skins[s].Vertices[v].Weights[w].Weight := WeightsRemap[w].Weight * TotalWeight;
     end;
     MeshData^.Skins[s].Vertices[v].WeightCount := MaxWeights;
+  end;
+end;
+
+procedure G2MeshRagdollObjectCopy(const Src, Dst: PG2RagdollObject);
+  var i: Integer;
+begin
+  Dst^.NodeID := Src^.NodeID;
+  Dst^.MinV := Src^.MinV;
+  Dst^.MaxV := Src^.MaxV;
+  Dst^.Transform := Src^.Transform;
+  Dst^.DependantCount := Src^.DependantCount;
+  SetLength(Dst^.Dependants, Dst^.DependantCount);
+  for i := 0 to Dst^.DependantCount - 1 do
+  begin
+    Dst^.Dependants[i].NodeID := Src^.Dependants[i].NodeID;
+    Dst^.Dependants[i].Offset := Src^.Dependants[i].Offset;
   end;
 end;
 
