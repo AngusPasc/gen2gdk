@@ -233,6 +233,9 @@ type
   TG2Index32Array = array[Word] of TG2Index32;
   PG2Index32Array = ^TG2Index32Array;
 
+  TG2StrArrA = array of AnsiString;
+  TG2StrArrW = array of WideString;
+
   TG2NetMesHeader = packed record
   public
     var Desc: TG2NetMesDesc;
@@ -2620,6 +2623,8 @@ type
     function LoadFont(const FileName: String; const NewFormat: TD3DFormat = D3DFMT_UNKNOWN): TG2Result;
     function Print(const X, Y: Single; const Color: TG2Color; const Text: AnsiString): TG2Result; overload;
     function Print(const X, Y, ScaleX, ScaleY: Single; const Color: TG2Color; const Text: AnsiString): TG2Result; overload;
+    function Print(const X, Y, ScaleX, ScaleY: Single; const Color: TG2Color; const Text: AnsiString; const PosStart, PosEnd: Integer): TG2Result; overload;
+    function Paragraph(const X, Y, Width, Height: Integer; const Color: TG2Color; const Text: AnsiString): TG2Result;
     function GetTextWidth(const Text: AnsiString): Integer;
     function GetTextHeight(const Text: AnsiString): Integer;
     procedure Release;
@@ -3382,527 +3387,6 @@ type
   end;
 //TG2UIEdit END
 
-(*
-//TG2GUI BEGIN
-  TG2GUI = class sealed (TG2Module)
-  strict private
-    m_Root: TG2GUIWindow;
-    m_Focus: TG2GUIWindow;
-    m_PlugInput: TG2PlugInput;
-    m_Render2D: TG2Render2D;
-    m_Prim2D: TG2Primitives2D;
-    procedure OnMouseDown(const Button: Byte);
-    procedure OnMouseUp(const Button: Byte);
-    procedure OnMouseMove(const Shift: TPoint);
-    procedure OnMouseWheel(const Shift: Integer);
-    procedure OnKeyDown(const Key: Byte);
-    procedure OnKeyUp(const Key: Byte);
-    procedure OnKeyPress(const Key: AnsiChar);
-    procedure SetFocus(const Value: TG2GUIWindow); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-  private
-    property PlugInput: TG2PlugInput read m_PlugInput;
-    property Render2D: TG2Render2D read m_Render2D;
-    property Prim2D: TG2Primitives2D read m_Prim2D;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Root: TG2GUIWindow read m_Root;
-    property Focus: TG2GUIWindow read m_Focus write SetFocus;
-    procedure WindowCreate(const WindowClass: CG2GUIWindowClass; const Parent: TG2GUIWindow; var Window);
-    procedure WindowDestroy(const Window: TG2GUIWindow);
-    procedure Render;
-    procedure Update;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUI END
-
-//TG2GUIWindow BEGIN
-  TG2GUIWindow = class (TG2HighClass)
-  strict private
-  type
-    TVertex0 = packed record
-      x, y, z, rhw: Single;
-      Col: TG2Color;
-    end;
-    TVertex0Array = array[Word] of TVertex0;
-    PVertex0Array = ^TVertex0Array;
-    TIndexArray = array[Word] of Word;
-    PIndexArray = ^TIndexArray;
-  const
-    FVF0 = D3DFVF_XYZRHW or D3DFVF_DIFFUSE;
-  var
-    m_GUI: TG2GUI;
-    m_Parent: TG2GUIWindow;
-    m_Children: TG2List;
-    m_X: Integer;
-    m_Y: Integer;
-    m_W: Integer;
-    m_H: Integer;
-    m_Visible: Boolean;
-    m_MarginLeft: Integer;
-    m_MarginTop: Integer;
-    m_MarginRight: Integer;
-    m_MarginBottom: Integer;
-    m_DownInRect: Boolean;
-    m_MoveInRect: Boolean;
-    m_OnMouseDown: TG2InputMouseDown;
-    m_OnMouseUp: TG2InputMouseUp;
-    m_OnMouseClick: TG2ProcObj;
-    m_OnMouseMove: TG2InputMouseMove;
-    m_OnWheelMove: TG2InputWheelMove;
-    m_OnKeyDown: TG2InputKeyDown;
-    m_OnKeyUp: TG2InputKeyUp;
-    m_OnKeyPress: TG2InputKeyPress;
-    m_OnMouseEnter: TG2ProcObj;
-    m_OnMouseLeave: TG2ProcObj;
-    m_OnFocusReceive: TG2ProcObj;
-    m_OnFocusLose: TG2ProcObj;
-    m_OnResize: TG2ProcObj;
-    procedure SetParent(const Value: TG2GUIWindow); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure SetRect(const Value: TRect); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function GetRect: TRect; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure SetClientRect(const Value: TRect); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function GetClientRect: TRect; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function GetDrawRect: TRect; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function GetClientDrawRect: TRect; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function GetFocused: Boolean; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure SetW(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure SetH(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-  private
-    property Children: TG2List read m_Children;
-    procedure MouseDown(const Button: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure MouseUp(const Button: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure MouseClick; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure MouseMove(const Shift: TPoint); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure MouseWheel(const Shift: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure KeyDown(const Key: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure KeyUp(const Key: Byte); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure KeyPress(const Key: AnsiChar); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure MouseEnter; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure MouseLeave; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure FocusReceive; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure FocusLose; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure Resize; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure CheckFocus;
-  strict protected
-    m_VB0: TG2VB;
-    m_IB: TG2IB;
-    property OnMouseDown: TG2InputMouseDown read m_OnMouseDown write m_OnMouseDown;
-    property OnMouseUp: TG2InputMouseUp read m_OnMouseUp write m_OnMouseUp;
-    property OnMouseClick: TG2ProcObj read m_OnMouseClick write m_OnMouseClick;
-    property OnMouseMove: TG2InputMouseMove read m_OnMouseMove write m_OnMouseMove;
-    property OnWheelMove: TG2InputWheelMove read m_OnWheelMove write m_OnWheelMove;
-    property OnKeyDown: TG2InputKeyDown read m_OnKeyDown write m_OnKeyDown;
-    property OnKeyUp: TG2InputKeyUp read m_OnKeyUp write m_OnKeyUp;
-    property OnKeyPress: TG2InputKeyPress read m_OnKeyPress write m_OnKeyPress;
-    property OnMouseEnter: TG2ProcObj read m_OnMouseEnter write m_OnMouseEnter;
-    property OnMouseLeave: TG2ProcObj read m_OnMouseLeave write m_OnMouseLeave;
-    property OnFocusReceive: TG2ProcObj read m_OnFocusReceive write m_OnFocusReceive;
-    property OnFocusLose: TG2ProcObj read m_OnFocusLose write m_OnFocusLose;
-    property OnResize: TG2ProcObj read m_OnResize write m_OnResize;
-    function GetGlobalRect: TRect; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure PreRender;
-    procedure Render; virtual;
-    procedure PostRender;
-    procedure RenderBox(
-      const BoxRect: TRect;
-      const Lowered: Boolean = False;
-      const ColNormal: DWord = $ffcccccc;
-      const ColHighlight: DWord = $ffffffff;
-      const ColShadow: DWord = $ff555555
-    ); overload;
-    procedure RenderBox(
-      const BoxRect: TRect;
-      const MarginL, MarginT, MarginR, MarginB: Integer;
-      const Lowered: Boolean = False;
-      const ColNormal: DWord = $ffcccccc;
-      const ColHighlight: DWord = $ffffffff;
-      const ColShadow: DWord = $ff555555
-    ); overload;
-    procedure RenderTextBox(
-      const BoxRect: TRect;
-      const ColExt: DWord = $ff444444;
-      const ColInt: DWord = $ffffffff
-    );
-    procedure RenderFrame(
-      const BoxRect: TRect;
-      const ColHighlight: DWord = $ffffffff;
-      const ColShadow: DWord = $ff555555
-    );
-    procedure RenderArrowUp(
-      const BoxRect: TRect;
-      const Margin: Integer = 4;
-      const Col: DWord = $ff000000
-    );
-    procedure RenderArrowDown(
-      const BoxRect: TRect;
-      const Margin: Integer = 4;
-      const Col: DWord = $ff000000
-    );
-    procedure RenderArrowLeft(
-      const BoxRect: TRect;
-      const Margin: Integer = 4;
-      const Col: DWord = $ff000000
-    );
-    procedure RenderArrowRight(
-      const BoxRect: TRect;
-      const Margin: Integer = 4;
-      const Col: DWord = $ff000000
-    );
-    function IsPressed: Boolean; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function IsMouseOver: Boolean; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function IsMouseDown: Boolean;
-    procedure CustomMouseDown(const Button: Byte); virtual;
-    procedure CustomMouseUp(const Button: Byte); virtual;
-    procedure CustomMouseClick; virtual;
-    procedure CustomMouseMove(const Shift: TPoint); virtual;
-    procedure CustomMouseWheel(const Shift: Integer); virtual;
-    procedure CustomKeyDown(const Key: Byte); virtual;
-    procedure CustomKeyUp(const Key: Byte); virtual;
-    procedure CustomKeyPress(const Key: AnsiChar); virtual;
-    procedure CustomMouseEnter; virtual;
-    procedure CustomMouseLeave; virtual;
-    procedure CustomFocusReceive; virtual;
-    procedure CustomFocusLose; virtual;
-    procedure CustomResize; virtual;
-    procedure CustomUpdate; virtual;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property GUI: TG2GUI read m_GUI write m_GUI;
-    property Parent: TG2GUIWindow read m_Parent write SetParent;
-    property X: Integer read m_X write m_X;
-    property Y: Integer read m_Y write m_Y;
-    property W: Integer read m_W write SetW;
-    property H: Integer read m_H write SetH;
-    property Visible: Boolean read m_Visible write m_Visible;
-    property MarginLeft: Integer read m_MarginLeft write m_MarginLeft;
-    property MarginTop: Integer read m_MarginTop write m_MarginTop;
-    property MarginRight: Integer read m_MarginRight write m_MarginRight;
-    property MarginBottom: Integer read m_MarginBottom write m_MarginBottom;
-    property WndRect: TRect read GetRect write SetRect;
-    property ClientRect: TRect read GetClientRect write SetClientRect;
-    property DrawRect: TRect read GetDrawRect;
-    property ClientDrawRect: TRect read GetClientDrawRect;
-    property Focused: Boolean read GetFocused;
-    procedure Draw; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure Update; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    procedure SetFocus;
-    procedure SetRectByGrid(const l, t, r, b: Integer);
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIWindow END
-
-//TG2GUIPanel BEGIN
-  TG2GUIPanel = class (TG2GUIWindow)
-  strict protected
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIPanel END
-
-//TG2GUIButton BEGIN
-  TG2GUIButton = class (TG2GUIWindow)
-  strict private
-    m_Caption: AnsiString;
-    m_Font: TG2Font;
-    m_FontColor: TG2Color;
-  strict protected
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Caption: AnsiString read m_Caption write m_Caption;
-    property Font: TG2Font read m_Font write m_Font;
-    property FontColor: TG2Color read m_FontColor write m_FontColor;
-    property OnMouseClick;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIButton END
-
-//TG2GUIEdit BEGIN
-  TG2GUIEdit = class (TG2GUIWindow)
-  strict private
-    m_Text: AnsiString;
-    m_Font: TG2Font;
-    m_FontColor: TG2Color;
-    m_CurPos: Integer;
-    m_FlickerTime: DWord;
-  strict protected
-    procedure CustomMouseClick; override;
-    procedure CustomKeyDown(const Key: Byte); override;
-    procedure CustomKeyPress(const Key: AnsiChar); override;
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Text: AnsiString read m_Text write m_Text;
-    property Font: TG2Font read m_Font write m_Font;
-    property FontColor: TG2Color read m_FontColor write m_FontColor;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIEdit END
-
-//TG2GUICheckBox BEGIN
-  TG2GUICheckBox = class (TG2GUIWindow)
-  strict private
-    m_Caption: AnsiString;
-    m_Font: TG2Font;
-    m_FontColor: TG2Color;
-    m_Checked: Boolean;
-    m_OnChanged: TG2ProcObj;
-  strict protected
-    procedure CustomMouseDown(const Button: Byte); override;
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Caption: AnsiString read m_Caption write m_Caption;
-    property Font: TG2Font read m_Font write m_Font;
-    property FontColor: TG2Color read m_FontColor write m_FontColor;
-    property Checked: Boolean read m_Checked write m_Checked;
-    property OnChanged: TG2ProcObj read m_OnChanged write m_OnChanged;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUICheckBox END
-
-//TG2GUIRadioButton BEGIN
-  TG2GUIRadioButton = class (TG2GUIWindow)
-  strict private
-    m_Caption: AnsiString;
-    m_Font: TG2Font;
-    m_FontColor: TG2Color;
-    m_Checked: Boolean;
-    m_Group: Integer;
-    procedure SetChecked(const Value: Boolean);
-  strict protected
-    procedure CustomMouseDown(const Button: Byte); override;
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Caption: AnsiString read m_Caption write m_Caption;
-    property Font: TG2Font read m_Font write m_Font;
-    property FontColor: TG2Color read m_FontColor write m_FontColor;
-    property Checked: Boolean read m_Checked write SetChecked;
-    property Group: Integer read m_Group write m_Group;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIRadioButton END
-
-//TG2GUILabel BEGIN
-  TG2GUILabel = class (TG2GUIWindow)
-  strict private
-    m_Caption: AnsiString;
-    m_Font: TG2Font;
-    m_FontColor: TG2Color;
-    m_AutoSize: Boolean;
-  strict protected
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Caption: AnsiString read m_Caption write m_Caption;
-    property Font: TG2Font read m_Font write m_Font;
-    property FontColor: TG2Color read m_FontColor write m_FontColor;
-    property AutoSize: Boolean read m_AutoSize write m_AutoSize;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUILabel END
-
-//TG2GUIMemoBox BEGIN
-  TG2GUIMemoBox = class (TG2GUIWindow)
-  strict private
-    m_Caption: AnsiString;
-    m_Font: TG2Font;
-    m_FontColor: TG2Color;
-    m_Text: TStringList;
-    m_CurPos: TPoint;
-    m_FlickerTime: DWord;
-    m_ProcOnChange: TG2ProcObj;
-    m_Scroll: TPoint;
-    procedure LinesChanged(Sender: TObject);
-  strict protected
-    procedure CustomMouseClick; override;
-    procedure CustomKeyDown(const Key: Byte); override;
-    procedure CustomKeyPress(const Key: AnsiChar); override;
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Caption: AnsiString read m_Caption write m_Caption;
-    property Font: TG2Font read m_Font write m_Font;
-    property FontColor: TG2Color read m_FontColor write m_FontColor;
-    property Text: TStringList read m_Text;
-    property Scroll: TPoint read m_Scroll write m_Scroll;
-    property CurPos: TPoint read m_CurPos write m_CurPos;
-    property OnMouseClick;
-    property OnWheelMove;
-    property OnChange: TG2ProcObj read m_ProcOnChange write m_ProcOnChange;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIMemoBox END
-
-//TG2GUIStringListBox BEGIN
-  TG2GUIStringListBox = class (TG2GUIWindow)
-  strict private
-    m_Caption: AnsiString;
-    m_Font: TG2Font;
-    m_FontColor: TG2Color;
-    m_List: TStringList;
-    m_ItemIndex: Integer;
-    m_Scroll: Integer;
-    m_OnChange: TG2ProcObj;
-    procedure OnListChange(Sender: TObject);
-  strict protected
-    procedure CustomMouseDown(const Button: Byte); override;
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Caption: AnsiString read m_Caption write m_Caption;
-    property Font: TG2Font read m_Font write m_Font;
-    property FontColor: TG2Color read m_FontColor write m_FontColor;
-    property List: TStringList read m_List;
-    property ItemIndex: Integer read m_ItemIndex write m_ItemIndex;
-    property Scroll: Integer read m_Scroll write m_Scroll;
-    property OnWheelMove;
-    property OnChange: TG2ProcObj read m_OnChange write m_OnChange;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIStringListBox END
-
-//TG2GUISlider BEGIN
-  TG2GUISlider = class (TG2GUIWindow)
-  strict private
-    m_Font: TG2Font;
-    m_FontColor: TG2Color;
-    m_Progress: Single;
-    m_Editable: Boolean;
-    procedure AdjustSlider;
-    procedure SetProgress(const Value: Single);
-  strict protected
-    procedure CustomMouseMove(const Shift: TPoint); override;
-    procedure CustomMouseDown(const Button: Byte); override;
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Font: TG2Font read m_Font write m_Font;
-    property FontColor: TG2Color read m_FontColor write m_FontColor;
-    property Progress: Single read m_Progress write SetProgress;
-    property Editable: Boolean read m_Editable write m_Editable;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUISlider END
-
-//TG2GUIScrollBar BEGIN
-  TG2GUIScrollBar = class (TG2GUIWindow)
-  strict private
-  type
-    TG2GUIScrollBarOrient = (
-      orVertical,
-      orHorizontal
-    );
-  var
-    m_Orient: TG2GUIScrollBarOrient;
-    m_ButtonSize: Integer;
-    m_Position: Single;
-    m_SliderRatio: Single;
-    m_Drag: Boolean;
-    m_DragOffset: Integer;
-    m_ScrollSpeed: Single;
-    m_ScrollUp: Boolean;
-    m_ScrollDown: Boolean;
-    m_ProcOnScroll: TG2ProcObj;
-    function SliderRect: TRect;
-    function BtnUpRect(const GR: PRect): TRect;
-    function BtnDownRect(const GR: PRect): TRect;
-    procedure SetSlider(const Pos: Integer);
-    procedure SetPosition(const Value: Single);
-  strict protected
-    procedure CustomMouseMove(const Shift: TPoint); override;
-    procedure CustomMouseDown(const Button: Byte); override;
-    procedure CustomMouseUp(const Button: Byte); override;
-    procedure CustomMouseWheel(const Shift: Integer); override;
-    procedure CustomUpdate; override;
-    procedure Render; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property Orient: TG2GUIScrollBarOrient read m_Orient write m_Orient;
-    property ButtonSize: Integer read m_ButtonSize write m_ButtonSize;
-    property Position: Single read m_Position write SetPosition;
-    property SliderRatio: Single read m_SliderRatio write m_SliderRatio;
-    property ScrollSpeed: Single read m_ScrollSpeed write m_ScrollSpeed;
-    property OnScroll: TG2ProcObj read m_ProcOnScroll write m_ProcOnScroll;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-    procedure Scroll(const Amount: Integer);
-  end;
-//TG2GUIScrollBar END
-
-//TG2GUIMemo BEGIN
-  TG2GUIMemo = class (TG2GUIWindow)
-  strict private
-    m_MemoBox: TG2GUIMemoBox;
-    m_ScrollV: TG2GUIScrollBar;
-    m_ScrollH: TG2GUIScrollBar;
-    procedure AdjustScrollBars;
-    procedure AdjustMemoBox;
-    procedure PropMouseWheel(const Shift: Integer);
-  strict protected
-    procedure CustomResize; override;
-    procedure Render; override;
-    procedure CustomMouseWheel(const Shift: Integer); override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property MemoBox: TG2GUIMemoBox read m_MemoBox;
-    property ScrollV: TG2GUIScrollBar read m_ScrollV;
-    property ScrollH: TG2GUIScrollBar read m_ScrollH;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIMemo END
-
-//TG2GUIStringList BEGIN
-  TG2GUIStringList = class (TG2GUIWindow)
-  strict private
-    m_StrListBox: TG2GUIStringListBox;
-    m_ScrollV: TG2GUIScrollBar;
-    procedure AdjustScrollBar;
-    procedure AdjustListBox;
-    procedure PropMouseWheel(const Shift: Integer);
-    function GetList: TStringList;
-    procedure SetItemIndex(const Value: Integer); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function GetItemIndex: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-  strict protected
-    procedure CustomResize; override;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-    property List: TStringList read GetList;
-    property ItemIndex: Integer read GetItemIndex write SetItemIndex;
-    function Initialize(const G2Core: TG2Core): TG2Result; override;
-    function Finalize: TG2Result; override;
-  end;
-//TG2GUIStringList END
-*)
 //TG2RenderStates BEGIN
   TG2RenderStates = class (TG2Class)
   strict private
@@ -5799,14 +5283,16 @@ function G2ResFail(const Res: TG2Result): Boolean; {$IFDEF G2_USE_INLINE} inline
 procedure SafeRelease(var i); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function WideStringToString(const WS: WideString; CodePage: Word = CP_ACP): AnsiString;
 function StringToWideString(const S: AnsiString; CodePage: Word = CP_ACP): WideString;
-function G2Param(const Str: AnsiString; const Separator: AnsiString; const Param: Integer): AnsiString;
-function G2ParamCount(const Str: AnsiString; const Separator: AnsiString): Integer;
+function G2StrExplode(const Str: AnsiString; const Separator: AnsiString): TG2StrArrA;
+function G2StrParam(const Str: AnsiString; const Separator: AnsiString; const Param: Integer): AnsiString;
+function G2StrParamCount(const Str: AnsiString; const Separator: AnsiString): Integer;
 function G2StrInStr(const Str: AnsiString; SubStr: AnsiString): Integer;
 function G2Color(const R, G, B: Byte; const A: Byte = 255): TG2Color; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2Color(const Color: DWord): TG2Color; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2Color(const v: TG2Vec3): TG2Color; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2Color(const v: TG2Vec4): TG2Color; overload; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-function G2Rect(const Left, Top, Right, Bottom: Single): TG2Rect; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+function G2Rect(const Left, Top, Right, Bottom: Single): TG2Rect; {$IFDEF G2_USE_INLINE} inline; {$ENDIF} overload;
+function G2Rect(const MinV, MaxV: TG2Vec2): TG2Rect; {$IFDEF G2_USE_INLINE} inline; {$ENDIF} overload;
 function G2FormatSize(const Format: TD3DFormat): DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2FormatToString(const Format: TD3DFormat): AnsiString;
 function G2SysInfo: TG2SysInfo;
@@ -5820,7 +5306,8 @@ function G2RandomCirclePoint: TG2Vec2; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2RandomSpherePoint: TG2Vec3; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2RandomColor(const MinBrightness: Byte = 0): DWord; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 procedure G2EncDec(const Ptr: PByteArray; const Count: Integer; const Key: AnsiString);
-function G2RectVsRect(const R1, R2: TRect): Boolean;
+function G2RectVsRect(const R1, R2: TRect): Boolean; overload;
+function G2RectVsRect(const R1, R2: TG2Rect): Boolean; overload;
 function G2RectBuild(const Pt1, Pt2: TPoint): TRect;
 function DIKToChar(const Key: Byte): AnsiChar; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function D3DTS_TEXTUREMATRIX(const Index: Byte): TD3DTransformStateType; {$IFDEF G2_USE_INLINE} inline;  {$ENDIF}
@@ -16797,10 +16284,15 @@ end;
 
 function TG2Font.Print(const X, Y: Single; const Color: TG2Color; const Text: AnsiString): TG2Result;
 begin
-  Result := Print(X, Y, 1, 1, Color, Text);
+  Result := Print(X, Y, 1, 1, Color, Text, 0, Length(Text) - 1);
 end;
 
 function TG2Font.Print(const X, Y, ScaleX, ScaleY: Single; const Color: TG2Color; const Text: AnsiString): TG2Result;
+begin
+  Print(X, Y, ScaleX, ScaleY, Color, Text, 0, Length(Text) - 1);
+end;
+
+function TG2Font.Print(const X, Y, ScaleX, ScaleY: Single; const Color: TG2Color; const Text: AnsiString; const PosStart, PosEnd: Integer): TG2Result;
 var
   i, CurVertex: Integer;
   XChar: Byte;
@@ -16810,15 +16302,15 @@ var
   tu1, tv1, tu2, tv2: Single;
   x1, y1, x2, y2: Single;
 begin
-  VBSize := Length(Text) * 4;
+  VBSize := (PosEnd - PosStart + 1) * 4;
   Result := m_Gfx.SharedVB2D.VerifySize(VBSize);
   if G2ResFail(Result) then Exit;
   Width := 0;
   m_Gfx.SharedVB2D.VB.Lock(0, VBSize, Pointer(Vertices), D3DLOCK_DISCARD);
-  for i := 0 to Length(Text) - 1 do
+  CurVertex := 0;
+  for i := PosStart to PosEnd do
   begin
     XChar := Ord(Text[i + 1]);
-    CurVertex := i * 4;
     tu1 := (XChar mod 16) * m_CharTU;
     tv1 := (XChar div 16) * m_CharTV;
     tu2 := tu1 + m_CharTU;
@@ -16858,12 +16350,81 @@ begin
     Vertices^[CurVertex].Color := Color;
     Vertices^[CurVertex].tu := tu2;
     Vertices^[CurVertex].tv := tv1;
+    Inc(CurVertex);
     Width := Width + m_Props[XChar].Width * ScaleX;
   end;
   m_Gfx.SharedVB2D.VB.Unlock;
   m_Gfx.Device.SetTexture(0, m_Texture.Texture);
   m_Gfx.SharedVB2D.SetToDevice;
-  m_Gfx.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, Length(Text) * 4 - 2);
+  m_Gfx.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, (PosEnd - PosStart + 1) * 4 - 2);
+end;
+
+function TG2Font.Paragraph(const X, Y, Width, Height: Integer; const Color: TG2Color; const Text: AnsiString): TG2Result;
+  var i, w, l, Pos, LineHeight, CurHeight, SafePt, CharCount: Integer;
+  var XChar: Byte;
+  var AChar: AnsiChar;
+  var PrevScissorTestEnable: Boolean;
+  var R, PrevScissorRect: TRect;
+  procedure ScissorInit;
+  begin
+    PrevScissorTestEnable := Core.Graphics.RenderStates.ScissorTestEnable;
+    if PrevScissorTestEnable then
+    Core.Graphics.Device.GetScissorRect(PrevScissorRect);
+    Core.Graphics.RenderStates.ScissorTestEnable := True;
+    R := Rect(X, Y, X + Width, Y + Height);
+    Core.Graphics.Device.SetScissorRect(@R);
+  end;
+  procedure ScissorUnInit;
+  begin
+    Core.Graphics.RenderStates.ScissorTestEnable := PrevScissorTestEnable;
+    if PrevScissorTestEnable then
+    Core.Graphics.Device.SetScissorRect(@PrevScissorRect);
+  end;
+begin
+  ScissorInit;
+  w := 0;
+  l := Length(Text);
+  i := 0;
+  SafePt := 0;
+  CharCount := 0;
+  Pos := 1;
+  CurHeight := Y;
+  LineHeight := GetTextHeight('A');
+  while i < l do
+  begin
+    Inc(i);
+    AChar := Text[i];
+    XChar := Ord(AChar);
+    w := w + m_Props[XChar].Width;
+    if w < Width then
+    begin
+      Inc(CharCount);
+      if (AChar = ' ') then
+      SafePt := i;
+    end
+    else
+    begin
+      if (CharCount = 0) or (SafePt < Pos) then
+      begin
+        ScissorUnInit;
+        Exit;
+      end;
+      Print(X, CurHeight, 1, 1, Color, Text, Pos - 1, SafePt - 1);
+      Pos := SafePt + 1;
+      i := SafePt;
+      CharCount := 0;
+      w := 0;
+      CurHeight := CurHeight + LineHeight;
+      if CurHeight > Y + Height then
+      begin
+        ScissorUnInit;
+        Exit;
+      end;
+    end;
+  end;
+  if CharCount > 0 then
+  Print(X, CurHeight, 1, 1, Color, Text, Pos - 1, l - 1);
+  ScissorUnInit;
 end;
 
 function TG2Font.GetTextWidth(const Text: AnsiString): Integer;
@@ -27600,16 +27161,16 @@ begin
   if Failed(hr) then Exit;
 
   Vertices^[0].x := v1.X; Vertices^[0].y := v1.Y; Vertices^[0].z := 0;
-  Vertices^[0].rhw := 0; Vertices^[0].Color := c1;
+  Vertices^[0].rhw := 1; Vertices^[0].Color := c1;
 
   Vertices^[1].x := v2.X; Vertices^[1].y := v2.Y; Vertices^[1].z := 0;
-  Vertices^[1].rhw := 0; Vertices^[1].Color := c2;
+  Vertices^[1].rhw := 1; Vertices^[1].Color := c2;
 
   Vertices^[2].x := v3.X; Vertices^[2].y := v3.Y; Vertices^[2].z := 0;
-  Vertices^[2].rhw := 0; Vertices^[2].Color := c3;
+  Vertices^[2].rhw := 1; Vertices^[2].Color := c3;
 
   Vertices^[3].x := v4.X; Vertices^[3].y := v4.Y; Vertices^[3].z := 0;
-  Vertices^[3].rhw := 0; Vertices^[3].Color := c4;
+  Vertices^[3].rhw := 1; Vertices^[3].Color := c4;
 
   hr := m_VB.Unlock;
   if Failed(hr) then Exit;
@@ -27715,19 +27276,19 @@ begin
   if Failed(hr) then Exit;
 
   Vertices^[0].x := v1.X; Vertices^[0].y := v1.Y; Vertices^[0].z := 0;
-  Vertices^[0].rhw := 0; Vertices^[0].Color := c1;
+  Vertices^[0].rhw := 1; Vertices^[0].Color := c1;
 
   Vertices^[1].x := v2.X; Vertices^[1].y := v2.Y; Vertices^[1].z := 0;
-  Vertices^[1].rhw := 0; Vertices^[1].Color := c2;
+  Vertices^[1].rhw := 1; Vertices^[1].Color := c2;
 
   Vertices^[2].x := v4.X; Vertices^[2].y := v4.Y; Vertices^[2].z := 0;
-  Vertices^[2].rhw := 0; Vertices^[2].Color := c4;
+  Vertices^[2].rhw := 1; Vertices^[2].Color := c4;
 
   Vertices^[3].x := v3.X; Vertices^[3].y := v3.Y; Vertices^[3].z := 0;
-  Vertices^[3].rhw := 0; Vertices^[3].Color := c3;
+  Vertices^[3].rhw := 1; Vertices^[3].Color := c3;
 
   Vertices^[4].x := v1.X; Vertices^[4].y := v1.Y; Vertices^[4].z := 0;
-  Vertices^[4].rhw := 0; Vertices^[4].Color := c1;
+  Vertices^[4].rhw := 1; Vertices^[4].Color := c1;
 
   hr := m_VB.Unlock;
   if Failed(hr) then Exit;
@@ -31894,7 +31455,46 @@ begin
   end;
 end;
 
-function G2Param(const Str: AnsiString; const Separator: AnsiString; const Param: Integer): AnsiString;
+function G2StrExplode(const Str: AnsiString; const Separator: AnsiString): TG2StrArrA;
+var
+  i: Integer;
+  j: Integer;
+  CurElement: Integer;
+  PrevParamIndex: Integer;
+  b: Boolean;
+begin
+  SetLength(Result, Length(Str));
+  CurElement := 0;
+  PrevParamIndex := 1;
+  for i := 1 to Length(Str) do
+  begin
+    b := True;
+    for j := 0 to Length(Separator) - 1 do
+    begin
+      if Separator[j + 1] <> Str[i + j] then
+      begin
+        b := False;
+        Break;
+      end;
+    end;
+    if b then
+    begin
+      SetLength(Result[CurElement], i - PrevParamIndex);
+      Move(Str[PrevParamIndex], Result[CurElement][1], i - PrevParamIndex);
+      PrevParamIndex := i + Length(Separator);
+      Inc(CurElement);
+    end;
+  end;
+  if Length(Str) > PrevParamIndex then
+  begin
+    SetLength(Result[CurElement], Length(Str) - PrevParamIndex);
+    Move(Str[PrevParamIndex], Result[CurElement][1], Length(Str) - PrevParamIndex);
+    Inc(CurElement);
+  end;
+  SetLength(Result, CurElement);
+end;
+
+function G2StrParam(const Str: AnsiString; const Separator: AnsiString; const Param: Integer): AnsiString;
 var
   i: Integer;
   j: Integer;
@@ -31939,7 +31539,7 @@ begin
   end;
 end;
 
-function G2ParamCount(const Str: AnsiString; const Separator: AnsiString): Integer;
+function G2StrParamCount(const Str: AnsiString; const Separator: AnsiString): Integer;
 var
   i, j: Integer;
   DoInc: Boolean;
@@ -32018,6 +31618,14 @@ begin
   Result.Top := Top;
   Result.Right := Right;
   Result.Bottom := Bottom;
+end;
+
+function G2Rect(const MinV, MaxV: TG2Vec2): TG2Rect;
+begin
+  Result.Left := MinV.x;
+  Result.Top := MinV.y;
+  Result.Right := MaxV.x;
+  Result.Bottom := MaxV.y;
 end;
 
 function G2FormatSize(const Format: TD3DFormat): DWord;
@@ -32436,6 +32044,16 @@ begin
 end;
 
 function G2RectVsRect(const R1, R2: TRect): Boolean;
+begin
+  Result := (
+    (R1.Left <= R2.Right)
+    and (R1.Right >= R2.Left)
+    and (R1.Top <= R2.Bottom)
+    and (R1.Bottom >= R2.Top)
+  );
+end;
+
+function G2RectVsRect(const R1, R2: TG2Rect): Boolean;
 begin
   Result := (
     (R1.Left <= R2.Right)

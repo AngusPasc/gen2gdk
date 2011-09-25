@@ -178,6 +178,7 @@ procedure G2RegMeshLoader(const LoaderClass: CG2MeshLoaderClass);
 procedure G2MeshDataClear(const MeshData: PG2MeshData);
 procedure G2MeshDataCopy(const Src, Dst: PG2MeshData);
 procedure G2MeshDataLimitSkin(const MeshData: PG2MeshData; const MaxWeights: Integer = 4);
+procedure G2MeshDataGenerateMapping(const MeshData: PG2MeshData);
 procedure G2MeshRagdollObjectCopy(const Src, Dst: PG2RagdollObject);
 
 implementation
@@ -471,6 +472,468 @@ begin
       MeshData^.Skins[s].Vertices[v].Weights[w].Weight := WeightsRemap[w].Weight * TotalWeight;
     end;
     MeshData^.Skins[s].Vertices[v].WeightCount := MaxWeights;
+  end;
+end;
+
+procedure G2MeshDataGenerateMapping(const MeshData: PG2MeshData);
+  type TArrV3 = array of TG2Vec3;
+  type TArrV2 = array of TG2Vec2;
+  type TArrCol = array of TG2Color;
+  type TGroupMap = record
+  public
+    var GroupsSorted: TG2QuickSortList;
+    var GroupsAdded: TG2QuickList;
+    var Bounds: TG2Vec2;
+  end;
+  type TFaceMapGroup = record
+  public
+    var Normal, U, V: TG2Vec3;
+    var Faces: TG2QuickList;
+    var MinV, MaxV: TG2Vec2;
+  end;
+  type PFaceMapGroup = ^TFaceMapGroup;
+  var Faces: array of record
+  public
+    var Position: array[0..2] of DWord;
+    var Tangent: array[0..2] of DWord;
+    var Binormal: array[0..2] of DWord;
+    var Normal: array[0..2] of DWord;
+    var TexCoord: array[0..2] of DWord;
+    var Color: array[0..2] of DWord;
+    var Checked: Boolean;
+    var TmpTexCoords: array[0..2] of TG2Vec2;
+    var Vertices: array[0..2] of DWord;
+  end;
+  var Vertices: array of record
+  public
+    var Position: DWord;
+    var Tangent: DWord;
+    var Binormal: DWord;
+    var Normal: DWord;
+    var TexCoord: DWord;
+    var Color: DWord;
+  end;
+  var VertexCount: Integer;
+  var Positions: TArrV3;
+  var PositionCount: Integer;
+  var Tangents: TArrV3;
+  var TangentCount: Integer;
+  var Binormals: TArrV3;
+  var BinormalCount: Integer;
+  var Normals: TArrV3;
+  var NormalCount: Integer;
+  var TexCoords: TArrV2;
+  var TexCoordCount: Integer;
+  var Colors: TArrCol;
+  var ColorCount: Integer;
+  var Adj: array of DWord;
+  function AddToArrV3(var Arr: TArrV3; var ArrLen: Integer; const v: TG2Vec3): DWord;
+    var i, n: Integer;
+  begin
+    for i := 0 to (ArrLen - 1) do
+    begin
+      if (Arr[i] - v).Len <= 0.00001 then
+      begin
+        Result := i;
+        Exit;
+      end;
+    end;
+    if ArrLen >= Length(Arr) then
+    SetLength(Arr, ArrLen + 32);
+    Arr[ArrLen] := v;
+    Result := ArrLen;
+    Inc(ArrLen);
+  end;
+  function AddToArrV2(var Arr: TArrV2; var ArrLen: Integer; const v: TG2Vec2): DWord;
+    var i, n: Integer;
+  begin
+    for i := 0 to (ArrLen - 1) do
+    begin
+      if (Arr[i] - v).Len <= 0.00001 then
+      begin
+        Result := i;
+        Exit;
+      end;
+    end;
+    if ArrLen >= Length(Arr) then
+    SetLength(Arr, ArrLen + 32);
+    Arr[ArrLen] := v;
+    Result := ArrLen;
+    Inc(ArrLen);
+  end;
+  function AddToArrCol(var Arr: TArrCol; var ArrLen: Integer; const c: TG2Color): DWord;
+    var i, n: Integer;
+  begin
+    for i := 0 to (ArrLen - 1) do
+    begin
+      if Arr[i] = c then
+      begin
+        Result := i;
+        Exit;
+      end;
+    end;
+    if ArrLen >= Length(Arr) then
+    SetLength(Arr, ArrLen + 32);
+    Arr[ArrLen] := c;
+    Result := ArrLen;
+    Inc(ArrLen);
+  end;
+  procedure AddVertex(const GeomID, VertexID: Integer; var PositionID, TangentID, BinormalID, NormalID, TexCoordID, ColorID: DWord);
+  begin
+    PositionID := AddToArrV3(Positions, PositionCount, MeshData^.Geoms[GeomID].Vertices[VertexID].Position);
+    TangentID := AddToArrV3(Tangents, TangentCount, MeshData^.Geoms[GeomID].Vertices[VertexID].Tangent);
+    BinormalID := AddToArrV3(Binormals, BinormalCount, MeshData^.Geoms[GeomID].Vertices[VertexID].Binormal);
+    NormalID := AddToArrV3(Normals, NormalCount, MeshData^.Geoms[GeomID].Vertices[VertexID].Normal);
+    ColorID := AddToArrCol(Colors, ColorCount, MeshData^.Geoms[GeomID].Vertices[VertexID].Color);
+    TexCoordID := $ffffffff;
+  end;
+  function NewVertex(const Position, Tangent, Binormal, Normal, TexCoord, Color: DWord): Integer;
+    var i: Integer;
+  begin
+    for i := 0 to VertexCount - 1 do
+    if (Vertices[i].Position = Position)
+    and (Vertices[i].Tangent = Tangent)
+    and (Vertices[i].Binormal = Binormal)
+    and (Vertices[i].Normal = Normal)
+    and (Vertices[i].TexCoord = TexCoord)
+    and (Vertices[i].Color = Color) then
+    begin
+      Result := i;
+      Exit;
+    end;
+    if VertexCount >= Length(Vertices) then
+    SetLength(Vertices, VertexCount + 32);
+    Vertices[VertexCount].Position := Position;
+    Vertices[VertexCount].Tangent := Tangent;
+    Vertices[VertexCount].Binormal := Binormal;
+    Vertices[VertexCount].Normal := Normal;
+    Vertices[VertexCount].TexCoord := TexCoord;
+    Vertices[VertexCount].Color := Color;
+    Result := VertexCount;
+    Inc(VertexCount);
+  end;
+  procedure AddAdj(const Face0, Face1: DWord);
+    var i: Integer;
+  begin
+    for i := 0 to 2 do
+    if Adj[Face0 * 3 + i] = $ffffffff then
+    begin
+      Adj[Face0 * 3 + i] := Face1;
+      Break;
+    end;
+    for i := 0 to 2 do
+    if Adj[Face1 * 3 + i] = $ffffffff then
+    begin
+      Adj[Face1 * 3 + i] := Face0;
+      Break;
+    end;
+  end;
+  function CheckAdj(const Face0, Face1: Integer): Boolean;
+    function CheckEdges(const e0, e1: Integer): Boolean;
+      var e0i0, e0i1, e1i0, e1i1: Integer;
+    begin
+      e0i0 := e0; e0i1 := (e0 + 1) mod 3;
+      e1i0 := e1; e1i1 := (e1 + 1) mod 3;
+      Result := ((Faces[Face0].Position[e0i0] = Faces[Face1].Position[e1i0]) and (Faces[Face0].Position[e0i1] = Faces[Face1].Position[e1i1]))
+      or ((Faces[Face0].Position[e0i0] = Faces[Face1].Position[e1i1]) and (Faces[Face0].Position[e0i1] = Faces[Face1].Position[e1i0]));
+    end;
+    var i, j: Integer;
+  begin
+    for i := 0 to 2 do
+    for j := 0 to 2 do
+    if CheckEdges(i, j) then
+    begin
+      Result := True;
+      Exit;
+    end;
+    Result := False;
+  end;
+  function GroupFaceMatch(const Group: PFaceMapGroup; const FaceID: DWord): Boolean;
+    var i, j: Integer;
+    var f: DWord;
+    var SkipFace: Boolean;
+  begin
+    for i := 0 to Group^.Faces.Count - 1 do
+    begin
+      f := DWord(Group^.Faces[i]);
+      SkipFace := False;
+      for j := 0 to 2 do
+      if Adj[FaceID * 3 + j] = f then
+      begin
+        SkipFace := True;
+        Break;
+      end;
+      if not SkipFace
+      and G2IntersectTri(
+        Faces[FaceID].TmpTexCoords[0],
+        Faces[FaceID].TmpTexCoords[1],
+        Faces[FaceID].TmpTexCoords[2],
+        Faces[f].TmpTexCoords[0],
+        Faces[f].TmpTexCoords[1],
+        Faces[f].TmpTexCoords[2]
+      ) then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+    Result := True;
+  end;
+  var i, j, n, t, x, y, px, py: Integer;
+  var StepSize: TG2Vec2;
+  var FacesToCheck: TG2QuickList;
+  var NewFaces: TG2QuickList;
+  var FaceMapGroups: TG2QuickList;
+  var CurFace: DWord;
+  var CurMapGroup: PFaceMapGroup;
+  var GroupMap: TGroupMap;
+  var MapPlaced, b: Boolean;
+  var PlaceVolume, PlaceVolumeMin: Single;
+  var PlaceRect: TG2Rect;
+  var TmpBounds: TG2Vec2;
+  var MapScale: Single;
+begin
+  for i := 0 to MeshData^.GeomCount - 1 do
+  begin
+    PositionCount := 0;
+    TangentCount := 0;
+    BinormalCount := 0;
+    NormalCount := 0;
+    TexCoordCount := 0;
+    ColorCount := 0;
+    MeshData^.Geoms[i].TCount := 1;
+    SetLength(Faces, MeshData^.Geoms[i].FCount);
+    SetLength(Adj, MeshData^.Geoms[i].FCount * 3);
+    FacesToCheck.Clear;
+    for j := 0 to MeshData^.Geoms[i].FCount - 1 do
+    begin
+      for n := 0 to 2 do
+      begin
+        AddVertex(
+          i,
+          MeshData^.Geoms[i].Faces[j].Indices[n],
+          Faces[j].Position[n],
+          Faces[j].Tangent[n],
+          Faces[j].Binormal[n],
+          Faces[j].Normal[n],
+          Faces[j].TexCoord[n],
+          Faces[j].Color[n]
+        );
+      end;
+      Adj[j * 3 + 0] := $ffffffff;
+      Adj[j * 3 + 1] := $ffffffff;
+      Adj[j * 3 + 2] := $ffffffff;
+      FacesToCheck.Add(Pointer(j));
+    end;
+    if FacesToCheck.Count < 1 then Exit;
+    for j := 0 to MeshData^.Geoms[i].FCount - 1 do
+    for n := j + 1 to MeshData^.Geoms[i].FCount - 1 do
+    if CheckAdj(j, n) then AddAdj(j, n);
+    FaceMapGroups.Clear;
+    while FacesToCheck.Count > 0 do
+    begin
+      NewFaces.Clear;
+      for j := 0 to FacesToCheck.Count - 1 do
+      Faces[DWord(FacesToCheck[j])].Checked := False;
+      CurFace := DWord(FacesToCheck[0]);
+      Faces[CurFace].Checked := True;
+      New(CurMapGroup);
+      FaceMapGroups.Add(CurMapGroup);
+      CurMapGroup^.Normal := G2TriangleNormal(
+        Positions[Faces[CurFace].Position[0]],
+        Positions[Faces[CurFace].Position[1]],
+        Positions[Faces[CurFace].Position[2]]
+      );
+      CurMapGroup^.U := G2RandomSpherePoint;
+      while Abs(CurMapGroup^.Normal.Dot(CurMapGroup^.U)) > 0.95 do
+      CurMapGroup^.U := G2RandomSpherePoint;
+      CurMapGroup^.V := CurMapGroup^.Normal.Cross(CurMapGroup^.U).Normalized;
+      CurMapGroup^.U := CurMapGroup^.V.Cross(CurMapGroup^.Normal).Normalized;
+      CurMapGroup^.Faces.Clear;
+      NewFaces.Add(FacesToCheck[0]);
+      while NewFaces.Count > 0 do
+      begin
+        CurFace := DWord(NewFaces[0]);
+        NewFaces.Delete(0);
+        for t := 0 to 2 do
+        begin
+          Faces[CurFace].TmpTexCoords[t].x := CurMapGroup^.U.Dot(Positions[Faces[CurFace].Position[t]]);
+          Faces[CurFace].TmpTexCoords[t].y := CurMapGroup^.V.Dot(Positions[Faces[CurFace].Position[t]]);
+        end;
+        //StretchFace(CurFace);
+        if (
+          G2TriangleNormal(
+            Positions[Faces[CurFace].Position[0]],
+            Positions[Faces[CurFace].Position[1]],
+            Positions[Faces[CurFace].Position[2]]
+          ).Dot(CurMapGroup^.Normal) > 0.3
+        ) and GroupFaceMatch(CurMapGroup, CurFace) then
+        begin
+          FacesToCheck.Remove(Pointer(CurFace));
+          CurMapGroup^.Faces.Add(Pointer(CurFace));
+          for j := 0 to 2 do
+          if (Adj[CurFace * 3 + j] <> $ffffffff)
+          and (not Faces[Adj[CurFace * 3 + j]].Checked) then
+          begin
+            Faces[Adj[CurFace * 3 + j]].Checked := True;
+            NewFaces.Add(Pointer(Adj[CurFace * 3 + j]));
+          end;
+        end;
+      end;
+    end;
+    GroupMap.GroupsSorted.Clear;
+    GroupMap.GroupsAdded.Clear;
+    for j := 0 to FaceMapGroups.Count - 1 do
+    begin
+      CurMapGroup := PFaceMapGroup(FaceMapGroups[j]);
+      for n := 0 to CurMapGroup^.Faces.Count - 1 do
+      begin
+        CurFace := DWord(CurMapGroup^.Faces[n]);
+        for t := 0 to 2 do
+        begin
+          //Faces[CurFace].TmpTexCoords[t].x := CurMapGroup^.U.Dot(Positions[Faces[CurFace].Position[t]]);
+          //Faces[CurFace].TmpTexCoords[t].y := CurMapGroup^.V.Dot(Positions[Faces[CurFace].Position[t]]);
+          if (n = 0) and (t = 0) then
+          begin
+            CurMapGroup^.MinV := Faces[CurFace].TmpTexCoords[t];
+            CurMapGroup^.MaxV := CurMapGroup^.MinV;
+          end
+          else
+          begin
+            if Faces[CurFace].TmpTexCoords[t].x < CurMapGroup^.MinV.x then CurMapGroup^.MinV.x := Faces[CurFace].TmpTexCoords[t].x;
+            if Faces[CurFace].TmpTexCoords[t].y < CurMapGroup^.MinV.y then CurMapGroup^.MinV.y := Faces[CurFace].TmpTexCoords[t].y;
+            if Faces[CurFace].TmpTexCoords[t].x > CurMapGroup^.MaxV.x then CurMapGroup^.MaxV.x := Faces[CurFace].TmpTexCoords[t].x;
+            if Faces[CurFace].TmpTexCoords[t].y > CurMapGroup^.MaxV.y then CurMapGroup^.MaxV.y := Faces[CurFace].TmpTexCoords[t].y;
+          end;
+        end;
+      end;
+      for n := 0 to CurMapGroup^.Faces.Count - 1 do
+      begin
+        CurFace := DWord(CurMapGroup^.Faces[n]);
+        for t := 0 to 2 do
+        Faces[CurFace].TmpTexCoords[t] := Faces[CurFace].TmpTexCoords[t] - CurMapGroup^.MinV;
+      end;
+      CurMapGroup^.MaxV := CurMapGroup^.MaxV - CurMapGroup^.MinV;
+      CurMapGroup^.MinV.SetValue(0, 0);
+      GroupMap.GroupsSorted.Add(CurMapGroup, CurMapGroup^.MaxV.x * CurMapGroup^.MaxV.y);
+    end;
+    CurMapGroup := PFaceMapGroup(GroupMap.GroupsSorted[GroupMap.GroupsSorted.Count - 1]);
+    GroupMap.GroupsSorted.Delete(GroupMap.GroupsSorted.Count - 1);
+    GroupMap.GroupsAdded.Add(CurMapGroup);
+    GroupMap.Bounds := CurMapGroup^.MaxV;
+    while GroupMap.GroupsSorted.Count > 0 do
+    begin
+      CurMapGroup := PFaceMapGroup(GroupMap.GroupsSorted[GroupMap.GroupsSorted.Count - 1]);
+      GroupMap.GroupsSorted.Delete(GroupMap.GroupsSorted.Count - 1);
+      GroupMap.GroupsAdded.Add(CurMapGroup);
+      StepSize := GroupMap.Bounds * 0.01;
+      MapPlaced := False;
+      PlaceVolumeMin := (GroupMap.Bounds.x * GroupMap.Bounds.y) * 3 + 10000;
+      for y := 0 to 99 do
+      for x := 0 to 99 do
+      begin
+        PlaceRect.Left := x * StepSize.x;
+        PlaceRect.Top := y * StepSize.y;
+        PlaceRect.Right := PlaceRect.Left + CurMapGroup^.MaxV.x;
+        PlaceRect.Bottom := PlaceRect.Top + CurMapGroup^.MaxV.y;
+        b := True;
+        for j := 0 to GroupMap.GroupsAdded.Count - 1 do
+        if G2RectVsRect(
+          G2Rect(
+            PFaceMapGroup(GroupMap.GroupsAdded[j])^.MinV,
+            PFaceMapGroup(GroupMap.GroupsAdded[j])^.MaxV
+          ),
+          PlaceRect
+        ) then
+        begin
+          b := False;
+          Break;
+        end;
+        if b then
+        begin
+          TmpBounds := GroupMap.Bounds;
+          if CurMapGroup^.MaxV.x > TmpBounds.x then TmpBounds.x := CurMapGroup^.MaxV.x;
+          if CurMapGroup^.MaxV.y > TmpBounds.y then TmpBounds.y := CurMapGroup^.MaxV.y;
+          PlaceVolume := TmpBounds.x * TmpBounds.y + x * y + Abs(x - y);
+          if not MapPlaced or (PlaceVolume + 0.0001 < PlaceVolumeMin) then
+          begin
+            PlaceVolumeMin := PlaceVolume;
+            px := x;
+            py := y;
+            MapPlaced := True;
+          end;
+        end;
+      end;
+      if MapPlaced then
+      begin
+        CurMapGroup^.MinV.x := px * StepSize.x;
+        CurMapGroup^.MinV.y := py * StepSize.y;
+        CurMapGroup^.MaxV := CurMapGroup^.MinV + CurMapGroup^.MaxV;
+      end
+      else
+      begin
+        if GroupMap.Bounds.x > GroupMap.Bounds.y then
+        begin
+          CurMapGroup^.MinV.x := 0;
+          CurMapGroup^.MinV.y := GroupMap.Bounds.y;
+          CurMapGroup^.MaxV := CurMapGroup^.MinV + CurMapGroup^.MaxV;
+        end
+        else
+        begin
+          CurMapGroup^.MinV.x := GroupMap.Bounds.x;
+          CurMapGroup^.MinV.y := 0;
+          CurMapGroup^.MaxV := CurMapGroup^.MinV + CurMapGroup^.MaxV;
+        end;
+      end;
+      if CurMapGroup^.MaxV.x > GroupMap.Bounds.x then GroupMap.Bounds.x := CurMapGroup^.MaxV.x;
+      if CurMapGroup^.MaxV.y > GroupMap.Bounds.y then GroupMap.Bounds.y := CurMapGroup^.MaxV.y;
+    end;
+    if GroupMap.Bounds.x > GroupMap.Bounds.y then
+    MapScale := 1 / GroupMap.Bounds.x
+    else
+    MapScale := 1 / GroupMap.Bounds.y;
+    for j := 0 to GroupMap.GroupsAdded.Count - 1 do
+    begin
+      CurMapGroup := PFaceMapGroup(GroupMap.GroupsAdded[j]);
+      for n := 0 to CurMapGroup^.Faces.Count - 1 do
+      begin
+        CurFace := DWord(CurMapGroup^.Faces[n]);
+        for t := 0 to 2 do
+        begin
+          Faces[CurFace].TmpTexCoords[t] := (Faces[CurFace].TmpTexCoords[t] + CurMapGroup^.MinV) * MapScale;
+          Faces[CurFace].TexCoord[t] := AddToArrV2(TexCoords, TexCoordCount, Faces[CurFace].TmpTexCoords[t]);
+        end;
+      end;
+      Dispose(CurMapGroup);
+    end;
+    VertexCount := 0;
+    for j := 0 to MeshData.Geoms[i].FCount - 1 do
+    begin
+      for n := 0 to 2 do
+      Faces[j].Vertices[n] := NewVertex(
+        Faces[j].Position[n],
+        Faces[j].Tangent[n],
+        Faces[j].Binormal[n],
+        Faces[j].Normal[n],
+        Faces[j].TexCoord[n],
+        Faces[j].Color[n]
+      );
+    end;
+    MeshData.Geoms[i].VCount := VertexCount;
+    SetLength(MeshData.Geoms[i].Vertices, VertexCount);
+    for j := 0 to MeshData.Geoms[i].VCount - 1 do
+    begin
+      MeshData.Geoms[i].Vertices[j].Position := Positions[Vertices[j].Position];
+      MeshData.Geoms[i].Vertices[j].Tangent := Tangents[Vertices[j].Tangent];
+      MeshData.Geoms[i].Vertices[j].Binormal := Binormals[Vertices[j].Binormal];
+      MeshData.Geoms[i].Vertices[j].Normal := Normals[Vertices[j].Normal];
+      SetLength(MeshData.Geoms[i].Vertices[j].TexCoords, 1);
+      MeshData.Geoms[i].Vertices[j].TexCoords[0] := TexCoords[Vertices[j].TexCoord];
+      MeshData.Geoms[i].Vertices[j].Color := Colors[Vertices[j].Color];
+    end;
+    for j := 0 to MeshData.Geoms[i].FCount - 1 do
+    for n := 0 to 2 do
+    MeshData.Geoms[i].Faces[j].Indices[n] := Faces[j].Vertices[n];
   end;
 end;
 

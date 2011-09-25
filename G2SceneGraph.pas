@@ -13,6 +13,7 @@ uses
   Direct3D9,
   D3DX9,
   Math,
+  SyncObjs,
   G2Math,
   Gen2,
   G2MeshLoader,
@@ -107,6 +108,21 @@ type
     end;
   end;
   PG2SGCollider = ^TG2SGCollider;
+
+  PG2SGGeomOcTreeNode = ^TG2SGGeomOcTreeNode;
+  TG2SGGeomOcTreeNode = record
+  public
+    var Parent: PG2SGGeomOcTreeNode;
+    var AABox: TG2AABox;
+    var CountX: Integer;
+    var CountY: Integer;
+    var CountZ: Integer;
+    var NoDiv: Boolean;
+    var SubNodes: array of array of array of TG2SGGeomOcTreeNode;
+    var Faces: array of Word;
+    var Depth: Integer;
+    var TotalFaces: Integer;
+  end;
 
   PG2SGOcTreeNode = ^TG2SGOcTreeNode;
   TG2SGOcTreeNode = record
@@ -226,6 +242,7 @@ type
     var OcTreeBuilt: Boolean;
     var VB: TG2VB;
     var IB: TG2IB;
+    var CS: TCriticalSection;
     function OcTreeAutoBuild: Boolean;
     procedure OcTreeBuild(const AABox: TG2AABox; const MinDivSize: Single);
     procedure OcTreeDestroy;
@@ -278,6 +295,7 @@ type
     procedure LoadG2M(const Buffer: Pointer; const Size: Integer); overload;
     procedure Clear;
     procedure Update(const Query: PG2SGQuery);
+    procedure Render(const Query: PG2SGQuery);
   end;
 
   TG2SGNode = class
@@ -319,10 +337,16 @@ type
   strict private
     var m_PrevTransform: TG2Mat;
     var m_Collide: Boolean;
-    var m_Occluder: Boolean;
+    var m_OcTree: Boolean;
+    var m_FaceFetchID: array of Int64;
+    var m_CurFaceFetchID: Int64;
     procedure SetCollide(const Value: Boolean);
     procedure UpdateCollider;
+    procedure SetOcTree(const Value: Boolean);
+    procedure ResetFaceFectchID;
   protected
+    var OcTreeNode: TG2SGGeomOcTreeNode;
+    property OcTree: Boolean read m_OcTree write SetOcTree;
     procedure SetRender(const Value: Boolean); override;
     function GetAABox: TG2AABox; override;
   public
@@ -337,7 +361,6 @@ type
     var Collider: TG2SGCollider;
     var OOBox: TG2Box;
     property Collide: Boolean read m_Collide write SetCollide;
-    property Occluder: Boolean read m_Occluder write m_Occluder;
     constructor Create(const SceneGraph: TG2SceneGraph); override;
     destructor Destroy; override;
     procedure Update; override;
@@ -360,6 +383,7 @@ type
     var Step: TG2Vec3;
     var Vel: TG2Vec3;
     var Grounded: Boolean;
+    var StepHardness: Single;
     property Mesh: TG2Mesh read m_Mesh write SetMesh;
     property MeshInst: TG2MeshInst read m_MeshInst;
     property Collide: Boolean read m_Collide write m_Collide;
@@ -1165,10 +1189,12 @@ begin
   SearchPathAdd(String(AppPath));
   RootNode.AABox.SetValue(G2Vec3(0, 0, 0), G2Vec3(0, 0, 0));
   Depth := 0;
+  CS := TCriticalSection.Create;
 end;
 
 destructor TG2SceneGraph.Destroy;
 begin
+  CS.Free;
   while Queries.Count > 0 do
   QueryDestroy(PG2SGQuery(Queries[0]));
   Clear;
@@ -1414,8 +1440,8 @@ begin
       end;
     end;
   end;
-  Query^.Stats.ObjectsRendered := Query^.QueryLists[G2QL_GEOMS].Count + Query^.QueryLists[G2QL_CHARS].Count;
-  Query^.Stats.ObjectsCulled := Geoms.Count + Chars.Count - Query^.Stats.ObjectsRendered;
+  Query^.Stats.ObjectsRendered := Query^.QueryLists[G2QL_GEOMS].Count + Query^.QueryLists[G2QL_CHARS].Count + Query^.QueryLists[G2QL_LIGHTS].Count;
+  Query^.Stats.ObjectsCulled := Geoms.Count + Chars.Count + Lights.Count - Query^.Stats.ObjectsRendered;
 end;
 
 function TG2SceneGraph.CollideSphere(var s: TG2Sphere; const Query: PG2SGQuery): Boolean;
@@ -1592,7 +1618,7 @@ begin
               begin
                 c.Grounded := True;
                 c.Vel := c.Vel - StepNorm * (StepNorm.Dot(c.Vel));
-                ShiftVec := -StepNorm * ((StepLen - d) * 0.3);
+                ShiftVec := -StepNorm * ((StepLen - d) * c.StepHardness);
                 s.C := s.C + ShiftVec;
                 AABoxTop.MinV := AABoxTop.MinV + ShiftVec;
                 AABoxTop.MaxV := AABoxTop.MaxV + ShiftVec;
@@ -1901,6 +1927,8 @@ begin
     SafeRelease(TmpMesh);
     Geom.Render := False;
     Geom.Collide := False;
+    if Geom.FCount > 60 then
+    Geom.OcTree := True;
   end;
   for i := 0 to Loader.MeshData^.LightCount - 1 do
   begin
@@ -2026,6 +2054,47 @@ begin
   for i := 0 to Chars.Count - 1 do
   if TG2SGChar(Chars[i]).Collide then
   CollideChar(TG2SGChar(Chars[i]), Query);
+end;
+
+procedure TG2SceneGraph.Render(const Query: PG2SGQuery);
+  var m: TG2Mat;
+  var i, g: Integer;
+  var Geom: TG2SGGeom;
+begin
+  QueryFetch(Core.Graphics.Transforms.Frustum, Query);
+  Core.Graphics.RenderStates.ZEnable := True;
+  Core.Graphics.Device.SetVertexDeclaration(DataFormats.DeclGeom);
+  Core.Graphics.Transforms.PushW;
+  for i := 0 to Query.GeomCount - 1 do
+  begin
+    Geom := Query.Geoms[i];
+    m := Geom.Transform;
+    Core.Graphics.Transforms.W[0] := m;
+    Core.Graphics.Transforms.ApplyW(0);
+    Core.Graphics.Device.SetStreamSource(0, Geom.VB, 0, DataFormats.VertexStrideGeom);
+    Core.Graphics.Device.SetIndices(Geom.IB);
+    for g := 0 to Geom.GCount - 1 do
+    begin
+      if Geom.Groups[g].Material^.Channels[0].TexDiffuse <> nil then
+      Core.Graphics.Device.SetTexture(0, Geom.Groups[g].Material^.Channels[0].TexDiffuse.Texture);
+      Core.Graphics.Device.DrawIndexedPrimitive(
+        D3DPT_TRIANGLELIST, 0,
+        Geom.Groups[g].VStart, Geom.Groups[g].VCount,
+        Geom.Groups[g].FStart * 3, Geom.Groups[g].FCount
+      );
+
+    end;
+  end;
+  for i := 0 to Query.CharCount - 1 do
+  if Query.Chars[i].Mesh <> nil then
+  begin
+    Core.Graphics.Transforms.W[0] := Query.Chars[i].Transform;
+    Query.Chars[i].MeshInst.Render;
+  end;
+  Core.Graphics.Transforms.PopW;
+  if Query^.OcclusionCull <> [] then
+  Query.CheckOcclusion(Core.Graphics.Transforms.Frustum);
+  Core.Graphics.RenderStates.ZEnable := False;
 end;
 //TG2SceneGraph END
 
@@ -2200,13 +2269,130 @@ begin
   end;
 end;
 
+procedure TG2SGGeom.SetOcTree(const Value: Boolean);
+  var AvSize: TG2Vec3;
+  var FaceAABox: array of TG2AABox;
+  var FaceList: TG2QuickList;
+  procedure InitNode(const n: PG2SGGeomOcTreeNode);
+    var dx, dy, dz, x, y, z, i: Integer;
+    var sx, sy, sz: Single;
+    var np: PG2SGGeomOcTreeNode;
+  begin
+    sx := n^.AABox.MaxV.x - n^.AABox.MinV.x;
+    sy := n^.AABox.MaxV.y - n^.AABox.MinV.y;
+    sz := n^.AABox.MaxV.z - n^.AABox.MinV.z;
+    if n^.Depth >= 8 then
+    begin
+      dx := 0; dy := 0; dz := 0;
+    end
+    else
+    begin
+      if sx > AvSize.x then dx := 1 else dx := 0;
+      if sy > AvSize.y then dy := 1 else dy := 0;
+      if sz > AvSize.z then dz := 1 else dz := 0;
+    end;
+    sx := sx / (dx + 1);
+    sy := sy / (dy + 1);
+    sz := sz / (dz + 1);
+    if (dx > 0) or (dy > 0) or (dz > 0) then
+    begin
+      n^.NoDiv := False;
+      n^.CountX := dx + 1;
+      n^.CountY := dy + 1;
+      n^.CountZ := dz + 1;
+      SetLength(n^.SubNodes, n^.CountX, n^.CountY, n^.CountZ);
+      for x := 0 to dx do
+      for y := 0 to dy do
+      for z := 0 to dz do
+      begin
+        n^.SubNodes[x, y, z].AABox.MinV.x := n^.AABox.MinV.x + sx * x;
+        n^.SubNodes[x, y, z].AABox.MinV.y := n^.AABox.MinV.y + sy * y;
+        n^.SubNodes[x, y, z].AABox.MinV.z := n^.AABox.MinV.z + sz * z;
+        n^.SubNodes[x, y, z].AABox.MaxV := n^.SubNodes[x, y, z].AABox.MinV + G2Vec3(sx, sy, sz);
+        n^.SubNodes[x, y, z].Depth := n^.Depth + 1;
+        n^.SubNodes[x, y, z].Parent := n;
+        n^.SubNodes[x, y, z].TotalFaces := 0;
+        InitNode(@n^.SubNodes[x, y, z]);
+      end;
+    end
+    else
+    begin
+      n^.NoDiv := True;
+      FaceList.Clear;
+      for i := 0 to FCount - 1 do
+      if n^.AABox.Intersect(FaceAABox[i]) then
+      FaceList.Add(Pointer(i));
+      SetLength(n^.Faces, FaceList.Count);
+      for i := 0 to FaceList.Count - 1 do
+      n^.Faces[i] := Integer(FaceList[i]);
+      n^.TotalFaces := FaceList.Count;
+      np := n^.Parent;
+      while np <> nil do
+      begin
+        np^.TotalFaces := np^.TotalFaces + n^.TotalFaces;
+        np := np^.Parent;
+      end;
+    end;
+  end;
+  var i, j: Integer;
+begin
+  if m_OcTree = Value then Exit;
+  m_OcTree := Value;
+  if m_OcTree then
+  begin
+    if (VCount > 0) and (FCount > 0) then
+    begin
+      OcTreeNode.AABox.MinV := Vertices[0].Position;
+      OcTreeNode.AABox.MaxV := OcTreeNode.AABox.MinV;
+      for i := 1 to VCount - 1 do
+      OcTreeNode.AABox := OcTreeNode.AABox + Vertices[i].Position;
+      OcTreeNode.AABox.MinV.x := OcTreeNode.AABox.MinV.x - 0.1;
+      OcTreeNode.AABox.MinV.y := OcTreeNode.AABox.MinV.y - 0.1;
+      OcTreeNode.AABox.MinV.z := OcTreeNode.AABox.MinV.z - 0.1;
+      OcTreeNode.AABox.MaxV.x := OcTreeNode.AABox.MaxV.x + 0.1;
+      OcTreeNode.AABox.MaxV.y := OcTreeNode.AABox.MaxV.y + 0.1;
+      OcTreeNode.AABox.MaxV.z := OcTreeNode.AABox.MaxV.z + 0.1;
+      OcTreeNode.TotalFaces := 0;
+      OcTreeNode.Parent := nil;
+      AvSize.SetValue(0, 0, 0);
+      SetLength(FaceAABox, FCount);
+      for i := 0 to FCount - 1 do
+      begin
+        FaceAABox[i].MinV := Vertices[Faces[i][0]].Position;
+        FaceAABox[i].MaxV := FaceAABox[i].MinV;
+        for j := 1 to 2 do
+        FaceAABox[i] := FaceAABox[i] + Vertices[Faces[i][j]].Position;
+        AvSize.x := AvSize.x + FaceAABox[i].MaxV.x - FaceAABox[i].MinV.x;
+        AvSize.y := AvSize.y + FaceAABox[i].MaxV.y - FaceAABox[i].MinV.y;
+        AvSize.z := AvSize.z + FaceAABox[i].MaxV.z - FaceAABox[i].MinV.z;
+      end;
+      AvSize := (AvSize / FCount) * 4;
+      FaceList.Clear;
+      OcTreeNode.Depth := 0;
+      InitNode(@OcTreeNode);
+      SetLength(m_FaceFetchID, FCount);
+      ResetFaceFectchID;
+    end
+    else
+    m_OcTree := False;
+  end;
+end;
+
+procedure TG2SGGeom.ResetFaceFectchID;
+  var i: Integer;
+begin
+  for i := 0 to FCount - 1 do
+  m_FaceFetchID[i] := 0;
+  m_CurFaceFetchID := 0;
+end;
+
 constructor TG2SGGeom.Create(const SceneGraph: TG2SceneGraph);
 begin
   inherited Create(SceneGraph);
   m_SceneGraph.Geoms.Add(Self);
   m_Render := False;
   m_Collide := False;
-  m_Occluder := True;
+  m_OcTree := False;
   m_PrevTransform.SetValue(
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -2236,83 +2422,115 @@ begin
 end;
 
 function TG2SGGeom.IntersectRay(const r: TG2Ray): Boolean;
-  var i: Integer;
+  var FaceID: Word;
   var u, v, d: Single;
-  var v0, v1, v2: TG2Vec3;
 begin
-  if m_Collide then
-  for i := 0 to High(Collider.Faces) do
-  begin
-    if r.IntersectAABox(Collider.Faces[i].AABox)
-    and r.IntersectTri(
-      Collider.Vertices[Collider.Faces[i].Indices[0]],
-      Collider.Vertices[Collider.Faces[i].Indices[1]],
-      Collider.Vertices[Collider.Faces[i].Indices[2]],
-      u, v, d
-    ) then
-    begin
-      Result := True;
-      Exit;
-    end;
-  end
-  else
-  begin
-    for i := 0 to FCount - 1 do
-    begin
-      v0 := Vertices[Faces[i][0]].Position.Transform4x3(Transform);
-      v1 := Vertices[Faces[i][1]].Position.Transform4x3(Transform);
-      v2 := Vertices[Faces[i][2]].Position.Transform4x3(Transform);
-      if r.IntersectTri(
-        Collider.Vertices[Collider.Faces[i].Indices[0]],
-        Collider.Vertices[Collider.Faces[i].Indices[1]],
-        Collider.Vertices[Collider.Faces[i].Indices[2]],
-        u, v, d
-      ) then
-      begin
-        Result := True;
-        Exit;
-      end;
-    end;
-  end;
-  Result := False;
+  Result := IntersectRay(r, FaceID, u, v, d);
 end;
 
 function TG2SGGeom.IntersectRay(const r: TG2Ray; var FaceID: Word; var U, V, Dist: Single): Boolean;
-  var i: Word;
+  var ro: TG2Ray;
   var cu, cv, d: Single;
+  procedure CheckNode(const n: PG2SGGeomOcTreeNode);
+    var x, y, z, i, f: Integer;
+    var v0, v1, v2: TG2Vec3;
+  begin
+    if (n^.TotalFaces > 0)
+    and  ro.IntersectAABox(n^.AABox) then
+    begin
+      if n^.NoDiv then
+      begin
+        if m_Collide then
+        begin
+          for i := 0 to High(n^.Faces) do
+          if m_FaceFetchID[n^.Faces[i]] < m_CurFaceFetchID then
+          begin
+            f := n^.Faces[i];
+            m_FaceFetchID[f] := m_CurFaceFetchID;
+            if r.IntersectAABox(Collider.Faces[f].AABox)
+            and r.IntersectTri(
+              Collider.Vertices[Collider.Faces[f].Indices[0]],
+              Collider.Vertices[Collider.Faces[f].Indices[1]],
+              Collider.Vertices[Collider.Faces[f].Indices[2]],
+              cu, cv, d
+            ) then
+            begin
+              if not Result
+              or (d < Dist) then
+              begin
+                Result := True;
+                FaceID := f;
+                U := cu;
+                V := cv;
+                Dist := d;
+              end;
+            end;
+          end;
+        end
+        else
+        begin
+          for i := 0 to High(n^.Faces) do
+          if m_FaceFetchID[n^.Faces[i]] < m_CurFaceFetchID then
+          begin
+            f := n^.Faces[i];
+            m_FaceFetchID[f] := m_CurFaceFetchID;
+            v0 := Vertices[Faces[f][0]].Position.Transform4x3(Transform);
+            v1 := Vertices[Faces[f][1]].Position.Transform4x3(Transform);
+            v2 := Vertices[Faces[f][2]].Position.Transform4x3(Transform);
+            if r.IntersectTri(v0, v1, v2, cu, cv, d) then
+            begin
+              if not Result
+              or (d < Dist) then
+              begin
+                Result := True;
+                FaceID := f;
+                U := cu;
+                V := cv;
+                Dist := d;
+              end;
+            end;
+          end;
+        end;
+      end
+      else
+      begin
+        for x := 0 to n^.CountX - 1 do
+        for y := 0 to n^.CountY - 1 do
+        for z := 0 to n^.CountZ - 1 do
+        CheckNode(@n^.SubNodes[x, y, z]);
+      end;
+    end;
+  end;
+  var i: Integer;
   var v0, v1, v2: TG2Vec3;
 begin
   Result := False;
-  if m_Collide then
-  for i := 0 to High(Collider.Faces) do
+  if m_OcTree then
   begin
-    if r.IntersectAABox(Collider.Faces[i].AABox)
-    and r.IntersectTri(
-      Collider.Vertices[Collider.Faces[i].Indices[0]],
-      Collider.Vertices[Collider.Faces[i].Indices[1]],
-      Collider.Vertices[Collider.Faces[i].Indices[2]],
-      cu, cv, d
-    ) then
-    begin
-      if not Result
-      or (d < Dist) then
-      begin
-        Result := True;
-        FaceID := i;
-        U := cu;
-        V := cv;
-        Dist := d;
-      end;
+    m_SceneGraph.CS.Enter;
+    try
+      if m_CurFaceFetchID >= High(Int64) - 1 then
+      ResetFaceFectchID;
+      Inc(m_CurFaceFetchID);
+      ro := r;
+      ro.TransformInverse(Transform);
+      CheckNode(@OcTreeNode);
+    finally
+      m_SceneGraph.CS.Leave;
     end;
   end
   else
   begin
-    for i := 0 to FCount - 1 do
+    if m_Collide then
+    for i := 0 to High(Collider.Faces) do
     begin
-      v0 := Vertices[Faces[i][0]].Position.Transform4x3(Transform);
-      v1 := Vertices[Faces[i][1]].Position.Transform4x3(Transform);
-      v2 := Vertices[Faces[i][2]].Position.Transform4x3(Transform);
-      if r.IntersectTri(v0, v1, v2, cu, cv, d) then
+      if r.IntersectAABox(Collider.Faces[i].AABox)
+      and r.IntersectTri(
+        Collider.Vertices[Collider.Faces[i].Indices[0]],
+        Collider.Vertices[Collider.Faces[i].Indices[1]],
+        Collider.Vertices[Collider.Faces[i].Indices[2]],
+        cu, cv, d
+      ) then
       begin
         if not Result
         or (d < Dist) then
@@ -2322,6 +2540,27 @@ begin
           U := cu;
           V := cv;
           Dist := d;
+        end;
+      end;
+    end
+    else
+    begin
+      for i := 0 to FCount - 1 do
+      begin
+        v0 := Vertices[Faces[i][0]].Position.Transform4x3(Transform);
+        v1 := Vertices[Faces[i][1]].Position.Transform4x3(Transform);
+        v2 := Vertices[Faces[i][2]].Position.Transform4x3(Transform);
+        if r.IntersectTri(v0, v1, v2, cu, cv, d) then
+        begin
+          if not Result
+          or (d < Dist) then
+          begin
+            Result := True;
+            FaceID := i;
+            U := cu;
+            V := cv;
+            Dist := d;
+          end;
         end;
       end;
     end;
@@ -2414,6 +2653,7 @@ begin
   Radius := 1;
   Step.SetValue(0, -2, 0);
   Vel.SetValue(0, 0, 0);
+  StepHardness := 0.9;
   Grounded := False;
   m_Render := True;
   m_Collide := True;

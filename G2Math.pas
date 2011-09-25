@@ -587,6 +587,7 @@ function G2Vec2Reflect(const v, n: TG2Vec2): TG2Vec2; {$IFDEF G2_USE_INLINE} inl
 function G2Vec2AngleOX(const v1, v2: TG2Vec2): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2Vec2AngleOY(const v1, v2: TG2Vec2): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2Intersect3Planes(const p1, p2, p3: TG2Plane): TG2Vec3;
+function G2IntersectTri(const Tri0v0, Tri0v1, Tri0v2, Tri1v0, Tri1v1, Tri1v2: TG2Vec2): Boolean;
 function G2Vec3Rotation(const SrcV, DstV: TG2Vec3): TG2Quat; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2TriangleNormal(const v1, v2, v3: TG2Vec3): TG2Vec3; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 procedure G2FaceTBN(
@@ -2361,12 +2362,12 @@ end;
 function TG2AABox.Intersect(const AABox: TG2AABox): Boolean;
 begin
   Result := (
-    (MinV.x < AABox.MaxV.x)
-    and (MinV.y < AABox.MaxV.y)
-    and (MinV.z < AABox.MaxV.z)
-    and (MaxV.x > AABox.MinV.x)
-    and (MaxV.y > AABox.MinV.y)
-    and (MaxV.z > AABox.MinV.z)
+    (MinV.x <= AABox.MaxV.x)
+    and (MinV.y <= AABox.MaxV.y)
+    and (MinV.z <= AABox.MaxV.z)
+    and (MaxV.x >= AABox.MinV.x)
+    and (MaxV.y >= AABox.MinV.y)
+    and (MaxV.z >= AABox.MinV.z)
   );
 end;
 
@@ -2730,8 +2731,9 @@ end;
 
 procedure TG2Ray.Transform(const m: TG2Mat);
 begin
-  Self.Origin.Transform4x3(m);
-  Self.Dir.Transform3x3(m);
+  Origin := Origin.Transform4x3(m);
+  Dir := Dir.Transform3x3(m);
+  Dir.Normalize;
 end;
 
 procedure TG2Ray.TransformInverse(const m: TG2Mat);
@@ -3403,6 +3405,52 @@ begin
     iDet := 1 / iDet;
     Result := ((p2.N.Cross(p3.N) * p1.D) + (p3.N.Cross(p1.N) * p2.D) + (p1.N.Cross(p2.N) * p3.D)) * iDet;
   end;
+end;
+
+function G2IntersectTri(const Tri0v0, Tri0v1, Tri0v2, Tri1v0, Tri1v1, Tri1v2: TG2Vec2): Boolean;
+  var Tri0, Tri1: array[0..2] of TG2Vec2;
+  procedure TriProject(const FirstVec: PG2Vec2; const Axis: TG2Vec2; var MinV, MaxV: Single);
+    var d: Single;
+    var i: Integer;
+    var pv: PG2Vec2;
+  begin
+    pv := FirstVec;
+    d := Axis.Dot(pv^);
+    MinV := d;
+    MaxV := d;
+    for i := 1 to 2 do
+    begin
+      Inc(pv);
+      d := Axis.Dot(pv^);
+      if d < MinV then MinV := d;
+      if d > MaxV then MaxV := d;
+    end;
+    MinV := MinV + 1E-5;
+    MaxV := MaxV - 1E-5;
+  end;
+  function AxisSeparate(const Axis: TG2Vec2): Boolean;
+    var Min1, Max1, Min2, Max2: single;
+    var d, d1, d2: single;
+  begin
+    TriProject(@Tri0, Axis, Min1, Max1);
+    TriProject(@Tri1, Axis, Min2, Max2);
+    Result := (Min1 > Max2) or (Min2 > Max1);
+  end;
+  var i, j: Integer;
+  var n: TG2Vec2;
+begin
+  Result := False;
+  Tri0[0] := Tri0v0; Tri0[1] := Tri0v1; Tri0[2] := Tri0v2;
+  Tri1[0] := Tri1v0; Tri1[1] := Tri1v1; Tri1[2] := Tri1v2;
+  for i := 0 to 2 do
+  begin
+    j := (i + 1) mod 3;
+    n := (Tri0[j] - Tri0[i]).Perp.Normalized;
+    if AxisSeparate(n) then Exit;
+    n := (Tri1[j] - Tri1[i]).Perp.Normalized;
+    if AxisSeparate(n) then Exit;
+  end;
+  Result := True;
 end;
 
 function G2Vec3Rotation(const SrcV, DstV: TG2Vec3): TG2Quat;
