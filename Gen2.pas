@@ -16224,7 +16224,6 @@ type
   end;
 const
   Definition = 'G2F';
-  Version = $00010000;
 var
   fw: TG2FileRW;
   FontFile: TG2FontFile;
@@ -16236,7 +16235,7 @@ begin
   fw := TG2FileRW.Create;
   try
     fw.OpenRead(FileName);
-    fw.Compression := True;
+    fw.Compression := False;
     fw.ReadBuffer(FontFile.Definition, 4);
     if FontFile.Definition <> Definition then
     begin
@@ -16245,7 +16244,8 @@ begin
       Exit;
     end;
     FontFile.Version := fw.ReadUInt4;
-    if FontFile.Version <> Version then
+    if (FontFile.Version <> $00010000)
+    and (FontFile.Version <> $00010001) then
     begin
       fw.Free;
       Result := grFail;
@@ -30402,7 +30402,7 @@ procedure TG2PostProcess.EffectBlur(
       const Amount: Integer = 1
     );
   var Tmp01: TG2Texture2DRT;
-  var ShaderVar: record
+  var ShaderVar: packed record
     var Offset: TG2Vec2;
   end;
   var PrevRT: IDirect3DSurface9;
@@ -30436,6 +30436,14 @@ begin
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
   Tmp01 := RequestSurface(Input.Width, Input.Height);
   m_Shaders.Technique := 'Blur';
+  ShaderVar.Offset.SetValue(1 / Input.RealWidth, 0);
+  m_Shaders.SetValue('VarBlur', @ShaderVar, SizeOf(ShaderVar));
+  m_Core.Graphics.Device.SetRenderTarget(0, Tmp01.SurfaceRT.Surface);
+  m_Shaders.BeginEffect(nil);
+  m_Shaders.BeginPass(PassID);
+  m_VB[0].SetToDevice;
+  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
+  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
   if Output <> nil then
   begin
     m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
@@ -30452,14 +30460,6 @@ begin
       Input.DrawRect^
     );
   end;
-  ShaderVar.Offset.SetValue(1 / Input.RealWidth, 0);
-  m_Shaders.SetValue('VarBlur', @ShaderVar, SizeOf(ShaderVar));
-  m_Shaders.BeginEffect(nil);
-  m_Shaders.BeginPass(PassID);
-  m_VB[0].SetToDevice;
-  m_Core.Graphics.Device.SetTexture(0, Input.Texture);
-  m_Core.Graphics.Device.DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
-  m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
   LoadBuffer0(
     G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
     Input.DrawRect^
@@ -30872,17 +30872,19 @@ begin
   if Output <> nil then
   begin
     m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-    LoadBuffer0(
+    LoadBuffer1(
       G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-      Input.DrawRect^
+      Input.DrawRect^,
+      DistortMap.DrawRect^
     );
   end
   else
   begin
     m_Core.Graphics.SetRenderTargetDefault;
-    LoadBuffer0(
+    LoadBuffer1(
       G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
-      Input.DrawRect^
+      Input.DrawRect^,
+      DistortMap.DrawRect^
     );
   end;
   ShaderVar.PixelSize := Input.TexelSize;
@@ -30932,17 +30934,21 @@ begin
   if Output <> nil then
   begin
     m_Core.Graphics.Device.SetRenderTarget(0, Output.SurfaceRT.Surface);
-    LoadBuffer0(
+    LoadBuffer2(
       G2Rect(0, 0, Output.Width - 1, Output.Height - 1),
-      Input.DrawRect^
+      Input.DrawRect^,
+      DistortMap0.DrawRect^,
+      DistortMap1.DrawRect^
     );
   end
   else
   begin
     m_Core.Graphics.SetRenderTargetDefault;
-    LoadBuffer0(
+    LoadBuffer2(
       G2Rect(0, 0, m_Core.Graphics.Params.Width - 1, m_Core.Graphics.Params.Height - 1),
-      Input.DrawRect^
+      Input.DrawRect^,
+      DistortMap0.DrawRect^,
+      DistortMap1.DrawRect^
     );
   end;
   ShaderVar.PixelSize := Input.TexelSize;
