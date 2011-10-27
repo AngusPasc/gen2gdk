@@ -1,4 +1,4 @@
-Gen2 v1.3
+Gen2 v1.4
 is an open source Delphi GDK.
 Initial Developer: Andrey Martynov (Dan).
 dan.soft.studio@gmail.com
