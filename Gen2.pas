@@ -922,6 +922,7 @@ type
     var m_SwapChains: TG2List;
     var m_DefaultRenderTarget: TG2SurfaceRT;
     var m_DefaultDepthStencil: TG2SurfaceDS;
+    var m_DefaultDepthStencilNoMS: TG2SurfaceDS;
     var m_DefaultSwapChain: TG2SwapChain;
     var m_DefaultViewPort: TD3DViewPort9;
     var m_DeviceLost: Boolean;
@@ -2359,12 +2360,14 @@ type
     function CreateRenderTargetSurface(
       const Name: WideString;
       const Width, Height: Integer;
-      const Format: TD3DFormat = D3DFMT_UNKNOWN
+      const Format: TD3DFormat = D3DFMT_UNKNOWN;
+      const MultiSample: Integer = -1
     ): TG2SurfaceRT;
     function CreateDepthStencilSurface(
       const Name: WideString;
       const Width, Height: Integer;
-      const Format: TD3DFormat = D3DFMT_UNKNOWN
+      const Format: TD3DFormat = D3DFMT_UNKNOWN;
+      const MultiSample: Integer = -1
     ): TG2SurfaceDS;
     function FindSurface(const Name: WideString): TG2Surface;
     procedure DeleteSurface(const Index: Integer);
@@ -2382,6 +2385,7 @@ type
     var m_Format: TD3DFormat;
     var m_Width: DWord;
     var m_Height: DWord;
+    var m_MultiSample: TD3DMultiSampleType;
     var m_Enabled: Boolean;
     procedure SetSurface(const Value: IDirect3DSurface9);
     procedure SetUpViewPort;
@@ -2393,6 +2397,7 @@ type
     property Format: TD3DFormat read m_Format;
     property Width: DWord read m_Width;
     property Height: DWord read m_Height;
+    property MultiSampleType: TD3DMultiSampleType read m_MultiSample;
     property ViewPort: PD3DViewport9 read GetViewPort;
     procedure Release;
     procedure OnDeviceLost; virtual; abstract;
@@ -2409,7 +2414,8 @@ type
     destructor Destroy; override;
     function CreateRenderTarget(
       const NewWidth, NewHeight: Integer;
-      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN;
+      const MultiSample: Integer = -1
     ): TG2Result;
     procedure OnDeviceLost; override;
     procedure OnDeviceReset; override;
@@ -2423,7 +2429,8 @@ type
     destructor Destroy; override;
     function CreateDepthStencil(
       const NewWidth, NewHeight: Integer;
-      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN;
+      const MultiSample: Integer = -1
     ): TG2Result;
     procedure OnDeviceLost; override;
     procedure OnDeviceReset; override;
@@ -7980,6 +7987,7 @@ begin
   m_SwapChains := TG2List.Create;
   m_DefaultRenderTarget := TG2SurfaceRT.Create;
   m_DefaultDepthStencil := TG2SurfaceDS.Create;
+  m_DefaultDepthStencilNoMS := TG2SurfaceDS.Create;
   m_DeviceLost := False;
   m_Rec := False;
   m_RecSurfaceOff := nil;
@@ -7987,6 +7995,7 @@ end;
 
 destructor TG2Graphics.Destroy;
 begin
+  m_DefaultDepthStencilNoMS.Free;
   m_DefaultDepthStencil.Free;
   m_DefaultRenderTarget.Free;
   m_SwapChains.Free;
@@ -8138,6 +8147,16 @@ begin
       m_DefaultViewPort.Height
     );
 
+    if m_Params.Antialiasing then
+    begin
+      m_DefaultDepthStencilNoMS.Initialize(Core);
+      m_DefaultDepthStencilNoMS.CreateDepthStencil(
+        m_DefaultViewPort.Width,
+        m_DefaultViewPort.Height,
+        D3DFMT_UNKNOWN, 0
+      );
+    end;
+
     m_CurSurfaceRT := nil;
     m_CurSurfaceDS := nil;
     m_CurSwapChain := nil;
@@ -8149,11 +8168,9 @@ begin
         m_PresentParams.BackBufferWidth,
         m_PresentParams.BackBufferHeight
       );
-      SetRenderTargetSwapChain(m_DefaultSwapChain);
-    end
-    else
+      m_CurSwapChain := m_DefaultSwapChain;
+    end;
     SetRenderTargetDefault;
-
     SetDepthStencilDefault;
 
     PresentToBackBuffer;
@@ -8551,6 +8568,15 @@ procedure TG2Graphics.SetRenderTargetSurface(const Surface: TG2SurfaceRT);
 begin
   m_Device.SetRenderTarget(0, Surface.Surface);
   m_CurSurfaceRT := Surface;
+  if (m_Params.Antialiasing) then
+  begin
+    if (m_CurSurfaceRT.MultiSampleType = D3DMULTISAMPLE_NONE)
+    and (m_CurSurfaceDS = m_DefaultDepthStencil) then
+    SetDepthStencilSurface(m_DefaultDepthStencilNoMS);
+    if (m_CurSurfaceRT.MultiSampleType <> D3DMULTISAMPLE_NONE)
+    and (m_CurSurfaceDS = m_DefaultDepthStencilNoMS) then
+    SetDepthStencilSurface(m_DefaultDepthStencil);
+  end;
 end;
 
 procedure TG2Graphics.SetRenderTargetTexture2D(const Texture: TG2Texture2DRT);
@@ -8584,6 +8610,10 @@ end;
 
 procedure TG2Graphics.SetDepthStencilDefault;
 begin
+  if m_Params.Antialiasing
+  and (m_CurSurfaceRT.MultiSampleType = D3DMULTISAMPLE_NONE) then
+  SetDepthStencilSurface(m_DefaultDepthStencilNoMS)
+  else
   SetDepthStencilSurface(m_DefaultDepthStencil);
 end;
 
@@ -15283,26 +15313,28 @@ end;
 function TG2SurfaceMgr.CreateRenderTargetSurface(
       const Name: WideString;
       const Width, Height: Integer;
-      const Format: TD3DFormat = D3DFMT_UNKNOWN
+      const Format: TD3DFormat = D3DFMT_UNKNOWN;
+      const MultiSample: Integer = -1
     ): TG2SurfaceRT;
 begin
   Result := TG2SurfaceRT.Create;
   Result.Name := Name;
   Result.Initialize(Core);
-  if G2ResOk(Result.CreateRenderTarget(Width, Height, Format)) then
+  if G2ResOk(Result.CreateRenderTarget(Width, Height, Format, MultiSample)) then
   AddResource(Result) else Result.Free;
 end;
 
 function TG2SurfaceMgr.CreateDepthStencilSurface(
       const Name: WideString;
       const Width, Height: Integer;
-      const Format: TD3DFormat = D3DFMT_UNKNOWN
+      const Format: TD3DFormat = D3DFMT_UNKNOWN;
+      const MultiSample: Integer = -1
     ): TG2SurfaceDS;
 begin
   Result := TG2SurfaceDS.Create;
   Result.Name := Name;
   Result.Initialize(Core);
-  if G2ResOk(Result.CreateDepthStencil(Width, Height, Format)) then
+  if G2ResOk(Result.CreateDepthStencil(Width, Height, Format, MultiSample)) then
   AddResource(Result) else Result.Free;
 end;
 
@@ -15362,6 +15394,7 @@ begin
     m_Format := Desc.Format;
     m_Width := Desc.Width;
     m_Height := Desc.Height;
+    m_Multisample := Desc.MultiSampleType;
     SetUpViewPort;
     m_Enabled := True;
   end
@@ -15423,7 +15456,8 @@ end;
 
 function TG2SurfaceRT.CreateRenderTarget(
       const NewWidth, NewHeight: Integer;
-      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN;
+      const MultiSample: Integer = -1
     ): TG2Result;
 begin
   Release;
@@ -15433,11 +15467,15 @@ begin
   else
   m_Format := Core.Graphics.Specs.FindCompatiableSurfaceRTFormat(NewFormat);
 
+  if MultiSample = -1 then
+  m_MultiSample := TD3DMultiSampleType(Core.Graphics.Params.AntialiasingSampleCount)
+  else
+  m_MultiSample := TD3DMultiSampleType(MultiSample);
+
   if Failed(
     Core.Graphics.Device.CreateRenderTarget(
       NewWidth, NewHeight, m_Format,
-      TD3DMultiSampleType(Core.Graphics.Params.AntialiasingSampleCount),
-      0, False, m_Surface, nil
+      m_MultiSample, 0, False, m_Surface, nil
     )
   ) then
   begin
@@ -15488,7 +15526,8 @@ end;
 
 function TG2SurfaceDS.CreateDepthStencil(
       const NewWidth, NewHeight: Integer;
-      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN
+      const NewFormat: TD3DFormat = D3DFMT_UNKNOWN;
+      const MultiSample: Integer = -1
     ): TG2Result;
 begin
   Release;
@@ -15498,11 +15537,15 @@ begin
   else
   m_Format := Core.Graphics.Specs.FindCompatiableSurfaceDSFormat(NewFormat);
 
+  if MultiSample = -1 then
+  m_MultiSample := TD3DMultiSampleType(Core.Graphics.Params.AntialiasingSampleCount)
+  else
+  m_MultiSample := TD3DMultiSampleType(MultiSample);
+
   if Failed(
     Core.Graphics.Device.CreateDepthStencilSurface(
       NewWidth, NewHeight, m_Format,
-      TD3DMultiSampleType(Core.Graphics.Params.AntialiasingSampleCount),
-      0, True, m_Surface, nil
+      m_MultiSample, 0, True, m_Surface, nil
     )
   ) then
   begin
