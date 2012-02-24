@@ -1337,6 +1337,15 @@ type
         const Diffuse: TG2Color;
         const Range: Single
       );
+      procedure SetSpotLight(
+        const PosX, PosY, PosZ: Single;
+        const DirX, DirY, DirZ: Single;
+        const AttStart: Single;
+        const AttEnd: Single;
+        const ConeInner: Single;
+        const ConeOutter: Single;
+        const Diffuse: TG2Color
+      );
       procedure SetDirectionalLight(
         const DirX, DirY, DirZ: Single;
         const Diffuse: TG2Color
@@ -10317,8 +10326,7 @@ begin
 end;
 
 procedure TG2Lights.DisableLights;
-var
-  i: Integer;
+  var i: Integer;
 begin
   for i := 0 to High(m_Lights) do
   begin
@@ -10413,6 +10421,33 @@ begin
   LightType := ltPoint;
 end;
 
+procedure TG2Lights.TG2Light.SetSpotLight(
+        const PosX, PosY, PosZ: Single;
+        const DirX, DirY, DirZ: Single;
+        const AttStart: Single;
+        const AttEnd: Single;
+        const ConeInner: Single;
+        const ConeOutter: Single;
+        const Diffuse: TG2Color
+      );
+begin
+  ZeroMemory(@Light, SizeOf(TD3DLight9));
+  Light._Type := D3DLIGHT_SPOT;
+  Light.Position := G2Vec3(PosX, PosY, PosZ);
+  Light.Direction := G2Vec3(DirX, DirY, DirZ);
+  Light.Diffuse := Diffuse;
+  Light.Specular := Diffuse;
+  Light.Range := AttEnd;
+  Light.Attenuation0 := AttStart;
+  Light.Attenuation1 := 1 / AttEnd;
+  Light.Falloff := 1;
+  Light.Theta := ConeInner;
+  Light.Phi := ConeOutter;
+  Light.Diffuse := Diffuse;
+  Light.Specular := Diffuse;
+  LightType := ltSpot;
+end;
+
 procedure TG2Lights.TG2Light.SetDirectionalLight(
       const DirX, DirY, DirZ: Single;
       const Diffuse: TG2Color
@@ -10427,12 +10462,25 @@ begin
 end;
 
 procedure TG2Lights.TG2Light.SetToDevice;
+  var l: TD3DLight9;
 begin
-  m_Lights.Core.Graphics.Device.SetLight(
-    m_Index, Light
-  );
+  if LightType = ltSpot then
+  begin
+    CopyMemory(@l, @Light, SizeOf(TD3DLight9));
+    l.Attenuation0 := 0;
+    m_Lights.Core.Graphics.Device.SetLight(
+      m_Index, l
+    );
+    m_Lights.m_LightsBuffer[m_Index] := l;
+  end
+  else
+  begin
+    m_Lights.Core.Graphics.Device.SetLight(
+      m_Index, Light
+    );
+    m_Lights.m_LightsBuffer[m_Index] := Light;
+  end;
   m_Lights.Core.Graphics.Device.LightEnable(m_Index, Enabled);
-  m_Lights.m_LightsBuffer[m_Index] := Light;
   m_Lights.m_LightsEnabled[m_Index] := Enabled;
 end;
 //TG2Lights END
@@ -16332,7 +16380,7 @@ end;
 
 function TG2Font.Print(const X, Y, ScaleX, ScaleY: Single; const Color: TG2Color; const Text: AnsiString): TG2Result;
 begin
-  Print(X, Y, ScaleX, ScaleY, Color, Text, 0, Length(Text) - 1);
+  Result := Print(X, Y, ScaleX, ScaleY, Color, Text, 0, Length(Text) - 1);
 end;
 
 function TG2Font.Print(const X, Y, ScaleX, ScaleY: Single; const Color: TG2Color; const Text: AnsiString; const PosStart, PosEnd: Integer): TG2Result;
@@ -16424,6 +16472,7 @@ function TG2Font.Paragraph(const X, Y, Width, Height: Integer; const Color: TG2C
     Core.Graphics.Device.SetScissorRect(@PrevScissorRect);
   end;
 begin
+  Result := grOk;
   ScissorInit;
   w := 0;
   l := Length(Text);
@@ -16438,20 +16487,18 @@ begin
     Inc(i);
     AChar := Text[i];
     XChar := Ord(AChar);
+    if (AChar <> #$D) then
     w := w + m_Props[XChar].Width;
-    if w < Width then
+    if (AChar = #$D)
+    or (AChar = ' ') then
+    SafePt := i;
+    if (w < Width) and (AChar <> #$D) then
     begin
       Inc(CharCount);
-      if (AChar = ' ') then
-      SafePt := i;
     end
     else
     begin
-      if (CharCount = 0) or (SafePt < Pos) then
-      begin
-        ScissorUnInit;
-        Exit;
-      end;
+      if CharCount > 0 then
       Print(X, CurHeight, 1, 1, Color, Text, Pos - 1, SafePt - 1);
       Pos := SafePt + 1;
       i := SafePt;
@@ -16991,7 +17038,7 @@ begin
         Decl[4] := D3DVertexElement(0, 4 * 12, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0);
         if Geoms[i].Skinned then
         begin
-          Geoms[i].Technique := m_Effect.GetTechniqueByName('g2sm3sk');
+          Geoms[i].Technique := m_Effect.GetTechniqueByName('g2sm3');
           Geoms[i].MaxWeights := 0;
           for j := 0 to MeshData.Geoms[i].VCount - 1 do
           Geoms[i].MaxWeights := Max(Geoms[i].MaxWeights, Min(4, MeshData.Skins[MeshData.Geoms[i].SkinID].Vertices[j].WeightCount));
@@ -17025,7 +17072,7 @@ begin
         end
         else
         begin
-          Geoms[i].Technique := m_Effect.GetTechniqueByName('g2sm3st');
+          Geoms[i].Technique := m_Effect.GetTechniqueByName('g2sm3');
           Geoms[i].BoneCount := 0;
           Decl[5] := D3DDECL_END;
           Geoms[i].VertexStride := 56;
@@ -17794,6 +17841,11 @@ procedure TG2MeshInst.RenderSM3;
   var LightCountDirectional: Integer;
   var LightDirDirectional: array[0..15] of TD3DXVector4;
   var LightColorDirectional: array[0..15] of TD3DXColor;
+  var LightCountSpot: Integer;
+  var LightPosSpot: array[0..15] of TD3DXVector4;
+  var LightDirSpot: array[0..15] of TD3DXVector4;
+  var LightColorSpot: array[0..15] of TD3DXColor;
+  var LightRangeSpot: array[0..15] of TD3DXVector4;
   var LightAmbient: TD3DXColor;
   var CurTechnique: TD3DXHandle;
   var PassOpen: Boolean;
@@ -17805,6 +17857,7 @@ begin
   P := m_Mesh.Core.Graphics.Transforms.P;
   LightCountPoint := 0;
   LightCountDirectional := 0;
+  LightCountSpot := 0;
   LightAmbient := D3DXColorFromDWord(m_Mesh.Core.Graphics.RenderStates.Ambient);
   for i := 0 to m_Mesh.Core.Graphics.Lights.LightCount - 1 do
   if m_Mesh.Core.Graphics.Lights[i].Enabled then
@@ -17834,6 +17887,24 @@ begin
         LightColorDirectional[LightCountDirectional] := m_Mesh.Core.Graphics.Lights[i].Light.Diffuse;
         Inc(LightCountDirectional);
       end;
+      ltSpot:
+      begin
+        v3 := m_Mesh.Core.Graphics.Lights[i].Light.Position;
+        v3 := v3.Transform4x3(m_Mesh.Core.Graphics.Transforms.V);
+        LightPosSpot[LightCountSpot] := D3DXVector4(v3, 1);
+        v3 := m_Mesh.Core.Graphics.Lights[i].Light.Direction;
+        v3 := v3.Transform3x3(m_Mesh.Core.Graphics.Transforms.V);
+        v3.Normalize;
+        LightDirSpot[LightCountSpot] := D3DXVector4(v3, 1);
+        LightColorSpot[LightCountSpot] := m_Mesh.Core.Graphics.Lights[i].Light.Diffuse;
+        LightRangeSpot[LightCountSpot] := D3DXVector4(
+          Sqr(m_Mesh.Core.Graphics.Lights[i].Light.Attenuation0),
+          Sqr(m_Mesh.Core.Graphics.Lights[i].Light.Range),
+          Cos(m_Mesh.Core.Graphics.Lights[i].Light.Theta * 0.5),
+          Cos(m_Mesh.Core.Graphics.Lights[i].Light.Phi * 0.5)
+        );
+        Inc(LightCountSpot);
+      end;
     end;
   end;
   m_Effect.SetVector('LightAmbient', PD3DXVector4(@LightAmbient)^);
@@ -17844,7 +17915,12 @@ begin
   m_Effect.SetInt('LightCountDirectional', LightCountDirectional);
   m_Effect.SetVectorArray('LightDirDirectional', @LightDirDirectional[0], LightCountDirectional);
   m_Effect.SetVectorArray('LightColorDirectional', @LightColorDirectional[0], LightCountDirectional);
-  m_Effect.SetInt('LightShaderIndex', LightCountPoint * 9 + LightCountDirectional);
+  m_Effect.SetInt('LightCountSpot', LightCountSpot);
+  m_Effect.SetVectorArray('LightPosSpot', @LightPosSpot[0], LightCountSpot);
+  m_Effect.SetVectorArray('LightDirSpot', @LightDirSpot[0], LightCountSpot);
+  m_Effect.SetVectorArray('LightColorSpot', @LightColorSpot[0], LightCountSpot);
+  m_Effect.SetVectorArray('LightRangeSpot', @LightRangeSpot[0], LightCountSpot);
+  m_Effect.SetInt('LightShaderIndex', LightCountSpot * 81 + LightCountPoint * 9 + LightCountDirectional);
   CurTechnique := nil;
   PassOpen := False;
   for i := 0 to m_Mesh.GeomCount - 1 do
@@ -17868,9 +17944,9 @@ begin
       m_Effect.BeginPass(0);
       PassOpen := True;
     end;
+    m_Effect.SetInt('MaxBoneWeights', m_Mesh.Geoms[i].MaxWeights);
     if m_Mesh.Geoms[i].Skinned then
     begin
-      m_Effect.SetInt('MaxBoneWeights', m_Mesh.Geoms[i].MaxWeights - 1);
       m_Effect.SetMatrixArray('SkinPallete', @m_SkinTransforms[i][0], m_Mesh.Geoms[i].BoneCount);
       WV := WVo;
     end

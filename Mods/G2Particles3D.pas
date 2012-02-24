@@ -44,6 +44,8 @@ type
     var m_RenderQueue: array of TG2Particle3D;
     var m_RenderQueueSize: Integer;
     var m_ParticlesRendered: Integer;
+    var m_NewPartcles: TG2QuickList;
+    var m_Updating: Boolean;
     procedure SplitGroup(const g: PGroup; const Axis: TG2Plane);
   private
     var Renders: array of TG2Particle3DRender;
@@ -343,6 +345,7 @@ begin
   m_EmmitterCount := 0;
   m_RenderQueueSize := 0;
   RenderCount := 0;
+  m_NewPartcles.Clear;
 end;
 
 function TG2Particles3D.Finalize: TG2Result;
@@ -363,6 +366,7 @@ procedure TG2Particles3D.Update;
   var gmid: TG2Vec3;
   var KillGroup: Boolean;
 begin
+  m_Updating := True;
   for i := 0 to m_EmmitterCount - 1 do
   m_Emmitters[i].Update;
   gc := m_GroupCount;
@@ -434,6 +438,13 @@ begin
   for i := 0 to m_NewGroupCount - 1 do
   AddGroup(m_NewGroups[i]);
   m_NewGroupCount := 0;
+  m_Updating := False;
+  if m_NewPartcles.Count > 0 then
+  begin
+    for i := 0 to m_NewPartcles.Count - 1 do
+    AddParticle(TG2Particle3D(m_NewPartcles[i]));
+    m_NewPartcles.Clear;
+  end;
 end;
 
 procedure TG2Particles3D.Render;
@@ -505,67 +516,72 @@ procedure TG2Particles3D.AddParticle(const Particle: TG2Particle3D);
   var lx, ly, lz, hx, hy, hz, ms: Single;
   var glx, gly, glz, ghx, ghy, ghz, gsx, gsy, gsz: Single;
 begin
-  n := -1;
-  for i := 0 to RenderCount - 1 do
-  if Renders[i] is Particle.RenderClass then
+  if m_Updating then
+  m_NewPartcles.Add(Particle)
+  else
   begin
-    n := i;
-    Break;
-  end;
-  if n = -1 then
-  begin
-    n := RenderCount;
-    if Length(Renders) <= n then
-    SetLength(Renders, Length(Renders) + 8);
-    Renders[n] := Particle.RenderClass.Create(Core);
-    Inc(RenderCount);
-  end;
-  Particle.ParticleRender := Renders[n];
-  Particle.GetBounds(lx, ly, lz, hx, hy, hz);
-  ms := (Particle.sx + Particle.sy + Particle.sz) * 8;
-  g := nil;
-  for i := 0 to m_GroupCount - 1 do
-  if m_Groups[i]^.ParticleClass = CG2Particle3DClass(Particle.ClassType) then
-  begin
-    cg := m_Groups[i];
-    gsx := cg^.MaxSize - (cg^.BMax.x - cg^.BMin.x);
-    gsy := cg^.MaxSize - (cg^.BMax.y - cg^.BMin.y);
-    gsz := cg^.MaxSize - (cg^.BMax.z - cg^.BMin.z);
-    glx := cg^.BMin.x - gsx;
-    gly := cg^.BMin.y - gsy;
-    glz := cg^.BMin.z - gsz;
-    ghx := cg^.BMax.x + gsx;
-    ghy := cg^.BMax.y + gsy;
-    ghz := cg^.BMax.z + gsz;
-    if (lx > glx) and (ly > gly) and (lz > glz)
-    and (hx < ghx) and (hy < ghy) and (hz < ghz) then
+    n := -1;
+    for i := 0 to RenderCount - 1 do
+    if Renders[i] is Particle.RenderClass then
     begin
-      g := cg;
+      n := i;
       Break;
     end;
-  end;
-  if g = nil then
-  begin
-    New(g);
-    AddGroup(g);
-    g^.ParticleClass := CG2Particle3DClass(Particle.ClassType);
-    g^.BMin.SetValue(lx, ly, lz);
-    g^.BMax.SetValue(hx, hy, hz);
-    g^.ItemCount := 0;
+    if n = -1 then
+    begin
+      n := RenderCount;
+      if Length(Renders) <= n then
+      SetLength(Renders, Length(Renders) + 8);
+      Renders[n] := Particle.RenderClass.Create(Core);
+      Inc(RenderCount);
+    end;
+    Particle.ParticleRender := Renders[n];
+    Particle.GetBounds(lx, ly, lz, hx, hy, hz);
+    ms := (Particle.sx + Particle.sy + Particle.sz) * 8;
+    g := nil;
+    for i := 0 to m_GroupCount - 1 do
+    if m_Groups[i]^.ParticleClass = CG2Particle3DClass(Particle.ClassType) then
+    begin
+      cg := m_Groups[i];
+      gsx := cg^.MaxSize - (cg^.BMax.x - cg^.BMin.x);
+      gsy := cg^.MaxSize - (cg^.BMax.y - cg^.BMin.y);
+      gsz := cg^.MaxSize - (cg^.BMax.z - cg^.BMin.z);
+      glx := cg^.BMin.x - gsx;
+      gly := cg^.BMin.y - gsy;
+      glz := cg^.BMin.z - gsz;
+      ghx := cg^.BMax.x + gsx;
+      ghy := cg^.BMax.y + gsy;
+      ghz := cg^.BMax.z + gsz;
+      if (lx > glx) and (ly > gly) and (lz > glz)
+      and (hx < ghx) and (hy < ghy) and (hz < ghz) then
+      begin
+        g := cg;
+        Break;
+      end;
+    end;
+    if g = nil then
+    begin
+      New(g);
+      AddGroup(g);
+      g^.ParticleClass := CG2Particle3DClass(Particle.ClassType);
+      g^.BMin.SetValue(lx, ly, lz);
+      g^.BMax.SetValue(hx, hy, hz);
+      g^.ItemCount := 0;
+      g^.MaxSize := ms;
+    end;
+    if Length(g^.Items) <= g^.ItemCount then
+    SetLength(g^.Items, Length(g^.Items) + 64);
+    g^.Items[g^.ItemCount] := Particle;
+    Inc(g^.ItemCount);
+    if g^.MaxSize < ms then
     g^.MaxSize := ms;
+    if lx < g^.BMin.x then g^.BMin.x := lx;
+    if ly < g^.BMin.y then g^.BMin.y := ly;
+    if lz < g^.BMin.z then g^.BMin.z := lz;
+    if hx > g^.BMax.x then g^.BMax.x := hx;
+    if hy > g^.BMax.y then g^.BMax.y := hy;
+    if hz > g^.BMax.z then g^.BMax.z := hz;
   end;
-  if Length(g^.Items) <= g^.ItemCount then
-  SetLength(g^.Items, Length(g^.Items) + 64);
-  g^.Items[g^.ItemCount] := Particle;
-  Inc(g^.ItemCount);
-  if g^.MaxSize < ms then
-  g^.MaxSize := ms;
-  if lx < g^.BMin.x then g^.BMin.x := lx;
-  if ly < g^.BMin.y then g^.BMin.y := ly;
-  if lz < g^.BMin.z then g^.BMin.z := lz;
-  if hx > g^.BMax.x then g^.BMax.x := hx;
-  if hy > g^.BMax.y then g^.BMax.y := hy;
-  if hz > g^.BMax.z then g^.BMax.z := hz;
 end;
 
 procedure TG2Particles3D.Clear;

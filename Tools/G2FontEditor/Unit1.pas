@@ -428,7 +428,7 @@ type
     Height: Byte;
   end;
   TG2FontFile = packed record
-    Definition: string[4];
+    Definition: array[0..3] of AnsiChar;
     Version: DWord;
     FontFace: AnsiString;
     FontSize: Integer;
@@ -443,8 +443,8 @@ var
   PrevFont: TFont;
   i: integer;
 const
-  Definition = 'G2F';
-  Version = $00010000;
+  Definition = 'G2F ';
+  Version = $00010001;
 begin
   FontFile.Definition := Definition;
   FontFile.Version := Version;
@@ -467,7 +467,7 @@ begin
   FontFile.DataSize := ms.Size;
   fs := TG2FileRW.Create;
   fs.OpenWrite(f);
-  fs.Compression := True;
+  fs.Compression := False;
   fs.WriteBuffer(FontFile.Definition, 4);
   fs.Write(FontFile.Version);
   fs.Write(FontFile.FontFace);
