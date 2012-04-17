@@ -977,7 +977,7 @@ type
     property Specs: TG2GraphicsSpecs read m_Specs;
     property RenderStates: TG2RenderStates read m_RenderStates;
     property SamplerStates: TG2SamplerStates read m_SamplerStates;
-    property TextureStageStages: TG2TextureStageStates read m_TextureStageStates;
+    property TextureStageStates: TG2TextureStageStates read m_TextureStageStates;
     property Transforms: TG2Transforms read m_Transforms;
     property Lights: TG2Lights read m_Lights;
     property ShaderLib: TG2ShaderLib read m_ShaderLib;
@@ -10233,19 +10233,19 @@ end;
 
 procedure TG2Transforms.PopW;
 begin
-  m_W[0] := m_BufferW[High(m_BufferW)];
+  W[0] := m_BufferW[High(m_BufferW)];
   SetLength(m_BufferW, Length(m_BufferW) - 1);
 end;
 
 procedure TG2Transforms.PopV;
 begin
-  m_V := m_BufferV[High(m_BufferV)];
+  V := m_BufferV[High(m_BufferV)];
   SetLength(m_BufferV, Length(m_BufferV) - 1);
 end;
 
 procedure TG2Transforms.PopP;
 begin
-  m_P := m_BufferP[High(m_BufferP)];
+  P := m_BufferP[High(m_BufferP)];
   SetLength(m_BufferP, Length(m_BufferP) - 1);
 end;
 
@@ -17761,12 +17761,12 @@ end;
 procedure TG2MeshInst.RenderFF;
   var i, j: Integer;
   var BBox: TG2Box;
-  var PrevIndexVertexVertexBlendEnable: Boolean;
+  var PrevIndexVertexBlendEnable: Boolean;
   var PrevVertexBlend: DWord;
   var PrevCullMode: DWord;
   var W: TG2Mat;
 begin
-  PrevIndexVertexVertexBlendEnable := m_Mesh.Core.Graphics.RenderStates.IndexedVertexBlendEnable;
+  PrevIndexVertexBlendEnable := m_Mesh.Core.Graphics.RenderStates.IndexedVertexBlendEnable;
   PrevVertexBlend := m_Mesh.Core.Graphics.RenderStates.VertexBlend;
   PrevCullMode := m_Mesh.Core.Graphics.RenderStates.CullMode;
   W := m_Mesh.Core.Graphics.Transforms.W[0];
@@ -17825,7 +17825,7 @@ begin
   end;
   m_Mesh.Core.Graphics.RenderStates.CullMode := PrevCullMode;
   m_Mesh.Core.Graphics.RenderStates.VertexBlend := PrevVertexBlend;
-  m_Mesh.Core.Graphics.RenderStates.IndexedVertexBlendEnable := PrevIndexVertexVertexBlendEnable;
+  m_Mesh.Core.Graphics.RenderStates.IndexedVertexBlendEnable := PrevIndexVertexBlendEnable;
   m_Mesh.Core.Graphics.Transforms.PopW;
   m_Mesh.Core.Graphics.Transforms.ApplyW(0);
 end;
@@ -19443,26 +19443,26 @@ begin
       GUI.Core.Graphics.Device.SetTexture(CurrentStage, e^.Texture.Texture);
       if CurrentStage = 0 then
       begin
-        GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
-        GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_SELECTARG1;
+        GUI.Core.Graphics.TextureStageStates.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
+        GUI.Core.Graphics.TextureStageStates.AlphaOp[CurrentStage] := D3DTOP_SELECTARG1;
       end
       else
       begin
         if i = 3 then
         begin
-          GUI.Core.Graphics.TextureStageStages.ColorArg1[CurrentStage] := D3DTA_CURRENT;
-          GUI.Core.Graphics.TextureStageStages.ColorOp[CurrentStage] := D3DTOP_SELECTARG1;
-          GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
-          GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_SELECTARG1;
+          GUI.Core.Graphics.TextureStageStates.ColorArg1[CurrentStage] := D3DTA_CURRENT;
+          GUI.Core.Graphics.TextureStageStates.ColorOp[CurrentStage] := D3DTOP_SELECTARG1;
+          GUI.Core.Graphics.TextureStageStates.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
+          GUI.Core.Graphics.TextureStageStates.AlphaOp[CurrentStage] := D3DTOP_SELECTARG1;
         end
         else
         begin
-          GUI.Core.Graphics.TextureStageStages.ColorArg1[CurrentStage] := D3DTA_CURRENT;
-          GUI.Core.Graphics.TextureStageStages.ColorArg2[CurrentStage] := D3DTA_TEXTURE;
-          GUI.Core.Graphics.TextureStageStages.ColorOp[CurrentStage] := D3DTOP_BLENDCURRENTALPHA;
-          GUI.Core.Graphics.TextureStageStages.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
-          GUI.Core.Graphics.TextureStageStages.AlphaArg2[CurrentStage] := D3DTA_CURRENT;
-          GUI.Core.Graphics.TextureStageStages.AlphaOp[CurrentStage] := D3DTOP_ADD;
+          GUI.Core.Graphics.TextureStageStates.ColorArg1[CurrentStage] := D3DTA_CURRENT;
+          GUI.Core.Graphics.TextureStageStates.ColorArg2[CurrentStage] := D3DTA_TEXTURE;
+          GUI.Core.Graphics.TextureStageStates.ColorOp[CurrentStage] := D3DTOP_BLENDCURRENTALPHA;
+          GUI.Core.Graphics.TextureStageStates.AlphaArg1[CurrentStage] := D3DTA_TEXTURE;
+          GUI.Core.Graphics.TextureStageStates.AlphaArg2[CurrentStage] := D3DTA_CURRENT;
+          GUI.Core.Graphics.TextureStageStates.AlphaOp[CurrentStage] := D3DTOP_ADD;
         end;
       end;
       Inc(CurrentStage);
@@ -19478,7 +19478,7 @@ begin
       0, 0, GUI.VB.Count,
       0, GUI.IB.Count div 3
     );
-    GUI.Core.Graphics.TextureStageStages.SetDefaults;
+    GUI.Core.Graphics.TextureStageStates.SetDefaults;
   end;
 end;
 //TG2UISkin END

@@ -101,10 +101,10 @@ float4 PShaderPlain (const in TPSInput Input): Color0 {
 	float4 DiffuseSpecularMap = tex2D(SampDiffuseSpecularMap, Input._TexCoord0.zw);
 	
 	float3 RefDir = CamDir - 2 * Normal * dot(CamDir, Normal);
-	float DiffuseLight = saturate(dot(g_LightDir, Normal));
+	float4 DiffuseLight = saturate(dot(g_LightDir, Normal)) + g_LightAmbient; DiffuseLight.w = 1;
 	float4 DiffuseCol = DiffuseSpecularMap * DiffuseLight * g_LightDiffuse;
 	float4 SpecularCol = DiffuseSpecularMap.w * pow(saturate(dot(g_LightDir, RefDir)), g_SpecularPower);
-	float4 Col = DiffuseCol + SpecularCol + g_LightAmbient;
+	float4 Col = DiffuseCol + SpecularCol;
 	Col.w = tex2D(SampMask, Input._TexCoord0.xy).w;
 	return Col;
 }
@@ -117,44 +117,42 @@ float4 PShaderBump (const in TPSInput Input): Color0 {
 	float3 Tangent = normalize(cross(Normal, Binormal));
 	float3x3 TBN = float3x3(Tangent, Binormal, Normal);
 	
-	float3 LightDir = normalize(mul(TBN, g_LightDir));
-	CamDir = normalize(mul(TBN, CamDir));
+	//float3 LightDir = normalize(mul(TBN, g_LightDir));
+	//CamDir = normalize(mul(TBN, CamDir));
 	
-	float3 NormalMap = (float3)tex2D(SampNormalHeightMap, Input._TexCoord0.zw) * 2 - 1;
+	float3 NormalMap = normalize(mul(tex2D(SampNormalHeightMap, Input._TexCoord0.zw).xyz * 2 - 1, TBN));
 	float4 DiffuseSpecularMap = tex2D(SampDiffuseSpecularMap, Input._TexCoord0.zw);
 	
 	float3 RefDir = CamDir - 2 * NormalMap * dot(CamDir, NormalMap);
-	float DiffuseLight = saturate(dot(LightDir, NormalMap));
+	float4 DiffuseLight = saturate(dot(g_LightDir, NormalMap)) + g_LightAmbient; DiffuseLight.w = 1;
 	float4 DiffuseCol = DiffuseSpecularMap * DiffuseLight * g_LightDiffuse;
-	float4 SpecularCol = DiffuseSpecularMap.w * pow(saturate(dot(LightDir, RefDir)), g_SpecularPower);
-	float4 Col = DiffuseCol + SpecularCol + g_LightAmbient;
+	float4 SpecularCol = DiffuseSpecularMap.w * pow(saturate(dot(g_LightDir, RefDir)), g_SpecularPower);
+	float4 Col = DiffuseCol + SpecularCol;
 	Col.w = tex2D(SampMask, Input._TexCoord0.xy).w;
 	return Col;
 }
 
 float4 PShaderParallax (const in TPSInput Input): Color0 {
-	float3 CamDir = normalize(Input._CamDir);
-	
-	float3 Normal = (float3)tex2D(SampNormals, Input._TexCoord0.xy) * 2 - 1;
+	float3 Normal = normalize((float3)tex2D(SampNormals, Input._TexCoord0.xy) * 2 - 1);
 	float3 Binormal = normalize(cross(float3(1, 0, 0), Normal));
 	float3 Tangent = normalize(cross(Normal, Binormal));
 	float3x3 TBN = float3x3(Tangent, Binormal, Normal);
 	
 	float3 LightDir = normalize(mul(TBN, g_LightDir));
-	CamDir = normalize(mul(TBN, CamDir));
+	float3 CamDir = normalize(mul(TBN, Input._CamDir));
 	
-	float2 ParallaxDirection = normalize(CamDir.xy);
+	float2 ParallaxDirection = CamDir.xy;
 	
 	float HeightMap = tex2D(SampNormalHeightMap, Input._TexCoord0.zw).w * g_HeightMapScale;
 	float2 ParalaxTex0 = Input._TexCoord0.zw - HeightMap * ParallaxDirection;
-	float3 NormalMap = (float3)tex2D(SampNormalHeightMap, ParalaxTex0) * 2 - 1;
+	float3 NormalMap = normalize(tex2D(SampNormalHeightMap, ParalaxTex0).xyz * 2 - 1);
 	float4 DiffuseSpecularMap = tex2D(SampDiffuseSpecularMap, ParalaxTex0);
 	
 	float3 RefDir = CamDir - 2 * NormalMap * dot(CamDir, NormalMap);
-	float DiffuseLight = saturate(dot(LightDir, NormalMap));
+	float4 DiffuseLight = saturate(dot(LightDir, NormalMap)) + g_LightAmbient;
 	float4 DiffuseCol = DiffuseSpecularMap * DiffuseLight * g_LightDiffuse;
 	float4 SpecularCol = DiffuseSpecularMap.w * pow(saturate(dot(LightDir, RefDir)), g_SpecularPower);
-	float4 Col = DiffuseCol + SpecularCol + g_LightAmbient;
+	float4 Col = DiffuseCol + SpecularCol;
 	Col.w = tex2D(SampMask, Input._TexCoord0.xy).w;
 	return Col;
 }
@@ -172,7 +170,7 @@ float4 PShaderParallaxOcclusion (const in TPSInput Input): Color0 {
 	
 	float2 ParallaxDirection = normalize(CamDirTS.xy);
 	float FarLength = length(ParallaxDirection);
-    float ParallaxLength = sqrt(FarLength * FarLength - CamDirTS.z * CamDirTS.z) / CamDirTS.z;
+  float ParallaxLength = sqrt(FarLength * FarLength - CamDirTS.z * CamDirTS.z) / CamDirTS.z;
 
 	float2 ParallaxOffsetTS = ParallaxDirection * ParallaxLength * g_HeightMapScale;
 	
@@ -267,7 +265,7 @@ float4 PShaderParallaxOcclusion (const in TPSInput Input): Color0 {
 		}    
 	}
 	
-	float3 NormalTS = normalize(tex2D( SampNormalHeightMap, TexSample ) * 2 - 1);
+	float3 NormalTS = normalize(tex2D(SampNormalHeightMap, TexSample).xyz * 2 - 1);
 
 	float4 BaseColor = tex2D(SampDiffuseSpecularMap, TexSample);
    
@@ -278,7 +276,7 @@ float4 PShaderParallaxOcclusion (const in TPSInput Input): Color0 {
 	float RdotL = saturate(dot(ReflectionTS, LightDirTS));
 	float4 Specular = saturate(pow(RdotL, g_SpecularPower)) * BaseColor.w;
 
-	float4 FinalColor = (Diffuse * BaseColor * g_LightDiffuse + g_LightAmbient + Specular); 
+	float4 FinalColor = ((Diffuse + g_LightAmbient) * BaseColor * g_LightDiffuse + Specular); 
 	FinalColor.w = tex2D(SampMask, Input._TexCoord0.xy).w;
 
 	return FinalColor;  
