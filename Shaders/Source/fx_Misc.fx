@@ -5,7 +5,8 @@
 static const int MAX_BONE_COUNT = 80;
 uniform extern int VS_Index = 0;
 uniform extern int PS_Index = 0;
-float4x3 g_SkinPallete[MAX_BONE_COUNT];
+uniform float4x3 g_SkinPallete[MAX_BONE_COUNT];
+uniform float g_Bias = 0;
 
 //DepthLinear BEGIN
 struct TVarDepthLinear {
@@ -91,14 +92,14 @@ void PS_DepthLinear (
   const in float InDepth: TexCoord0, 
   out float4 OutColor0: Color0
 ) {
-  OutColor0 = float4(saturate(InDepth), 0, 0, 1);
+  OutColor0 = float4(saturate(InDepth + g_Bias), 0, 0, 1);
 }
 
 void PS_DepthLinearVSM (
   const in float InDepth: TexCoord0, 
   out float4 OutColor0: Color0
 ) {
-  float d = saturate(InDepth);
+  float d = saturate(InDepth + g_Bias); 
   OutColor0 = float4(d, d * d, 0, 1);
 }
 

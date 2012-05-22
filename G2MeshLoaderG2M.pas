@@ -1553,6 +1553,7 @@ end;
 procedure TG2MeshLoaderG2MO.ExportMesh(const Device: IDirect3DDevice9; const MeshData: PG2MeshData);
 begin
   G2MeshDataCopy(@m_MeshData, MeshData);
+  G2MeshDataLimitSkin(MeshData);
 end;
 //TG2MeshLoaderG2MO END
 

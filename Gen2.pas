@@ -290,17 +290,42 @@ type
 //TG2Rect BEGIN
   PG2Rect = ^TG2Rect;
   TG2Rect = record
+  strict private
+    procedure SetWidth(const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetWidth: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetHeight(const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetHeight: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetTopLeft(const Value: TG2Vec2); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetTopLeft: TG2Vec2; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetTopRight(const Value: TG2Vec2); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetTopRight: TG2Vec2; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetBottomLeft(const Value: TG2Vec2); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetBottomLeft: TG2Vec2; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetBottomRight(const Value: TG2Vec2); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetBottomRight: TG2Vec2; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     var Left: Single;
     var Top: Single;
     var Right: Single;
     var Bottom: Single;
-    function Width: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function Height: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
-    function TopLeft: TG2Vec2;
-    function TopRight: TG2Vec2;
-    function BottomLeft: TG2Vec2;
-    function BottomRight: TG2Vec2;
+    property x: Single read Left write Left;
+    property y: Single read Top write Top;
+    property l: Single read Left write Left;
+    property t: Single read Top write Top;
+    property r: Single read Right write Right;
+    property b: Single read Bottom write Bottom;
+    property w: Single read GetWidth write SetWidth;
+    property h: Single read GetHeight write SetHeight;
+    property tl: TG2Vec2 read GetTopLeft write SetTopLeft;
+    property tr: TG2Vec2 read GetTopRight write SetTopRight;
+    property bl: TG2Vec2 read GetBottomLeft write SetBottomLeft;
+    property br: TG2Vec2 read GetBottomRight write SetBottomRight;
+    property Width: Single read GetWidth write SetWidth;
+    property Height: Single read GetHeight write SetHeight;
+    property TopLeft: TG2Vec2 read GetTopLeft write SetTopLeft;
+    property TopRight: TG2Vec2 read GetTopRight write SetTopRight;
+    property BottomLeft: TG2Vec2 read GetBottomLeft write SetBottomLeft;
+    property BottomRight: TG2Vec2 read GetBottomRight write SetBottomRight;
   end;
 //TG2Rect END
 
@@ -5532,32 +5557,66 @@ end;
 //TG2BlendMode END
 
 //TG2Rect BEGIN
-function TG2Rect.Width: Single;
+procedure TG2Rect.SetWidth(const Value: Single);
+begin
+  Right := Left + Value;
+end;
+
+function TG2Rect.GetWidth: Single;
 begin
   Result := Right - Left;
 end;
 
-function TG2Rect.Height: Single;
+procedure TG2Rect.SetHeight(const Value: Single);
+begin
+  Bottom := Top + Value;
+end;
+
+function TG2Rect.GetHeight: Single;
 begin
   Result := Bottom - Top;
 end;
 
-function TG2Rect.TopLeft: TG2Vec2;
+procedure TG2Rect.SetTopLeft(const Value: TG2Vec2);
+begin
+  Left := Value.x;
+  Top := Value.y;
+end;
+
+function TG2Rect.GetTopLeft: TG2Vec2;
 begin
   Result.SetValue(Left, Top);
 end;
 
-function TG2Rect.TopRight: TG2Vec2;
+procedure TG2Rect.SetTopRight(const Value: TG2Vec2);
+begin
+  Top := Value.y;
+  Right := Value.x;
+end;
+
+function TG2Rect.GetTopRight: TG2Vec2;
 begin
   Result.SetValue(Right, Top);
 end;
 
-function TG2Rect.BottomLeft: TG2Vec2;
+procedure TG2Rect.SetBottomLeft(const Value: TG2Vec2);
+begin
+  Left := Value.x;
+  Bottom := Value.y;
+end;
+
+function TG2Rect.GetBottomLeft: TG2Vec2;
 begin
   Result.SetValue(Left, Bottom);
 end;
 
-function TG2Rect.BottomRight: TG2Vec2;
+procedure TG2Rect.SetBottomRight(const Value: TG2Vec2);
+begin
+  Right := Value.x;
+  Bottom := Value.y;
+end;
+
+function TG2Rect.GetBottomRight: TG2Vec2;
 begin
   Result.SetValue(Right, Bottom);
 end;
@@ -8600,6 +8659,9 @@ end;
 
 procedure TG2Graphics.SetDepthStencilSurface(const Surface: TG2SurfaceDS);
 begin
+  if Surface = nil then
+  m_Device.SetDepthStencilSurface(nil)
+  else
   m_Device.SetDepthStencilSurface(Surface.Surface);
   m_CurSurfaceDS := Surface;
 end;
@@ -30553,7 +30615,7 @@ begin
   m_Core.Graphics.Device.GetRenderTarget(0, PrevRT);
   m_Core.Graphics.Device.GetDepthStencilSurface(PrevDS);
   m_Core.Graphics.Device.SetDepthStencilSurface(nil);
-  Tmp01 := RequestSurface(Input.Width, Input.Height);
+  Tmp01 := RequestSurface(Input.Width, Input.Height, Input.Format);
   m_Shaders.Technique := 'Blur';
   ShaderVar.Offset.SetValue(1 / Input.RealWidth, 0);
   m_Shaders.SetValue('VarBlur', @ShaderVar, SizeOf(ShaderVar));

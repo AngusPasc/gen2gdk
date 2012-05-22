@@ -175,6 +175,7 @@ type
     procedure Init;
     procedure UnInit;
     procedure CheckFetchID;
+    procedure SetOcclusionCull(const Value: TG2SGOcclusionCullSet); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetGeomCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetGeoms(const Index: Integer): TG2SGGeom; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetCharCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -183,7 +184,7 @@ type
     function GetLights(const Index: Integer): TG2SGLight; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   public
     var Stats: TG2SGQueryStatistics;
-    property OcclusionCull: TG2SGOcclusionCullSet read m_OcclusionCull write m_OcclusionCull;
+    property OcclusionCull: TG2SGOcclusionCullSet read m_OcclusionCull write SetOcclusionCull;
     property OcclusionCheckTimeBias: DWord read m_OcclusionCheckTimeBias write m_OcclusionCheckTimeBias;
     property DistanceSortEnable: Boolean read m_DistanceSortEnable write m_DistanceSortEnable;
     property GeomCount: Integer read GetGeomCount;
@@ -340,12 +341,22 @@ type
     var m_OcTree: Boolean;
     var m_FaceFetchID: array of Int64;
     var m_CurFaceFetchID: Int64;
+    var m_FetchedFaces: array of Word;
+    var m_FetchedFaceCount: Integer;
     procedure SetCollide(const Value: Boolean);
     procedure UpdateCollider;
     procedure SetOcTree(const Value: Boolean);
-    procedure ResetFaceFectchID;
+    procedure ResetFaceFetchID;
+    function GetFetchedFace(const Index: Integer): Word; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    function GetFetchedFaceCount: Integer; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
   protected
     var OcTreeNode: TG2SGGeomOcTreeNode;
+    var HashTable: array of array of array of PG2SGGeomOcTreeNode;
+    var HashSizeX: Integer;
+    var HashSizeY: Integer;
+    var HashSizeZ: Integer;
+    var HashCellSize: TG2Vec3;
+    var HashAABox: TG2AABox;
     property OcTree: Boolean read m_OcTree write SetOcTree;
     procedure SetRender(const Value: Boolean); override;
     function GetAABox: TG2AABox; override;
@@ -360,12 +371,16 @@ type
     var IB: IDirect3DIndexBuffer9;
     var Collider: TG2SGCollider;
     var OOBox: TG2Box;
+    property FetchedFaces[const Index: Integer]: Word read GetFetchedFace;
+    property FetchedFaceCount: Integer read GetFetchedFaceCount;
     property Collide: Boolean read m_Collide write SetCollide;
     constructor Create(const SceneGraph: TG2SceneGraph); override;
     destructor Destroy; override;
     procedure Update; override;
     function IntersectRay(const r: TG2Ray): Boolean; overload;
     function IntersectRay(const r: TG2Ray; var FaceID: Word; var U, V, Dist: Single): Boolean; overload;
+    procedure FetchFaces(const BBox: TG2Box); overload;
+    procedure FetchFaces(const AABox: TG2AABox); overload;
   end;
 
   TG2SGChar = class (TG2SGFrame)
@@ -556,6 +571,17 @@ begin
   end;
 end;
 
+procedure TG2SGQuery.SetOcclusionCull(const Value: TG2SGOcclusionCullSet);
+  var i: Integer;
+begin
+  if Value <> m_OcclusionCull then
+  begin
+    m_OcclusionCull := Value;
+    for i := 0 to SceneGraph.Frames.Count - 1 do
+    PG2SGQueryItemLink(TG2SGFrame(SceneGraph.Frames[i]).OcTreeItem.QueryLinks[ID])^.Init;
+  end;
+end;
+
 function TG2SGQuery.GetGeomCount: Integer;
 begin
   Result := QueryLists[G2QL_GEOMS].Count;
@@ -705,6 +731,8 @@ end;
 //TG2SGQueryItemLink BEGIN
 procedure TG2SGQueryItemLink.Init;
 begin
+  UnInit;
+  if Query^.OcclusionCull <> [] then
   Query.SceneGraph.Core.Graphics.Device.CreateQuery(
     D3DQUERYTYPE_OCCLUSION,
     OcclusionQuery
@@ -1598,16 +1626,17 @@ begin
   for i := 0 to m_GeomCollideList.Count - 1 do
   begin
     Geom := TG2SGGeom(m_GeomCollideList[i]);
-    for j := 0 to Geom.FCount - 1 do
+    Geom.FetchFaces(AABoxChar);
+    for j := 0 to Geom.FetchedFaceCount - 1 do
     begin
-      if AABoxChar.Intersect(Geom.Collider.Faces[j].AABox) then
+      if AABoxChar.Intersect(Geom.Collider.Faces[Geom.FetchedFaces[j]].AABox) then
       begin
-        if Geom.Collider.Faces[j].Plane.N.Dot(StepNorm) < -0.8 then
+        if Geom.Collider.Faces[Geom.FetchedFaces[j]].Plane.N.Dot(StepNorm) < -0.8 then
         begin
           if G2Ray(s.C, StepNorm).IntersectTri(
-            Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[0]],
-            Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[1]],
-            Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[2]],
+            Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Indices[0]],
+            Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Indices[1]],
+            Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Indices[2]],
             TriU, TriV, d
           ) then
           begin
@@ -1624,25 +1653,25 @@ begin
                 AABoxTop.MaxV := AABoxTop.MaxV + ShiftVec;
                 AABoxChar.MinV := AABoxChar.MinV + ShiftVec;
                 AABoxChar.MaxV := AABoxChar.MaxV + ShiftVec;
-                Geom.Collider.Faces[j].CillideID := m_CurCollideID;
+                Geom.Collider.Faces[Geom.FetchedFaces[j]].CillideID := m_CurCollideID;
                 Result := True;
               end;
             end;
           end;
         end;
-        if (Geom.Collider.Faces[j].CillideID <> m_CurCollideID)
-        and (AABoxTop.Intersect(Geom.Collider.Faces[j].AABox))
+        if (Geom.Collider.Faces[Geom.FetchedFaces[j]].CillideID <> m_CurCollideID)
+        and (AABoxTop.Intersect(Geom.Collider.Faces[Geom.FetchedFaces[j]].AABox))
         and s.C.InTriangle(
-          Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[0]],
-          Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[1]],
-          Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[2]]
+          Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Indices[0]],
+          Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Indices[1]],
+          Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Indices[2]]
         ) then
         begin
-          Geom.Collider.Faces[j].CillideID := m_CurCollideID;
-          d := Abs(Geom.Collider.Faces[j].Plane.DistanceToPoint(s.C));
+          Geom.Collider.Faces[Geom.FetchedFaces[j]].CillideID := m_CurCollideID;
+          d := Abs(Geom.Collider.Faces[Geom.FetchedFaces[j]].Plane.DistanceToPoint(s.C));
           if d < s.R then
           begin
-            t := Geom.Collider.Faces[j].Plane.Project(s.C);
+            t := Geom.Collider.Faces[Geom.FetchedFaces[j]].Plane.Project(s.C);
             n := (s.C - t).Normalized;
             sv := sv + n;
             ShiftVec := (t + n * s.R) - s.C;
@@ -1656,26 +1685,26 @@ begin
         end;
       end
       else
-      Geom.Collider.Faces[j].CillideID := m_CurCollideID;
+      Geom.Collider.Faces[Geom.FetchedFaces[j]].CillideID := m_CurCollideID;
     end;
   end;
   for i := 0 to m_GeomCollideList.Count - 1 do
   begin
     Geom := TG2SGGeom(m_GeomCollideList[i]);
-    for j := 0 to Geom.FCount - 1 do
-    if Geom.Collider.Faces[j].CillideID <> m_CurCollideID then
+    for j := 0 to Geom.FetchedFaceCount - 1 do
+    if Geom.Collider.Faces[Geom.FetchedFaces[j]].CillideID <> m_CurCollideID then
     for k := 0 to 2 do
     begin
       d := G2Vec3ToLine(
-        Geom.Collider.Vertices[Geom.Collider.Faces[j].Edges[k].Indices[0]],
-        Geom.Collider.Vertices[Geom.Collider.Faces[j].Edges[k].Indices[1]],
+        Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Edges[k].Indices[0]],
+        Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Edges[k].Indices[1]],
         s.C, t, InSegment
       );
       if InSegment
       and (d < s.R)
-      and (Geom.Collider.Faces[j].Edges[k].N.Dot((s.C - t).Normalized) > 0) then
+      and (Geom.Collider.Faces[Geom.FetchedFaces[j]].Edges[k].N.Dot((s.C - t).Normalized) > 0) then
       begin
-        Geom.Collider.Faces[j].CillideID := m_CurCollideID;
+        Geom.Collider.Faces[Geom.FetchedFaces[j]].CillideID := m_CurCollideID;
         n := (s.C - t).Normalized;
         sv := sv + n;
         s.C := t + (n * s.R);
@@ -1687,18 +1716,18 @@ begin
   for i := 0 to m_GeomCollideList.Count - 1 do
   begin
     Geom := TG2SGGeom(m_GeomCollideList[i]);
-    for j := 0 to Geom.FCount - 1 do
-    if Geom.Collider.Faces[j].CillideID <> m_CurCollideID then
+    for j := 0 to Geom.FetchedFaceCount - 1 do
+    if Geom.Collider.Faces[Geom.FetchedFaces[j]].CillideID <> m_CurCollideID then
     begin
       for k := 0 to 2 do
       begin
-        n := s.C - Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[k]];
+        n := s.C - Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Indices[k]];
         d := n.Len;
         if d < s.R then
         begin
           n.Normalize;
           sv := sv + n;
-          s.C := Geom.Collider.Vertices[Geom.Collider.Faces[j].Indices[k]] + (n * s.R);
+          s.C := Geom.Collider.Vertices[Geom.Collider.Faces[Geom.FetchedFaces[j]].Indices[k]] + (n * s.R);
           Result := True;
         end;
       end;
@@ -2082,7 +2111,6 @@ begin
         Geom.Groups[g].VStart, Geom.Groups[g].VCount,
         Geom.Groups[g].FStart * 3, Geom.Groups[g].FCount
       );
-
     end;
   end;
   for i := 0 to Query.CharCount - 1 do
@@ -2334,7 +2362,24 @@ procedure TG2SGGeom.SetOcTree(const Value: Boolean);
       end;
     end;
   end;
+  procedure AllocateHash(const n: PG2SGGeomOcTreeNode);
+    var x, y, z, hx, hy, hz: Integer;
+  begin
+    if n^.NoDiv then
+    begin
+      hx := Round((n^.AABox.MinV.x - HashAABox.MinV.x) / HashCellSize.x);
+      hy := Round((n^.AABox.MinV.y - HashAABox.MinV.y) / HashCellSize.y);
+      hz := Round((n^.AABox.MinV.z - HashAABox.MinV.z) / HashCellSize.z);
+      HashTable[hx, hy, hz] := n;
+    end
+    else
+    for x := 0 to n^.CountX - 1 do
+    for y := 0 to n^.CountY - 1 do
+    for z := 0 to n^.CountZ - 1 do
+    AllocateHash(@n^.SubNodes[x, y, z]);
+  end;
   var i, j: Integer;
+  var n: PG2SGGeomOcTreeNode;
 begin
   if m_OcTree = Value then Exit;
   m_OcTree := Value;
@@ -2370,20 +2415,40 @@ begin
       FaceList.Clear;
       OcTreeNode.Depth := 0;
       InitNode(@OcTreeNode);
+      n := @OcTreeNode;
+      while not n^.NoDiv do
+      n := @n^.SubNodes[0, 0, 0];
+      HashAABox := OcTreeNode.AABox;
+      HashCellSize := n^.AABox.MaxV - n^.AABox.MinV;
+      HashSizeX := Round((HashAABox.MaxV.x - HashAABox.MinV.x) / HashCellSize.x);
+      HashSizeY := Round((HashAABox.MaxV.y - HashAABox.MinV.y) / HashCellSize.y);
+      HashSizeZ := Round((HashAABox.MaxV.z - HashAABox.MinV.z) / HashCellSize.z);
+      SetLength(HashTable, HashSizeX, HashSizeY, HashSizeZ);
+      AllocateHash(@OcTreeNode);
       SetLength(m_FaceFetchID, FCount);
-      ResetFaceFectchID;
+      ResetFaceFetchID;
     end
     else
     m_OcTree := False;
   end;
 end;
 
-procedure TG2SGGeom.ResetFaceFectchID;
+procedure TG2SGGeom.ResetFaceFetchID;
   var i: Integer;
 begin
   for i := 0 to FCount - 1 do
   m_FaceFetchID[i] := 0;
   m_CurFaceFetchID := 0;
+end;
+
+function TG2SGGeom.GetFetchedFace(const Index: Integer): Word;
+begin
+  Result := m_FetchedFaces[Index];
+end;
+
+function TG2SGGeom.GetFetchedFaceCount: Integer;
+begin
+  Result := m_FetchedFaceCount;
 end;
 
 constructor TG2SGGeom.Create(const SceneGraph: TG2SceneGraph);
@@ -2400,6 +2465,7 @@ begin
     0, 0, 0, 0
   );
   QueryListID := G2QL_GEOMS;
+  m_FetchedFaceCount := 0;
 end;
 
 destructor TG2SGGeom.Destroy;
@@ -2510,7 +2576,7 @@ begin
     m_SceneGraph.CS.Enter;
     try
       if m_CurFaceFetchID >= High(Int64) - 1 then
-      ResetFaceFectchID;
+      ResetFaceFetchID;
       Inc(m_CurFaceFetchID);
       ro := r;
       ro.TransformInverse(Transform);
@@ -2565,6 +2631,46 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TG2SGGeom.FetchFaces(const BBox: TG2Box);
+  var AABox: TG2AABox;
+  var i, x, y, z, xl, yl, zl, xh, yh, zh: Integer;
+begin
+  if Length(m_FetchedFaces) < FCount then
+  SetLength(m_FetchedFaces, FCount);
+  if OcTree then
+  begin
+    AABox := (BBox * Transform.Inverse).AABox;
+    xl := Trunc((AABox.MinV.x - HashAABox.MinV.x) / HashCellSize.x); if xl < 0 then xl := 0;
+    yl := Trunc((AABox.MinV.y - HashAABox.MinV.y) / HashCellSize.y); if yl < 0 then yl := 0;
+    zl := Trunc((AABox.MinV.z - HashAABox.MinV.z) / HashCellSize.z); if zl < 0 then zl := 0;
+    xh := Trunc((AABox.MaxV.x - HashAABox.MinV.x) / HashCellSize.x); if xh > HashSizeX - 1 then xh := HashSizeX - 1;
+    yh := Trunc((AABox.MaxV.y - HashAABox.MinV.y) / HashCellSize.y); if yh > HashSizeY - 1 then yh := HashSizeY - 1;
+    zh := Trunc((AABox.MaxV.z - HashAABox.MinV.z) / HashCellSize.z); if zh > HashSizeZ - 1 then zh := HashSizeZ - 1;
+    m_FetchedFaceCount := 0;
+    for x := xl to xh do
+    for y := yl to yh do
+    for z := zl to zh do
+    for i := 0 to HashTable[x, y, z]^.TotalFaces - 1 do
+    begin
+      m_FetchedFaces[m_FetchedFaceCount] := HashTable[x, y, z]^.Faces[i];
+      Inc(m_FetchedFaceCount);
+    end;
+  end
+  else
+  begin
+    for i := 0 to FCount - 1 do
+    m_FetchedFaces[i] := i;
+    m_FetchedFaceCount := FCount;
+  end;
+end;
+
+procedure TG2SGGeom.FetchFaces(const AABox: TG2AABox);
+  var BBox: TG2Box;
+begin
+  BBox := AABox;
+  FetchFaces(BBox);
 end;
 
 procedure TG2SGGeom.SetRender(const Value: Boolean);

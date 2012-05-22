@@ -569,6 +569,7 @@ function G2Vec4(const _V: TG2Vec3; const _W: Single): TG2Vec4; overload; {$IFDEF
 function G2Quat(const _X, _Y, _Z, _W: Single): TG2Quat; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2Ray(const _Origin, _Direction: TG2Vec3): TG2Ray; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2Plane(const V, N: TG2Vec3): TG2Plane; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+function G2Sign(const f: Single): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2LerpColor(const c1, c2: DWord; const s: Single): DWord;
 function G2LerpFloat(const f1, f2, s: Single): Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
 function G2LerpVec2(const v1, v2: TG2Vec2; const s: Single): TG2Vec2; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -3217,6 +3218,11 @@ end;
 function G2Plane(const V, N: TG2Vec3): TG2Plane;
 begin
   Result.SetPlane(V, N);
+end;
+
+function G2Sign(const f: Single): Single;
+begin
+  if f > 0 then Result := 1 else if f < 0 then Result := -1 else Result := 0;
 end;
 
 function G2LerpColor(const c1, c2: DWord; const s: Single): DWord;
