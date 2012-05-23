@@ -432,7 +432,7 @@ end;
 
 procedure G2MeshDataLimitSkin(const MeshData: PG2MeshData; const MaxWeights: Integer = 4);
 var
-  s, v, w, n, i, CurWeights: Integer;
+  s, v, w, n, i, j, CurWeights: Integer;
   TotalWeight: Single;
   WeightsRemap: array of record
   public
@@ -441,37 +441,64 @@ var
   end;
 begin
   for s := 0 to MeshData^.SkinCount - 1 do
-  for v := 0 to High(MeshData^.Skins[s].Vertices) do
-  if MeshData^.Skins[s].Vertices[v].WeightCount > MaxWeights then
   begin
-    if MeshData^.Skins[s].Vertices[v].WeightCount > Length(WeightsRemap) then
-    SetLength(WeightsRemap, MeshData^.Skins[s].Vertices[v].WeightCount);
-    CurWeights := 0;
-    for w := 0 to MeshData^.Skins[s].Vertices[v].WeightCount - 1 do
+    for v := 0 to High(MeshData^.Skins[s].Vertices) do
     begin
-      n := CurWeights;
-      for i := 0 to CurWeights - 1 do
-      if WeightsRemap[i].Weight < MeshData^.Skins[s].Vertices[v].Weights[w].Weight then
+      if MeshData^.Skins[s].Vertices[v].WeightCount > MaxWeights then
       begin
-        n := i;
-        Move(WeightsRemap[i], WeightsRemap[i + 1], 8 * (CurWeights - i));
-        Break;
+        if MeshData^.Skins[s].Vertices[v].WeightCount > Length(WeightsRemap) then
+        SetLength(WeightsRemap, MeshData^.Skins[s].Vertices[v].WeightCount);
+        CurWeights := 0;
+        for w := 0 to MeshData^.Skins[s].Vertices[v].WeightCount - 1 do
+        begin
+          n := CurWeights;
+          for i := 0 to CurWeights - 1 do
+          if WeightsRemap[i].Weight < MeshData^.Skins[s].Vertices[v].Weights[w].Weight then
+          begin
+            n := i;
+            Move(WeightsRemap[i], WeightsRemap[i + 1], 8 * (CurWeights - i));
+            Break;
+          end;
+          WeightsRemap[n].Weight := MeshData^.Skins[s].Vertices[v].Weights[w].Weight;
+          WeightsRemap[n].Index := MeshData^.Skins[s].Vertices[v].Weights[w].BoneID;
+          Inc(CurWeights);
+        end;
+        TotalWeight := WeightsRemap[0].Weight;
+        for w := 1 to MaxWeights - 1 do
+        TotalWeight := TotalWeight + WeightsRemap[w].Weight;
+        TotalWeight := 1 / TotalWeight;
+        SetLength(MeshData^.Skins[s].Vertices[v].Weights, MaxWeights);
+        for w := 0 to MaxWeights - 1 do
+        begin
+          MeshData^.Skins[s].Vertices[v].Weights[w].BoneID := WeightsRemap[w].Index;
+          MeshData^.Skins[s].Vertices[v].Weights[w].Weight := WeightsRemap[w].Weight * TotalWeight;
+        end;
+        MeshData^.Skins[s].Vertices[v].WeightCount := MaxWeights;
       end;
-      WeightsRemap[n].Weight := MeshData^.Skins[s].Vertices[v].Weights[w].Weight;
-      WeightsRemap[n].Index := MeshData^.Skins[s].Vertices[v].Weights[w].BoneID;
-      Inc(CurWeights);
+      n := MeshData^.Skins[s].Vertices[v].WeightCount;
+      w := 0;
+      while w < n do
+      begin
+        if MeshData^.Skins[s].Vertices[v].Weights[w].Weight < G2EPS then
+        begin
+          for j := w to n - 2 do
+          begin
+            MeshData^.Skins[s].Vertices[v].Weights[j].Weight := MeshData^.Skins[s].Vertices[v].Weights[j + 1].Weight;
+            MeshData^.Skins[s].Vertices[v].Weights[j].BoneID := MeshData^.Skins[s].Vertices[v].Weights[j + 1].BoneID;
+          end;
+          Dec(n);
+        end
+        else
+        Inc(w);
+      end;
+      if n < MeshData^.Skins[s].Vertices[v].WeightCount then
+      begin
+        SetLength(MeshData^.Skins[s].Vertices[v].Weights, n);
+        MeshData^.Skins[s].Vertices[v].WeightCount := n;
+      end;
     end;
-    TotalWeight := WeightsRemap[0].Weight;
-    for w := 1 to MaxWeights - 1 do
-    TotalWeight := TotalWeight + WeightsRemap[w].Weight;
-    TotalWeight := 1 / TotalWeight;
-    SetLength(MeshData^.Skins[s].Vertices[v].Weights, MaxWeights);
-    for w := 0 to MaxWeights - 1 do
-    begin
-      MeshData^.Skins[s].Vertices[v].Weights[w].BoneID := WeightsRemap[w].Index;
-      MeshData^.Skins[s].Vertices[v].Weights[w].Weight := WeightsRemap[w].Weight * TotalWeight;
-    end;
-    MeshData^.Skins[s].Vertices[v].WeightCount := MaxWeights;
+    if MeshData^.Skins[s].MaxWeights > MaxWeights then
+    MeshData^.Skins[s].MaxWeights := MaxWeights;
   end;
 end;
 

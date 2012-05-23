@@ -189,9 +189,13 @@ type
     class operator Negative(const v: TG2Vec2): TG2Vec2;
     class operator Explicit(const v: TG2Vec2): TG2Vec2Ref;
     class operator Explicit(const v: TG2Vec2Ref): TG2Vec2;
+    class operator Explicit(const v: TG2Vec2): TFloat2;
+    class operator Explicit(const v: TFloat2): TG2Vec2;
     class operator Explicit(const v: TPoint): TG2Vec2;
     class operator Implicit(const v: TG2Vec2): TG2Vec2Ref;
     class operator Implicit(const v: TG2Vec2Ref): TG2Vec2;
+    class operator Implicit(const v: TG2Vec2): TFloat2;
+    class operator Implicit(const v: TFloat2): TG2Vec2;
     class operator Implicit(const v: TPoint): TG2Vec2;
     class operator Equal(const v1, v2: TG2Vec2): Boolean;
     class operator NotEqual(const v1, v2: TG2Vec2): Boolean;
@@ -230,9 +234,13 @@ type
     property Arr[const Index: Integer]: Single read GetArr write SetArr; default;
     class operator Negative(const v: TG2Vec3): TG2Vec3; 
     class operator Explicit(const v: TG2Vec3): TG2Vec3Ref; 
-    class operator Explicit(const v: TG2Vec3Ref): TG2Vec3; 
-    class operator Implicit(const v: TG2Vec3): TG2Vec3Ref; 
-    class operator Implicit(const v: TG2Vec3Ref): TG2Vec3; 
+    class operator Explicit(const v: TG2Vec3Ref): TG2Vec3;
+    class operator Explicit(const v: TG2Vec3): TFloat2;
+    class operator Explicit(const v: TFloat2): TG2Vec3;
+    class operator Implicit(const v: TG2Vec3): TG2Vec3Ref;
+    class operator Implicit(const v: TG2Vec3Ref): TG2Vec3;
+    class operator Implicit(const v: TG2Vec3): TFloat2;
+    class operator Implicit(const v: TFloat2): TG2Vec3;
     class operator Equal(const v1, v2: TG2Vec3): Boolean; 
     class operator NotEqual(const v1, v2: TG2Vec3): Boolean; 
     class operator Add(const v1, v2: TG2Vec3): TG2Vec3;
@@ -273,11 +281,15 @@ type
     class operator Negative(const v: TG2Vec4): TG2Vec4;
     class operator Explicit(const v: TG2Vec4): TG2Vec4Ref; 
     class operator Explicit(const v: TG2Vec4Ref): TG2Vec4;
+    class operator Explicit(const v: TG2Vec4): TFloat4;
+    class operator Explicit(const v: TFloat4): TG2Vec4;
     class operator Explicit(const v: TG2Vec3): TG2Vec4;
     class operator Explicit(const v: TG2Vec2): TG2Vec4;
     class operator Explicit(const s: Single): TG2Vec4;
     class operator Implicit(const v: TG2Vec4): TG2Vec4Ref; 
     class operator Implicit(const v: TG2Vec4Ref): TG2Vec4;
+    class operator Implicit(const v: TG2Vec4): TFloat4;
+    class operator Implicit(const v: TFloat4): TG2Vec4;
     class operator Implicit(const v: TG2Vec3): TG2Vec4;
     class operator Implicit(const v: TG2Vec2): TG2Vec4;
     class operator Implicit(const s: Single): TG2Vec4;
@@ -1495,6 +1507,16 @@ begin
   Result := PG2Vec2(@v)^;
 end;
 
+class operator TG2Vec2.Explicit(const v: TG2Vec2): TFloat2;
+begin
+  Result := PFloat2(@v)^;
+end;
+
+class operator TG2Vec2.Explicit(const v: TFloat2): TG2Vec2;
+begin
+  Result := PG2Vec2(@v)^;
+end;
+
 class operator TG2Vec2.Explicit(const v: TPoint): TG2Vec2;      
 begin
   Result.x := v.X;
@@ -1507,6 +1529,16 @@ begin
 end;
 
 class operator TG2Vec2.Implicit(const v: TG2Vec2Ref): TG2Vec2;  
+begin
+  Result := PG2Vec2(@v)^;
+end;
+
+class operator TG2Vec2.Implicit(const v: TG2Vec2): TFloat2;
+begin
+  Result := PFloat2(@v)^;
+end;
+
+class operator TG2Vec2.Implicit(const v: TFloat2): TG2Vec2;
 begin
   Result := PG2Vec2(@v)^;
 end;
@@ -1695,12 +1727,32 @@ begin
   Result := PG2Vec3(@v)^;
 end;
 
+class operator TG2Vec3.Explicit(const v: TG2Vec3): TFloat2;
+begin
+  Result := PFloat2(@v)^;
+end;
+
+class operator TG2Vec3.Explicit(const v: TFloat2): TG2Vec3;
+begin
+  Result := PG2Vec3(@v)^;
+end;
+
 class operator TG2Vec3.Implicit(const v: TG2Vec3): TG2Vec3Ref;  
 begin
   Result := PG2Vec3Ref(@v)^;
 end;
 
 class operator TG2Vec3.Implicit(const v: TG2Vec3Ref): TG2Vec3;   
+begin
+  Result := PG2Vec3(@v)^;
+end;
+
+class operator TG2Vec3.Implicit(const v: TG2Vec3): TFloat2;
+begin
+  Result := PFloat2(@v)^;
+end;
+
+class operator TG2Vec3.Implicit(const v: TFloat2): TG2Vec3;
 begin
   Result := PG2Vec3(@v)^;
 end;
@@ -1925,6 +1977,16 @@ begin
   Result := PG2Vec4(@v)^;
 end;
 
+class operator TG2Vec4.Explicit(const v: TG2Vec4): TFloat4;
+begin
+  Result := PFloat4(@v)^;
+end;
+
+class operator TG2Vec4.Explicit(const v: TFloat4): TG2Vec4;
+begin
+  Result := PG2Vec4(@v)^;
+end;
+
 class operator TG2Vec4.Explicit(const v: TG2Vec3): TG2Vec4;
 begin
   Result.x := v.x;
@@ -1952,6 +2014,16 @@ begin
 end;
 
 class operator TG2Vec4.Implicit(const v: TG2Vec4Ref): TG2Vec4;  
+begin
+  Result := PG2Vec4(@v)^;
+end;
+
+class operator TG2Vec4.Implicit(const v: TG2Vec4): TFloat4;
+begin
+  Result := PFloat4(@v)^;
+end;
+
+class operator TG2Vec4.Implicit(const v: TFloat4): TG2Vec4;
 begin
   Result := PG2Vec4(@v)^;
 end;
