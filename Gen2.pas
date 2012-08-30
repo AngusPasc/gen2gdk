@@ -291,6 +291,8 @@ type
   PG2Rect = ^TG2Rect;
   TG2Rect = record
   strict private
+    procedure SetX(const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
+    procedure SetY(const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetWidth(const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     function GetWidth: Single; {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
     procedure SetHeight(const Value: Single); {$IFDEF G2_USE_INLINE} inline; {$ENDIF}
@@ -308,8 +310,8 @@ type
     var Top: Single;
     var Right: Single;
     var Bottom: Single;
-    property x: Single read Left write Left;
-    property y: Single read Top write Top;
+    property x: Single read Left write SetX;
+    property y: Single read Top write SetY;
     property l: Single read Left write Left;
     property t: Single read Top write Top;
     property r: Single read Right write Right;
@@ -5557,6 +5559,22 @@ end;
 //TG2BlendMode END
 
 //TG2Rect BEGIN
+procedure TG2Rect.SetX(const Value: Single);
+  var d: Single;
+begin
+  d := w;
+  Left := Value;
+  w := d;
+end;
+
+procedure TG2Rect.SetY(const Value: Single);
+  var d: Single;
+begin
+  d := h;
+  Top := Value;
+  h := d;
+end;
+
 procedure TG2Rect.SetWidth(const Value: Single);
 begin
   Right := Left + Value;
@@ -7891,6 +7909,7 @@ end;
 
 procedure TG2Timer.WndProc(var Msg: TMessage);
 begin
+  if not m_Enabled then Exit;
   with Msg do
   if Msg = WM_TIMER then
   OnTimer
@@ -7922,10 +7941,10 @@ begin
       m_PrevUpdateTime := m_PrevUpdateTime + UpdCount * m_MaxUpdateLag;
       for j := 0 to UpdCount - 1 do
       begin
-        if not m_Enabled then Break;
+        if not m_Enabled then Exit;
         for i := 0 to m_Plugs.Count - 1 do
         begin
-          if not m_Enabled then Break;
+          if not m_Enabled then Exit;
           if Assigned(TG2PlugTimer(m_Plugs.Items[i]).OnUpdate) then
           TG2PlugTimer(m_Plugs.Items[i]).OnUpdate;
         end;
@@ -16368,7 +16387,7 @@ type
     Height: Byte;
   end;
   TG2FontFile = packed record
-    Definition: string[4];
+    Definition: array[0..3] of AnsiChar;
     Version: DWord;
     FontFace: AnsiString;
     FontSize: Integer;
@@ -16376,7 +16395,7 @@ type
     Chars: array[0..255] of TCharProp;
   end;
 const
-  Definition = 'G2F';
+  Definition: array[0..3] of AnsiChar = 'G2F ';
 var
   fw: TG2FileRW;
   FontFile: TG2FontFile;
@@ -31341,6 +31360,7 @@ begin
       if i < j - 1 then
       Move(m_WindowArr[i + 1], m_WindowArr[i], SizeOf(WindowHandle) * (i - j - 1));
       SetLength(m_WindowArr, Length(m_WindowArr) - 1);
+      Dec(j);
     end;
   end;
   DestroyWindow(WindowHandle);
